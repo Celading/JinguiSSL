@@ -1,12 +1,22 @@
 # Packaging Audit
 
-`jinguiSSL` 当前在仓颉工具链下采用“两步法”完成发布制品验收：
+`jinguiSSL` 当前在仓颉工具链下采用“统一门禁 + 底层两步法”完成发布制品验收：
 
-1. `./tools/cjpm_bundle_finish.sh`
-2. `./tools/cjpm_bundle_audit.sh`
+1. `./tools/release_guard.sh`
+2. `./tools/cjpm_bundle_finish.sh`
+3. `./tools/cjpm_bundle_audit.sh`
 
-第一步负责拿到有效 `.cjp`，并在已知 SHA256 崩溃场景下补齐 `.sha256` 与 manifest。  
-第二步负责审计产物一致性，避免“产物看起来存在，但发布元数据不完整或不匹配”的伪成功。
+`release_guard.sh` 是推荐入口，会顺序执行：
+
+1. `cjpm build`
+2. `cjpm test --no-progress`
+3. `./tools/cjpm_bundle_finish.sh`
+4. `./tools/cjpm_bundle_audit.sh`
+
+若你只需要底层 bundle 处理，也可以单独运行后两步：
+
+- `./tools/cjpm_bundle_finish.sh` 负责拿到有效 `.cjp`，并在已知 SHA256 崩溃场景下补齐 `.sha256` 与 manifest。
+- `./tools/cjpm_bundle_audit.sh` 负责审计产物一致性，避免“产物看起来存在，但发布元数据不完整或不匹配”的伪成功。
 
 额外说明：
 
@@ -41,13 +51,19 @@
 ## 推荐发布顺序
 
 ```bash
+./tools/release_guard.sh
+```
+
+若需要分步执行，则仍按：
+
+```bash
 cjpm build
-cjpm test
+cjpm test --no-progress
 ./tools/cjpm_bundle_finish.sh
 ./tools/cjpm_bundle_audit.sh
 ```
 
-只要第 4 步通过，就说明当前工作树对应的发布制品、校验文件和 bundle manifest 已经自洽，可作为发布审计依据。
+只要 `release_guard.sh` 通过，或分步执行中的第 4 步通过，就说明当前工作树对应的发布制品、校验文件和 bundle manifest 已经自洽，可作为发布审计依据。
 
 ## 可选参数
 

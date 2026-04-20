@@ -46,7 +46,7 @@ import jinguissl.contract.*
 - Исходники: `src/`
 - Тесты: `src/jinguissl/tests/`
 - Векторы и фикстуры: `testdata/`
-- Публичный пример: `examples/phase1-demo/`
+- Публичные примеры: `examples/phase1-demo/` и `examples/handshake-interface-demo/`
 - Публичная документация: `docs/`
 - Публичный вспомогательный скрипт для упаковки: `tools/cjpm_bundle_finish.sh`
 - Публичный вспомогательный скрипт для аудита упаковки: `tools/cjpm_bundle_audit.sh`
@@ -77,7 +77,7 @@ cjpm test
 
 Скрипт запускает `cjpm bundle`, распознает известный сбой после генерации артефакта и дописывает итоговые `sha256` и manifest для валидного `.cjp`.
 
-Скрипт аудита затем проверяет, что:
+`tools/cjpm_bundle_audit.sh` затем проверяет, что:
 
 - архив `.cjp` читается и содержит ключевые публичные файлы
 - файл `.sha256` совпадает с реальным артефактом
@@ -91,6 +91,7 @@ cjpm test
 - Контракт provider: `docs/PROVIDER_CONTRACT.md`
 - SSH facade: `docs/SSH_FACADE.md`
 - Интеграционный gate: `docs/INTEGRATION_GATE.md`
+- Руководство по интерфейсам handshake: `docs/HANDSHAKE_INTERFACE_GUIDE.md`
 - Аудит упаковки: `docs/PACKAGING_AUDIT.md`
 
 ## Версионирование

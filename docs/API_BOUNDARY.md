@@ -93,6 +93,11 @@
 - 当前 provider server attach 结论固定为：`PRECHECK_ONLY`
 - 当前不把 `jinguissl.crypto.*`、`bridges/`、`_helper/` 视为公开稳定契约的一部分
 
+若你要消费这些稳定 contract 去自己实现 TLS / SSH 握手接口层，而不是只看 API 清单，优先继续看：
+
+- `HANDSHAKE_INTERFACE_GUIDE.md`
+- `examples/handshake-interface-demo/`
+
 ## Evolution Rule
 
 - 允许：新增 facade API、扩展返回字段、增加新算法枚举值

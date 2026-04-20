@@ -1,0 +1,12 @@
+[package]
+  cjc-version = "1.0.0"
+  version = "0.1.0"
+  name = "jinguissl_ssh_library_consumption_smoke"
+  output-type = "executable"
+  src-dir = "src"
+  compile-option = "-Woff unused"
+  description = "jinguiSSL SSH library gate and startup/runtime smoke example"
+
+[dependencies]
+  [dependencies.jinguissl]
+    path = "../.."

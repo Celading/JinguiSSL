@@ -48,7 +48,7 @@ import jinguissl.contract.*
 - 公开源码：`src/`
 - 公开测试：`src/jinguissl/tests/`
 - 公开向量与夹具：`testdata/`
-- 公开示例：`examples/phase1-demo/`
+- 公开示例：`examples/phase1-demo/`、`examples/handshake-interface-demo/`
 - 公开文档：`docs/`
 - 公开打包辅助脚本：`tools/cjpm_bundle_finish.sh`
 - 公开打包审计脚本：`tools/cjpm_bundle_audit.sh`
@@ -79,15 +79,13 @@ cjpm test
 
 该脚本会：
 
-- 调用 `cjpm bundle`
-- 识别“产物已生成但校验阶段崩溃”的已知工具链问题
-- 为有效 `.cjp` 产物补齐 `sha256` 与 manifest
+- `tools/cjpm_bundle_finish.sh` 会调用 `cjpm bundle`，识别“产物已生成但校验阶段崩溃”的已知工具链问题，并为有效 `.cjp` 产物补齐 `sha256` 与 manifest
 
 审计脚本会：
 
-- 校验 `.cjp` 是否可读且包含核心公开文件
-- 校验 `.sha256` 与实际产物是否一致
-- 校验 bundle manifest 是否与产物、日志和已知崩溃语义一致
+- `tools/cjpm_bundle_audit.sh` 会校验 `.cjp` 是否可读且包含核心公开文件
+- `tools/cjpm_bundle_audit.sh` 会校验 `.sha256` 与实际产物是否一致
+- `tools/cjpm_bundle_audit.sh` 会校验 bundle manifest 是否与产物、日志和已知崩溃语义一致
 
 ## 文档导航
 
@@ -97,6 +95,7 @@ cjpm test
 - Provider 合同：`docs/PROVIDER_CONTRACT.md`
 - SSH facade：`docs/SSH_FACADE.md`
 - 集成门禁：`docs/INTEGRATION_GATE.md`
+- 接口握手指南：`docs/HANDSHAKE_INTERFACE_GUIDE.md`
 - 打包审计：`docs/PACKAGING_AUDIT.md`
 
 ## 版本说明

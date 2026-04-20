@@ -169,6 +169,10 @@ provider 侧建议上层至少记录：
 - `contractTls13BuildHttpClientHelloX25519(...)` 返回的是握手报文本体；
 - 若上层要把它直接发到 socket，应先用 `contractTlsEncodePlaintextRecord(...)` 包成 `HANDSHAKE` record；
 - 这只是 client-side first-flight 打包 helper，不改变 server attach 的公开边界。
+- 若你要自己实现这一层接口握手，直接看：
+  - `HANDSHAKE_INTERFACE_GUIDE.md`
+  - `examples/handshake-interface-demo/`
+  - `examples/http-client-consumption-smoke/`（聚焦 `HTTP_CLIENT_TLS` 的 gate、fallback 与 verified-session smoke）
 
 ## Consumption Paths
 
@@ -191,6 +195,7 @@ provider 侧建议上层至少记录：
   - 可以尝试 `jinguissl`
   - 但只到 `precheck + material preparation + attach planning`
   - 推荐 smoke profile：`attach-planning`
+  - focused example：`examples/http-server-attach-planning-smoke/`
 - `HTTP_SERVER_STABLE_ATTACH`
   - 当前不允许当作公开稳定路径尝试
   - 推荐继续停在 `stdx-default`
@@ -201,6 +206,12 @@ provider 侧建议上层至少记录：
 - `SSH_SERVER_LIBRARY`
   - 可以直接消费 `jinguissl.contract.*`
   - 这同样不是 `stdx.net.tls.TlsServerConfig` bridge 问题
+
+如果你要把 SSH 握手接到自己的上层接口，而不是只做 capability 判断，也直接看：
+
+- `HANDSHAKE_INTERFACE_GUIDE.md`
+- `examples/handshake-interface-demo/`
+- `examples/ssh-library-consumption-smoke/`（聚焦 `SSH_CLIENT_LIBRARY / SSH_SERVER_LIBRARY` 的 gate、startup 与 runtime smoke）
 
 这里对 `buildTlsAttachPlan(...)` 的公开解释固定为：
 
@@ -219,6 +230,14 @@ provider 侧建议上层至少记录：
 - 当前 selected reason
 
 则可以直接消费 `contractDescribeProviderConsumptionGate(...)` 或 `contractRequireProviderConsumptionGate(...)`。
+
+如果你想看一条聚焦 `HTTP_CLIENT_TLS` 的运行样例，而不是一次性读完整个 handshake demo，也可以直接跑：
+
+- `examples/http-client-consumption-smoke/`
+
+如果你想看一条聚焦 `SSH_CLIENT_LIBRARY / SSH_SERVER_LIBRARY` 的运行样例，而不是一次性读完整个 handshake demo，也可以直接跑：
+
+- `examples/ssh-library-consumption-smoke/`
 
 当前 gate status 含义固定为：
 

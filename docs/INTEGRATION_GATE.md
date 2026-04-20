@@ -32,6 +32,13 @@
 2. 通过 precheck 后，再进入各自框架或运行时的 TLS / SSH 配置构造
 3. 统一使用 contract 返回面做错误分流，而不是自行解析底层异常
 
+若你要自己实现 TLS / SSH 的接口握手层，而不是只消费 gate 结论，继续看：
+
+- `HANDSHAKE_INTERFACE_GUIDE.md`
+- `examples/handshake-interface-demo/`
+- `examples/http-client-consumption-smoke/`
+- `examples/ssh-library-consumption-smoke/`
+
 ## HTTP Client First Flight
 
 对 HTTP client TLS 首包，当前 contract 边界固定为：
@@ -41,6 +48,10 @@
   `contractTlsEncodePlaintextRecord(ContractTlsVersion.Tls12, ContractTlsRecordContentType.Handshake, ...)`
   把握手报文封装成首条 TLS record；
 - 这一步只解决 client first-flight 的 wire packaging，不表示本仓已经公开稳定的 server attach 入口。
+- 完整最小路径见：
+  - `HANDSHAKE_INTERFACE_GUIDE.md`
+  - `examples/handshake-interface-demo/`
+  - `examples/http-client-consumption-smoke/`（聚焦 `HTTP_CLIENT_TLS` 的 gate / fallback / verified-session smoke）
 
 ## Provider Gate
 
@@ -94,9 +105,13 @@
 - HTTP server attach planning：
   - 只允许停在 `precheck + material preparation + planning`
   - 不允许包装成稳定 listener attach
+  - focused example:
+    - `examples/http-server-attach-planning-smoke/`
 - SSH client/server：
   - 作为稳定库面直接消费 `jinguissl.contract.*`
   - 不依赖 `stdx.net.tls.TlsServerConfig` attach bridge
+  - focused example:
+    - `examples/ssh-library-consumption-smoke/`
 
 若上层不想自己再把 path guide、smoke profile、readiness 与 fallback target 拼装成一层 release gate，当前也可直接消费：
 
@@ -169,20 +184,32 @@
 推荐发布路径：
 
 ```bash
+./tools/release_guard.sh
+```
+
+若需要分步观察 bundle 行为，也可以执行：
+
+```bash
 ./tools/cjpm_bundle_finish.sh
 ./tools/cjpm_bundle_audit.sh
 ```
 
 发布前至少检查：
 
+1. `./tools/release_guard.sh`
+
+或按分步链路执行：
+
 1. `cjpm build`
-2. `cjpm test`
+2. `cjpm test --no-progress`
 3. `./tools/cjpm_bundle_finish.sh`
 4. `./tools/cjpm_bundle_audit.sh`
 
-若第 3 步成功，说明当前仓库可产出有效 `.cjp`，即使原生命令退出码仍受上游工具链 bug 影响。
+若 `release_guard.sh` 通过，说明当前仓库已经按推荐顺序完成 build / test / bundle / audit 全链路门禁。
 
-若第 4 步成功，说明：
+若分步链路中的第 3 步成功，说明当前仓库可产出有效 `.cjp`，即使原生命令退出码仍受上游工具链 bug 影响。
+
+若 `release_guard.sh` 通过，或分步链路中的第 4 步成功，说明：
 
 - `.cjp` 制品可读；
 - `.sha256` 与实际产物一致；

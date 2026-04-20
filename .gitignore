@@ -12,6 +12,22 @@ examples/aes-bench/target/
 examples/aes-bench/target/**
 !examples/phase1-demo/
 !examples/phase1-demo/**
+!examples/handshake-interface-demo/
+!examples/handshake-interface-demo/**
+!examples/http-client-consumption-smoke/
+!examples/http-client-consumption-smoke/**
+!examples/http-server-attach-planning-smoke/
+!examples/http-server-attach-planning-smoke/**
+!examples/ssh-library-consumption-smoke/
+!examples/ssh-library-consumption-smoke/**
+examples/handshake-interface-demo/target/
+examples/handshake-interface-demo/target/**
+examples/http-client-consumption-smoke/target/
+examples/http-client-consumption-smoke/target/**
+examples/http-server-attach-planning-smoke/target/
+examples/http-server-attach-planning-smoke/target/**
+examples/ssh-library-consumption-smoke/target/
+examples/ssh-library-consumption-smoke/target/**
 
 _helper/
 benchmarks/

@@ -46,7 +46,7 @@ External projects should avoid depending deeply on `jinguissl.crypto.*` unless t
 - Source: `src/`
 - Tests: `src/jinguissl/tests/`
 - Test vectors and fixtures: `testdata/`
-- Public example: `examples/phase1-demo/`
+- Public examples: `examples/phase1-demo/` and `examples/handshake-interface-demo/`
 - Public docs: `docs/`
 - Public packaging helper: `tools/cjpm_bundle_finish.sh`
 - Public packaging audit helper: `tools/cjpm_bundle_audit.sh`
@@ -77,7 +77,7 @@ On the current Cangjie toolchain, native `cjpm bundle` may still crash during a 
 
 The script runs `cjpm bundle`, detects the known post-artifact crash pattern, and generates the final `sha256` plus manifest for a valid `.cjp`.
 
-The audit script then verifies that:
+`tools/cjpm_bundle_audit.sh` then verifies that:
 
 - the `.cjp` archive is readable and contains the core public files
 - the `.sha256` file matches the actual artifact
@@ -91,6 +91,7 @@ The audit script then verifies that:
 - Provider contract: `docs/PROVIDER_CONTRACT.md`
 - SSH facade: `docs/SSH_FACADE.md`
 - Integration gate: `docs/INTEGRATION_GATE.md`
+- Handshake interface guide: `docs/HANDSHAKE_INTERFACE_GUIDE.md`
 - Packaging audit: `docs/PACKAGING_AUDIT.md`
 
 ## Versioning
