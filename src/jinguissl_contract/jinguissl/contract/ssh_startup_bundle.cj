@@ -1,9 +1,9 @@
 package jinguissl_contract.jinguissl.contract
 
 import std.collection.ArrayList
-import jinguissl.contract as livecontract
-import jinguissl.crypto.error.{CryptoErrorCode, CryptoException}
-import jinguissl.crypto.x509.{x509ParseEcPrivateKeyPkcs8Pem, x509ParseRsaPrivateKeyPkcs8Pem}
+import jinguissl_contract.jinguissl.live as livecontract
+import jinguissl_core.jinguissl.crypto.error.{CryptoErrorCode, CryptoException}
+import jinguissl_core.jinguissl.crypto.x509.{x509ParseEcPrivateKeyPkcs8Pem, x509ParseRsaPrivateKeyPkcs8Pem}
 
 public class ContractSshNegotiatedAlgorithms {
     public let kexAlgorithm: String

@@ -1,8 +1,8 @@
 package jinguissl_contract.jinguissl.contract
 
 import std.collection.ArrayList
-import jinguissl.crypto.error.{CryptoErrorCode, CryptoException}
-import jinguissl.crypto.utils.csprngIsAvailable
+import jinguissl_core.jinguissl.crypto.error.{CryptoErrorCode, CryptoException}
+import jinguissl_core.jinguissl.crypto.utils.csprngIsAvailable
 
 public class ContractHttpSshStartupReadinessReport {
     public let randomAvailable: Bool

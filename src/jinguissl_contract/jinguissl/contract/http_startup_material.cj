@@ -1,13 +1,13 @@
 package jinguissl_contract.jinguissl.contract
 
 import std.collection.ArrayList
-import jinguissl.crypto.digest.sha256
-import jinguissl.crypto.ecc.{EcPrivateKey, ecPublicFromPrivateKey}
-import jinguissl.crypto.error.{CryptoErrorCode, CryptoException}
-import jinguissl.crypto.rsa.RsaPrivateKey
-import jinguissl.crypto.tls.TlsHttpNegotiationPolicy
-import jinguissl.crypto.utils.constantTimeEquals
-import jinguissl.crypto.x509.{
+import jinguissl_core.jinguissl.crypto.digest.sha256
+import jinguissl_core.jinguissl.crypto.ecc.{EcPrivateKey, ecPublicFromPrivateKey}
+import jinguissl_core.jinguissl.crypto.error.{CryptoErrorCode, CryptoException}
+import jinguissl_core.jinguissl.crypto.rsa.RsaPrivateKey
+import jinguissl_core.jinguissl.crypto.tls.TlsHttpNegotiationPolicy
+import jinguissl_core.jinguissl.crypto.utils.constantTimeEquals
+import jinguissl_core.jinguissl.crypto.x509.{
     X509Certificate,
     X509VerificationPolicy,
     x509ExtractEcPublicKey,

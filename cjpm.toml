@@ -9,5 +9,5 @@
   include = ["src"]
 
 [dependencies]
-  [dependencies.jinguissl]
-    path = "../../jinkuiSSL/jinguiSSL"
+  [dependencies.jinguissl_core]
+    path = "../JinguiSSL-core"

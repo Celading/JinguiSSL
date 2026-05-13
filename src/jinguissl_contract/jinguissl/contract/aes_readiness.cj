@@ -1,7 +1,7 @@
 package jinguissl_contract.jinguissl.contract
 
 import std.collection.ArrayList
-import jinguissl.crypto.aes.{
+import jinguissl_core.jinguissl.crypto.aes.{
     AesEngine,
     AesEngineKind,
     AesHardwareMountPoint,
@@ -19,7 +19,7 @@ import jinguissl.crypto.aes.{
     aesResolveEngine,
     aesResolveEngineWithNativeBridge
 }
-import jinguissl.crypto.error.{CryptoErrorCode, CryptoException}
+import jinguissl_core.jinguissl.crypto.error.{CryptoErrorCode, CryptoException}
 
 public class ContractAesHardwareMountPointInfo {
     public let backend: String
