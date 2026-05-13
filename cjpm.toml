@@ -1,0 +1,13 @@
+[package]
+  cjc-version = "1.0.0"
+  version = "0.1.0"
+  name = "jinguissl_contract"
+  output-type = "static"
+  src-dir = "src/jinguissl_contract"
+  compile-option = "-Woff unused"
+  description = "Jingui family contract metadata slice extracted into Cangku"
+  include = ["src"]
+
+[dependencies]
+  [dependencies.jinguissl]
+    path = "../../jinkuiSSL/jinguiSSL"
