@@ -5,7 +5,7 @@ import std.fs.File
 import jinguissl_core.jinguissl.crypto.ssh.{sshBuildDefaultKexInit, sshBuildKexEcdhInitX25519, sshEncodeKexInit, sshEncodeNewKeys}
 import jinguissl_contract.jinguissl.contract.*
 
-private let LIVE_SOURCE_ROOT: String = "../../jinkuiSSL/jinguiSSL/"
+private let LIVE_SOURCE_ROOT: String = ""
 
 @Test
 public class ContractSshStartupBundleTestSuite {

@@ -9,7 +9,7 @@ private let TEST_HOST_WWW: String = "www.policy.example"
 private let TEST_HOST_WWW_UPPER: String = "WWW.POLICY.EXAMPLE"
 private let TEST_HOST_WWW_LOWER_PADDED: String = "  www.policy.example  "
 private let TEST_HOST_WWW_UPPER_PADDED: String = "  WWW.POLICY.EXAMPLE  "
-private let LIVE_SOURCE_ROOT: String = "../../jinkuiSSL/jinguiSSL/"
+private let LIVE_SOURCE_ROOT: String = ""
 
 @Test
 public class ContractHttpStartupMaterialTestSuite {

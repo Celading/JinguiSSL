@@ -243,9 +243,10 @@
 
 ## Current Live Source
 
-当前真实源码与文档 owner 仍在：
+monolith 已拆分为独立仓库，contract 不再依赖旧 `jinkuiSSL/jinguiSSL` 项目路径。
 
-- `/Users/cinyu/Documents/Work0/CureateX/jinkuiSSL/jinguiSSL`
+- 依赖 `jinguissl_core`（JinguiSSL-core 仓库）
+- 测试数据文件已复制到本仓库 `testdata/x509/` 目录下
 
 ## Validation
 
@@ -260,5 +261,4 @@ cjpm test
 
 - 这张 target lane 当前证明的是 contract sibling project 已经不是空 skeleton。
 - 这不表示 `jinguissl.contract.*` 的公开 import 已迁移到这个 target project。
-- 当前 AES facade 仍通过 `cjpm.toml` 临时依赖 old live source `../../jinkuiSSL/jinguiSSL`，直到 `JinguiSSL-core` 起盘。
 - 当前 extracted slice 已覆盖 metadata、provider/gate、provider smoke baseline/suite、provider self-check/profile/consumption gate、AES readiness/native-bridge/startup、HTTP/SSH startup readiness/policy/profile、HTTP startup material/request bundle first、SSH startup request bundle follow-up 八层，但还不是整份 contract 主体。
