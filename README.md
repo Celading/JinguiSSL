@@ -1,107 +1,139 @@
-# jinguiSSL
+<p align="center">
+  <img src="https://img.shields.io/badge/Cangjie-JinguiSSL-c96b2c?style=for-the-badge&labelColor=1f2430" alt="JinguiSSL" />
+  <img src="https://img.shields.io/badge/package-static-2f855a?style=for-the-badge&labelColor=1f2430" alt="Static Package" />
+  <img src="https://img.shields.io/badge/surface-contract%20first-3182ce?style=for-the-badge&labelColor=1f2430" alt="Contract First" />
+  <img src="https://img.shields.io/badge/license-Apache%202.0-1f9d55?style=for-the-badge&labelColor=1f2430" alt="Apache 2.0" />
+</p>
+<div align="center">
+<span style="font-weight:300;font-size:38px">JinguiSSL</span><br/>
+<span style="font-weight:100;font-size:24px">面向仓颉应用的密码学、证书、TLS 与 SSH 契约层</span>
+<p align="center">
+  <strong>先接稳定 facade，再按需下钻到底层实现</strong><br/>
+  <sub>Digest · ChaCha20-Poly1305 · X.509 · TLS startup material · SSH startup bundle</sub>
+</p>
+</div>
 
-`jinguiSSL` 是一个纯仓颉实现的 SSL/TLS 与密码学库，当前以“先服务 HTTP / SSH 所需库能力”为主线推进，对齐 BoringSSL 风格的库能力建设，同时保持仓颉原生 API 优先。
+## 为什么是 JinguiSSL
 
-当前公开稳定入口优先推荐：
+仓颉项目在真正进入网络、安全、证书与协议接入阶段后，最常见的问题不是“有没有算法”，而是：
 
-```cangjie
-import jinguissl.contract.*
+- 应用层不想直接深挖到底层密码模块
+- TLS / X.509 / SSH 的启动材料希望有统一入口
+- 上层框架需要稳定一些的错误模型、返回形状与输入约束
+
+`JinguiSSL-contract` 就是为这个场景准备的。  
+它把常用的密码学、证书、TLS 与 SSH 接口压成更适合应用层消费的 facade，让业务代码优先依赖稳定 contract，而不是直接散落地深 import 各种底层实现。
+
+## 仓库定位
+
+这个仓库是 JinguiSSL 对外最推荐的入口层。
+
+| 仓库 | 角色 | 适合谁 |
+|:--|:--|:--|
+| `JinguiSSL-contract` | 稳定 facade / contract | 应用、框架、服务接入层 |
+| `JinguiSSL-core` | 算法与协议底层 | 需要直接使用密码原语或协议细节的开发者 |
+| `JinguiSSL-bridge` | 动态桥接与运行时接入辅助 | 需要动态库、桥接调用、跨层包装的场景 |
+
+如果你只是想把安全能力接进服务，建议先从这个仓库开始。
+
+## 当前能力
+
+- Digest / HMAC / HKDF contract：`SHA-256`、`SHA-384`、`SHA-512`、`HMAC`、`HKDF`
+- ChaCha20 / Poly1305 contract：流加密、AEAD、RFC 向量测试覆盖
+- X.509 / PEM contract：证书链验证、pin 计算、客户端信任材料准备
+- HTTP/TLS startup material：服务端 / 客户端 TLS 输入校验与启动材料整理
+- SSH startup bundle：主机验证策略、握手输入整理、库级启动请求封装
+- 统一错误口径：`ContractErrorCode`、`ContractException`、Ignite 风格错误映射
+
+## 快速开始
+
+### 依赖
+
+当前已经有可用的 hosted mirror，可直接按需引用。  
+如果你在同一工作区内做 Jingui family 联调，也仍然可以继续用 sibling checkout。
+
+```toml
+[dependencies]
+# GitHub mirror
+jinguissl_contract = { git = "https://github.com/Celading/JinguiSSL" }
+
+# GitCode mirror
+# jinguissl_contract = { git = "https://gitcode.com/cinyu/jinguiSSL.git" }
+
+# Local sibling checkout for family development
+# jinguissl_contract = { path = "../JinguiSSL-contract" }
 ```
 
-英文版见 `README-EN.MD`，俄文版见 `README-RU.MD`。
-
-## 当前状态
-
-- 版本阶段：`0.6.21`
-- 发布定位：`pre-1.0`
-- 产物形态：`static` 仓颉库
-- 公开集成面：`jinguissl.contract.*`
-- 当前主线目标：优先补齐 HTTPS / SSH 所依赖的库能力，而不是应用层程序
-
-这意味着当前仓库提供的是密码学原语、证书能力、TLS/SSH 相关 facade 与验证入口，不提供 HTTP 服务框架、SSH 客户端套件或隧道类应用。
-
-## 能力概览
-
-- 对称能力：AES-GCM、ChaCha20-Poly1305
-- 摘要与派生：SHA-256 / SHA-384、HKDF
-- 随机能力：CSPRNG 可用性探测与随机字节生成
-- 非对称能力：RSA、ECDHE（P-256 / P-384）、X25519、ECDSA、Ed25519
-- 证书能力：PEM / DER 解析、证书链校验、hostname 校验、pinning 简化接口
-- TLS 能力：TLS 1.2 / TLS 1.3 基础握手、记录层、session ticket / cache、key update、exporter
-- SSH 能力：X25519 KEX、host verification、host key fingerprint、transport protection 所需 contract facade
-
-## 命名与导入
-
-- 品牌名：`jinguiSSL`
-- `cjpm` 包名：`jinguissl`
-- import 根：`jinguissl.*`
-- 推荐稳定依赖：
+### 示例：先从 contract 入口拿稳定能力
 
 ```cangjie
-import jinguissl.contract.*
+import jinguissl_contract.jinguissl.contract.*
+
+main() {
+    let facade = contractFacadeInfo()
+    let digest = contractSha256("hello jingui".toArray())
+
+    println("api=${facade.apiVersion}")
+    println(contractBytesToHexLower(digest))
+}
 ```
 
-不建议业务层直接深度依赖 `jinguissl.crypto.*`，除非你明确接受后续内部实现继续演进。
+### 什么时候该继续下钻
 
-## 仓库公开范围
+下面这些情况，通常说明你应该看 `JinguiSSL-core` 或 `JinguiSSL-bridge`：
 
-- 公开源码：`src/`
-- 公开测试：`src/jinguissl/tests/`
-- 公开向量与夹具：`testdata/`
-- 公开示例：`examples/phase1-demo/`、`examples/handshake-interface-demo/`
-- 公开文档：`docs/`
-- 公开打包辅助脚本：`tools/cjpm_bundle_finish.sh`
-- 公开打包审计脚本：`tools/cjpm_bundle_audit.sh`
+- 你需要直接控制 `TLS 1.2 / TLS 1.3` 握手与 record 层
+- 你要直接使用 `RSA / ECC / Ed25519 / X25519 / AES / ChaCha20` 底层原语
+- 你需要动态库桥接、FFI 包装、运行时装配或上层服务桥接
 
-以下目录当前主要用于本地协作、参考资料或实验留痕，不属于公开发布契约的一部分：
+## 常见使用面
 
-- `_helper/`
-- `bridges/`
-- `benchmarks/`
+### 1. 证书与信任材料
 
-## 构建与验证
+这个仓库提供更偏应用层的证书处理接口，例如：
+
+- `contractComputeLeafPinsFromPem(...)`
+- `contractVerifyServerCertificateChainPem(...)`
+- `contractPrepareHttpClientTlsTrustMaterial(...)`
+- `contractPrepareHttpServerTlsMaterial(...)`
+
+这些 API 适合直接放在 HTTP client/server 启动前做预处理，而不用让上层自己重新拼一套 PEM / chain / pin 逻辑。
+
+### 2. 启动时能力自检
+
+如果你的服务需要在启动阶段确认某类密码能力、硬件能力或消费门禁，这里也已经准备了面向应用层的 facade，例如：
+
+- provider smoke / self-check
+- AES backend readiness
+- HTTP / SSH startup readiness
+
+## 构建与测试
 
 ```bash
 cjpm build
 cjpm test
 ```
 
-当前 `cjpm build` 与 `cjpm test` 应串行执行，避免共享 `target/` 目录造成伪失败。
+## 目录结构
 
-## 打包说明
-
-当前仓颉工具链下，原生 `cjpm bundle` 仍可能在产物已生成后触发已知的 SHA256 校验阶段崩溃。因此仓库内提供了补完脚本：
-
-```bash
-./tools/cjpm_bundle_finish.sh
-./tools/cjpm_bundle_audit.sh
+```text
+JinguiSSL-contract/
+├── src/jinguissl_contract/
+│   └── jinguissl/
+│       ├── contract/   # 对外 facade 与 contract
+│       ├── live/       # 面向 live 组合的共享实现
+│       └── tests/      # contract 级测试
+├── testdata/           # 向量、证书与测试素材
+├── cjpm.toml
+└── README.md
 ```
 
-该脚本会：
+## 适合什么项目
 
-- `tools/cjpm_bundle_finish.sh` 会调用 `cjpm bundle`，识别“产物已生成但校验阶段崩溃”的已知工具链问题，并为有效 `.cjp` 产物补齐 `sha256` 与 manifest
-
-审计脚本会：
-
-- `tools/cjpm_bundle_audit.sh` 会校验 `.cjp` 是否可读且包含核心公开文件
-- `tools/cjpm_bundle_audit.sh` 会校验 `.sha256` 与实际产物是否一致
-- `tools/cjpm_bundle_audit.sh` 会校验 bundle manifest 是否与产物、日志和已知崩溃语义一致
-
-## 文档导航
-
-- 文档索引：`docs/README.md`
-- API 边界：`docs/API_BOUNDARY.md`
-- HTTP / SSH 能力矩阵：`docs/CAPABILITY_MATRIX.md`
-- Provider 合同：`docs/PROVIDER_CONTRACT.md`
-- SSH facade：`docs/SSH_FACADE.md`
-- 集成门禁：`docs/INTEGRATION_GATE.md`
-- 接口握手指南：`docs/HANDSHAKE_INTERFACE_GUIDE.md`
-- 打包审计：`docs/PACKAGING_AUDIT.md`
-
-## 版本说明
-
-`0.6.21` 表示当前库能力已明显超出阶段 1 的基础骨架，但仍未进入 1.0 稳定承诺阶段。后续在 `0.x` 期间，`contract` facade 会尽量保持稳定，而 `crypto.*` 的内部实现仍可能继续调整。
+- 仓颉 Web 服务、网关、客户端 SDK
+- 需要把证书、TLS、SSH 启动材料收敛成统一入口的项目
+- 希望上层依赖稳定 facade，而不是大面积深 import 密码底层模块的团队
 
 ## 许可证
 
-`Apache-2.0`
+本项目采用 `Apache License 2.0`。详见 `LICENSE`。
