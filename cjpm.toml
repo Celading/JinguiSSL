@@ -1,27 +1,14 @@
 [package]
-  cjc-version = "1.1.0"
-  version = "0.6.21"
-  name = "jinguissl"
+  cjc-version = "1.0.0"
+  version = "0.1.0"
+  name = "jinguissl_contract"
   output-type = "static"
-  src-dir = "src/jinguissl"
+  src-dir = "src/jinguissl_contract"
   compile-option = "-Woff unused"
-  description = "jinguiSSL pure Cangjie SSL/TLS and cryptography library for HTTP/SSH-focused integrations"
-  include = [
-    "src/jinguissl/package.cj",
-    "src/jinguissl/jinguissl.cj",
-    "src/jinguissl/crypto",
-    "src/jinguissl/compat",
-    "src/jinguissl/contract"
-  ]
-  exclude = [
-    "examples"
-  ]
+  description = "Stable Cangjie facade for cryptography, X.509, TLS, and SSH startup contracts"
+  include = ["src"]
 
-[target.aarch64-linux-ohos]
-  compile-option = "-B \"${DEVECO_CANGJIE_HOME}/compiler/third_party/llvm/bin\" -B \"${DEVECO_CANGJIE_HOME}/musl/usr/lib/aarch64-linux-ohos\" -L \"${DEVECO_CANGJIE_HOME}/musl/usr/lib/aarch64-linux-ohos\" --sysroot \"${DEVECO_CANGJIE_HOME}/musl\""
-[target.aarch64-linux-ohos.bin-dependencies]
-  path-option = ["${CANGJIE_STDX_PATH}/linux_ohos_aarch64_cjnative/static/stdx"]
-
-[target.aarch64-linux-ohos-cjnative]
-[target.aarch64-linux-ohos-cjnative.bin-dependencies]
-  path-option = ["${CANGJIE_STDX_PATH}/linux_ohos_aarch64_cjnative/static/stdx"]
+[dependencies]
+  [dependencies.jinguissl_core]
+    git = "https://gitcode.com/CjKu/Jingui-Core.git"
+    branch = "main"
