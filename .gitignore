@@ -1,4 +1,12 @@
+# Build outputs
 target/
-AGENTS.md
-_helper/
+**/target/
+
+# Editor and local tooling
+.vscode/
+.idea/
+.cache/
+
+# OS files
 .DS_Store
+

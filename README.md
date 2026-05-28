@@ -1,264 +1,125 @@
-# JinguiSSL-contract
+<p align="center">
+  <img src="https://img.shields.io/badge/Cangjie-JinguiSSL-c96b2c?style=for-the-badge&labelColor=1f2430" alt="JinguiSSL" />
+  <img src="https://img.shields.io/badge/package-static-2f855a?style=for-the-badge&labelColor=1f2430" alt="Static Package" />
+  <img src="https://img.shields.io/badge/surface-contract%20first-3182ce?style=for-the-badge&labelColor=1f2430" alt="Contract First" />
+</p>
+<div align="center">
+<span style="font-weight:300;font-size:38px">JinguiSSL</span><br/>
+<span style="font-weight:100;font-size:24px">面向仓颉应用的密码学、证书、TLS 与 SSH 契约层</span>
+<p align="center">
+  <strong>先接稳定 facade，再按需下钻到底层实现</strong><br/>
+  <sub>Digest · ChaCha20-Poly1305 · X.509 · TLS startup material · SSH startup bundle</sub>
+</p>
+</div>
 
-`JinguiSSL-contract` 是 Jingui family 未来的 stable facade / contract sibling project target。
+## 为什么是 JinguiSSL
 
-## Current State
+仓颉项目在真正进入网络、安全、证书与协议接入阶段后，最常见的问题不是“有没有算法”，而是：
 
-- `first extraction packet landed`
-- `second extraction packet landed`
-- `third extraction packet landed`
-- `fourth extraction packet landed`
-- `fifth extraction packet landed`
-- `sixth extraction packet landed`
-- `seventh extraction packet landed`
-- `eighth extraction packet landed`
-- current shape:
-  - `contract metadata / capability slice extracted into a buildable static package`
-  - `provider/gate metadata and boundary slice extracted into the same target-local package`
-  - `provider smoke fixture / baseline / suite slice extracted into the same target-local package`
-  - `provider self-check / profile / fallback / consumption gate slice extracted into the same target-local package`
-  - `AES readiness / native-bridge / startup slice extracted into the same target-local package`
-  - `HTTP / SSH startup readiness / policy / profile slice extracted into the same target-local package`
-  - `HTTP startup material / request bundle first slice extracted into the same target-local package`
-  - `SSH startup request bundle follow-up slice extracted into the same target-local package`
+- 应用层不想直接深挖到底层密码模块
+- TLS / X.509 / SSH 的启动材料希望有统一入口
+- 上层框架需要稳定一些的错误模型、返回形状与输入约束
 
-## Intended Scope
+`JinguiSSL-contract` 就是为这个场景准备的。  
+它把常用的密码学、证书、TLS 与 SSH 接口压成更适合应用层消费的 facade，让业务代码优先依赖稳定 contract，而不是直接散落地深 import 各种底层实现。
 
-- `src/jinguissl/contract/**`
-- stable facade / DTO / outcome / error model
-- policy / provider contract wording
-- public docs 主入口
+## 仓库定位
 
-## Current Extraction Boundary
+这个仓库是 JinguiSSL 对外最推荐的入口层。
 
-当前已按 issue-sized packet 抽出六层 contract truth：
+| 仓库 | 角色 | 适合谁 |
+|:--|:--|:--|
+| `JinguiSSL-contract` | 稳定 facade / contract | 应用、框架、服务接入层 |
+| `JinguiSSL-core` | 算法与协议底层 | 需要直接使用密码原语或协议细节的开发者 |
+| `JinguiSSL-bridge` | 动态桥接与运行时接入辅助 | 需要动态库、桥接调用、跨层包装的场景 |
 
-- `ContractErrorCode`
-- `ContractException`
-- `ContractIgniteCryptoErrorCode`
-- `ContractFacadeInfo`
-- `contractFacadeInfo()`
-- `ContractCapabilityInfo`
-- `contractCapabilityInfo()`
+如果你只是想把安全能力接进服务，建议先从这个仓库开始。
 
-随后又补了一张更窄的 provider/gate follow-up packet：
+## 当前能力
 
-- `ContractProviderServerAttachStatus`
-- `ContractProviderErrorPhase`
-- `ContractProviderErrorFamily`
-- `ContractProviderCapabilityRecord`
-- `ContractProviderAttachContractInfo`
-- `ContractProviderServerAttachBoundary`
-- `ContractProviderErrorDescriptor`
-- `ContractProviderFallbackDecision`
-- `contractProviderCapabilityRecord()`
-- `contractProviderAttachContractInfo()`
-- `contractProviderServerAttachBoundary()`
+- Digest / HMAC / HKDF contract：`SHA-256`、`SHA-384`、`SHA-512`、`HMAC`、`HKDF`
+- ChaCha20 / Poly1305 contract：流加密、AEAD、RFC 向量测试覆盖
+- X.509 / PEM contract：证书链验证、pin 计算、客户端信任材料准备
+- HTTP/TLS startup material：服务端 / 客户端 TLS 输入校验与启动材料整理
+- SSH startup bundle：主机验证策略、握手输入整理、库级启动请求封装
+- 统一错误口径：`ContractErrorCode`、`ContractException`、Ignite 风格错误映射
 
-随后又补了一张 provider smoke / baseline / suite packet：
+## 快速开始
 
-- `contractMapToIgniteCryptoErrorCode()`
-- `contractMapExceptionToIgniteCryptoErrorCode()`
-- `contractDescribeProviderErrorCode()`
-- `contractDescribeProviderContractException()`
-- `contractRecommendProviderFallback()`
-- `ContractProviderSmokeFixtureCategory`
-- `ContractProviderSmokeFixtureInfo`
-- `ContractProviderSmokeExecutionMode`
-- `ContractProviderSmokeBaselineRequest`
-- `ContractProviderSmokeBaselineReport`
-- `ContractProviderSmokeBaselineOutcome`
-- `ContractProviderSmokeSuiteRequest`
-- `ContractProviderSmokeSuiteReport`
-- `ContractProviderSmokeSuiteOutcome`
-- `contractProviderSmokeFixtureCatalog()`
-- `contractRequireProviderSmokeFixture()`
-- `contractDescribeProviderSmokeBaseline*`
-- `contractDescribeProviderSmokeSuite*`
+### 依赖
 
-随后又补了一张 provider self-check / profile / consumption gate packet：
+```toml
+[dependencies]
+jinguissl_contract = { git = "https://your-host/JinguiSSL-contract" }
+```
 
-- `ContractProviderSmokeSelfCheckPolicy`
-- `ContractProviderSmokeSelfCheckReport`
-- `ContractProviderSmokeSelfCheckOutcome`
-- `ContractProviderSmokeProfile`
-- `ContractProviderSmokeProfileTemplate`
-- `ContractProviderConsumptionPath`
-- `ContractProviderConsumptionPathGuide`
-- `ContractProviderFallbackCauseCode`
-- `ContractProviderFallbackOutcome`
-- `ContractProviderFallbackOutcomeGuide`
-- `ContractProviderFallbackResolutionRequest`
-- `ContractProviderFallbackResolution`
-- `ContractProviderConsumptionGateStatus`
-- `ContractProviderConsumptionGateReport`
-- `ContractProviderConsumptionGateOutcome`
-- `contractProviderSmokeSelfCheck*`
-- `contractDescribeProviderSmokeProfile*`
-- `contractDescribeProviderConsumptionPath*`
-- `contractDescribeProviderFallbackOutcomeGuide*`
-- `contractResolveProviderFallbackOutcome()`
-- `contractDescribeProviderConsumptionGate*`
+### 示例：先从 contract 入口拿稳定能力
 
-随后又补了一张 AES readiness / native-bridge / startup packet：
+```cangjie
+import jinguissl_contract.jinguissl.contract.*
 
-- `ContractAesHardwareMountPointInfo`
-- `ContractAesHardwareProbeInfo`
-- `ContractAesHardwareRoadmapEntry`
-- `ContractAesEngineKind`
-- `ContractAesEngineInfo`
-- `ContractAesEngineResolveOutcome`
-- `ContractAesNativeBridgeSpec`
-- `ContractAesNativeBridgeContractInfo`
-- `ContractAesNativeBridgeCallShapeInfo`
-- `ContractAesNativeBridgeDiagnostics`
-- `ContractAesNativeBridgeDiagnosticsOutcome`
-- `ContractAesBackendReadiness`
-- `ContractAesBackendRecommendation`
-- `ContractAesStartupSelfCheckReport`
-- `ContractAesCurrentReleasePlanReport`
-- `contractAesListHardwareMountPoints()`
-- `contractAesHardwareRoadmap()`
-- `contractAesDefaultHardwareBackendHint()`
-- `contractAesProbeHardware()`
-- `contractResolveAesEngine()`
-- `contractTryResolveAesEngine()`
-- `contractRequireAesAcceleratedBackend()`
-- `contractInspectAesNativeBridge()`
-- `contractTryInspectAesNativeBridge()`
-- `contractDescribeAesNativeBridgeCallShape()`
-- `contractRecommendAesBackend()`
-- `contractAesStartupSelfCheck()`
-- `contractAesCurrentReleasePlan()`
-- `contractRequireAesCurrentReleasePrimaryBackend()`
+main() {
+    let facade = contractFacadeInfo()
+    let digest = contractSha256("hello jingui".toArray())
 
-随后又补了一张 HTTP / SSH startup readiness / policy / profile packet：
+    println("api=${facade.apiVersion}")
+    println(contractBytesToHexLower(digest))
+}
+```
 
-- `ContractHttpSshStartupReadinessReport`
-- `ContractHttpSshStartupReadinessOutcome`
-- `ContractHttpSshStartupPolicy`
-- `ContractHttpSshStartupProfile`
-- `ContractHttpSshStartupProfileTemplate`
-- `contractHttpSshStartupReadiness()`
-- `contractTryHttpSshStartupReadiness()`
-- `contractRequireHttpSshStartupReadiness()`
-- `contractTryRequireHttpSshStartupReadiness()`
-- `contractDescribeHttpSshStartupProfile()`
-- `contractListHttpSshStartupProfiles()`
-- `contractRequireHttpSshStartupProfile()`
-- `contractTryRequireHttpSshStartupProfile()`
+### 什么时候该继续下钻
 
-随后又补了一张 HTTP startup material / request bundle first packet：
+下面这些情况，通常说明你应该看 `JinguiSSL-core` 或 `JinguiSSL-bridge`：
 
-- `ContractX509PinPolicy`
-- `ContractX509VerifyResult`
-- `ContractX509VerifyOutcome`
-- `ContractTlsHttpNegotiationPolicy`
-- `ContractTlsHttpNegotiationPolicyValidationResult`
-- `ContractTlsHttpNegotiationPolicyValidationOutcome`
-- `ContractHttpServerTlsConfigValidationResult`
-- `ContractHttpServerTlsConfigValidationOutcome`
-- `ContractHttpServerTlsMaterial`
-- `ContractHttpServerTlsMaterialOutcome`
-- `ContractHttpClientTlsConfigValidationResult`
-- `ContractHttpClientTlsConfigValidationOutcome`
-- `ContractHttpClientTlsTrustMaterial`
-- `ContractHttpClientTlsTrustMaterialOutcome`
-- `ContractHttpServerTlsConfigRequest`
-- `ContractHttpClientTlsTrustRequest`
-- `ContractHttpServerLibraryStartupBundle`
-- `ContractHttpServerLibraryStartupOutcome`
-- `ContractHttpClientLibraryStartupBundle`
-- `ContractHttpClientLibraryStartupOutcome`
-- `ContractHttpServerLibraryStartupRequest`
-- `ContractHttpClientLibraryStartupRequest`
-- `contractComputeLeafPinsFromPem()`
-- `contractVerifyServerCertificatePem()`
-- `contractVerifyServerCertificateChainPem()`
-- `contractTryVerifyServerCertificateChainPem()`
-- `contractValidateTlsHttpNegotiationPolicy()`
-- `contractTryValidateTlsHttpNegotiationPolicy()`
-- `contractValidateHttpServerTlsConfigInput()`
-- `contractTryValidateHttpServerTlsConfigInput()`
-- `contractValidateHttpServerTlsConfigRequest()`
-- `contractTryValidateHttpServerTlsConfigRequest()`
-- `contractPrepareHttpServerTlsMaterial()`
-- `contractPrepareHttpServerTlsMaterialRequest()`
-- `contractTryPrepareHttpServerTlsMaterial()`
-- `contractTryPrepareHttpServerTlsMaterialRequest()`
-- `contractValidateHttpClientTlsConfigInput()`
-- `contractTryValidateHttpClientTlsConfigInput()`
-- `contractValidateHttpClientTlsTrustRequest()`
-- `contractTryValidateHttpClientTlsTrustRequest()`
-- `contractPrepareHttpClientTlsTrustMaterial()`
-- `contractPrepareHttpClientTlsTrustMaterialRequest()`
-- `contractTryPrepareHttpClientTlsTrustMaterial()`
-- `contractTryPrepareHttpClientTlsTrustMaterialRequest()`
-- `contractPrepareHttpServerLibraryStartupRequest()`
-- `contractTryPrepareHttpServerLibraryStartupRequest()`
-- `contractPrepareHttpClientLibraryStartupRequest()`
-- `contractTryPrepareHttpClientLibraryStartupRequest()`
+- 你需要直接控制 `TLS 1.2 / TLS 1.3` 握手与 record 层
+- 你要直接使用 `RSA / ECC / Ed25519 / X25519 / AES / ChaCha20` 底层原语
+- 你需要动态库桥接、FFI 包装、运行时装配或上层服务桥接
 
-随后又补了一张 SSH startup request bundle follow-up packet：
+## 常见使用面
 
-- `ContractSshNegotiatedAlgorithms`
-- `ContractSshKexExchangeTranscript`
-- `ContractSshHostVerificationPolicy`
-- `ContractSshClientInitialHandshakeX25519Request`
-- `ContractSshServerLibraryStartupX25519RsaPkcs8Request`
-- `ContractSshServerLibraryStartupX25519EcdsaPkcs8Request`
-- `ContractSshServerLibraryStartupX25519Ed25519SeedRequest`
-- `ContractSshClientLibraryStartupX25519Request`
-- `ContractSshServerLibraryStartupBundle`
-- `ContractSshClientLibraryStartupBundle`
-- `ContractSshServerLibraryStartupOutcome`
-- `ContractSshClientLibraryStartupOutcome`
-- `contractPrepareSshServerLibraryStartupX25519RsaPkcs8Request()`
-- `contractTryPrepareSshServerLibraryStartupX25519RsaPkcs8Request()`
-- `contractPrepareSshServerLibraryStartupX25519EcdsaPkcs8Request()`
-- `contractTryPrepareSshServerLibraryStartupX25519EcdsaPkcs8Request()`
-- `contractPrepareSshServerLibraryStartupX25519Ed25519SeedRequest()`
-- `contractTryPrepareSshServerLibraryStartupX25519Ed25519SeedRequest()`
-- `contractPrepareSshClientLibraryStartupX25519Request()`
-- `contractTryPrepareSshClientLibraryStartupX25519Request()`
+### 1. 证书与信任材料
 
-这张 follow-up packet 当前继续保持诚实边界：
+这个仓库提供更偏应用层的证书处理接口，例如：
 
-- startup-facing input DTO 与 facade 已 target-local 化
-- bundle 里的 SSH handshake/runtime result 仍暂时承接 old live source contract types
-- 这不代表 whole SSH runtime/result cluster 已完成迁移
+- `contractComputeLeafPinsFromPem(...)`
+- `contractVerifyServerCertificateChainPem(...)`
+- `contractPrepareHttpClientTlsTrustMaterial(...)`
+- `contractPrepareHttpServerTlsMaterial(...)`
 
-当前 target-local package topology 为：
+这些 API 适合直接放在 HTTP client/server 启动前做预处理，而不用让上层自己重新拼一套 PEM / chain / pin 逻辑。
 
-- `jinguissl_contract`
-- `jinguissl_contract.jinguissl`
-- `jinguissl_contract.jinguissl.contract`
-- `jinguissl_contract.jinguissl.tests`
+### 2. 启动时能力自检
 
-这轮还没有抽：
+如果你的服务需要在启动阶段确认某类密码能力、硬件能力或消费门禁，这里也已经准备了面向应用层的 facade，例如：
 
-- SSH handshake/runtime result whole cluster
-- 旧 live source `contract.cj` 的其余大体量 surface
-- public stable import path 退役
+- provider smoke / self-check
+- AES backend readiness
+- HTTP / SSH startup readiness
 
-## Current Live Source
-
-monolith 已拆分为独立仓库，contract 不再依赖旧 `jinkuiSSL/jinguiSSL` 项目路径。
-
-- 依赖 `jinguissl_core`（JinguiSSL-core 仓库）
-- 测试数据文件已复制到本仓库 `testdata/x509/` 目录下
-
-## Validation
-
-当前目标完成判据为：
+## 构建与测试
 
 ```bash
 cjpm build
 cjpm test
 ```
 
-## Notes
+## 目录结构
 
-- 这张 target lane 当前证明的是 contract sibling project 已经不是空 skeleton。
-- 这不表示 `jinguissl.contract.*` 的公开 import 已迁移到这个 target project。
-- 当前 extracted slice 已覆盖 metadata、provider/gate、provider smoke baseline/suite、provider self-check/profile/consumption gate、AES readiness/native-bridge/startup、HTTP/SSH startup readiness/policy/profile、HTTP startup material/request bundle first、SSH startup request bundle follow-up 八层，但还不是整份 contract 主体。
+```text
+JinguiSSL-contract/
+├── src/jinguissl_contract/
+│   └── jinguissl/
+│       ├── contract/   # 对外 facade 与 contract
+│       ├── live/       # 面向 live 组合的共享实现
+│       └── tests/      # contract 级测试
+├── testdata/           # 向量、证书与测试素材
+├── cjpm.toml
+└── README.md
+```
+
+## 适合什么项目
+
+- 仓颉 Web 服务、网关、客户端 SDK
+- 需要把证书、TLS、SSH 启动材料收敛成统一入口的项目
+- 希望上层依赖稳定 facade，而不是大面积深 import 密码底层模块的团队
+
