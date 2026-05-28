@@ -2,6 +2,7 @@
   <img src="https://img.shields.io/badge/Cangjie-JinguiSSL-c96b2c?style=for-the-badge&labelColor=1f2430" alt="JinguiSSL" />
   <img src="https://img.shields.io/badge/package-static-2f855a?style=for-the-badge&labelColor=1f2430" alt="Static Package" />
   <img src="https://img.shields.io/badge/surface-contract%20first-3182ce?style=for-the-badge&labelColor=1f2430" alt="Contract First" />
+  <img src="https://img.shields.io/badge/license-Apache%202.0-1f9d55?style=for-the-badge&labelColor=1f2430" alt="Apache 2.0" />
 </p>
 <div align="center">
 <span style="font-weight:300;font-size:38px">JinguiSSL</span><br/>
@@ -48,9 +49,12 @@
 
 ### 依赖
 
+当前三仓的公开托管地址还没有在 README 中冻结，因此这里先给出最诚实、立刻可用的 sibling-path 用法。  
+等对外托管地址与统一文档站收口后，再把这里切成正式 `git` 依赖示例。
+
 ```toml
 [dependencies]
-jinguissl_contract = { git = "https://your-host/JinguiSSL-contract" }
+jinguissl_contract = { path = "../JinguiSSL-contract" }
 ```
 
 ### 示例：先从 contract 入口拿稳定能力
@@ -123,3 +127,6 @@ JinguiSSL-contract/
 - 需要把证书、TLS、SSH 启动材料收敛成统一入口的项目
 - 希望上层依赖稳定 facade，而不是大面积深 import 密码底层模块的团队
 
+## 许可证
+
+本项目采用 `Apache License 2.0`。详见 `LICENSE`。
