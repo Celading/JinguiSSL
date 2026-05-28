@@ -49,12 +49,19 @@
 
 ### 依赖
 
-当前三仓的公开托管地址还没有在 README 中冻结，因此这里先给出最诚实、立刻可用的 sibling-path 用法。  
-等对外托管地址与统一文档站收口后，再把这里切成正式 `git` 依赖示例。
+当前已经有可用的 hosted mirror，可直接按需引用。  
+如果你在同一工作区内做 Jingui family 联调，也仍然可以继续用 sibling checkout。
 
 ```toml
 [dependencies]
-jinguissl_contract = { path = "../JinguiSSL-contract" }
+# GitHub mirror
+jinguissl_contract = { git = "https://github.com/Celading/JinguiSSL" }
+
+# AtomGit mirror
+# jinguissl_contract = { git = "https://atomgit.com/cinyu/jinguiSSL" }
+
+# Local sibling checkout for family development
+# jinguissl_contract = { path = "../JinguiSSL-contract" }
 ```
 
 ### 示例：先从 contract 入口拿稳定能力

@@ -10,5 +10,5 @@
 
 [dependencies]
   [dependencies.jinguissl_core]
-    path = "../JinguiSSL-core"
-
+    git = "https://github.com/Celading/jinguisslCore"
+    branch = "main"
