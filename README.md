@@ -57,8 +57,8 @@
 # GitHub mirror
 jinguissl_contract = { git = "https://github.com/Celading/JinguiSSL" }
 
-# AtomGit mirror
-# jinguissl_contract = { git = "https://atomgit.com/cinyu/jinguiSSL" }
+# GitCode mirror
+# jinguissl_contract = { git = "https://gitcode.com/cinyu/jinguiSSL.git" }
 
 # Local sibling checkout for family development
 # jinguissl_contract = { path = "../JinguiSSL-contract" }
