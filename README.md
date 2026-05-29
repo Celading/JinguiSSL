@@ -36,6 +36,19 @@
 
 如果你只是想把安全能力接进服务，建议先从这个仓库开始。
 
+## 当前分层说明
+
+本仓库**不是纯瘦 facade（thin facade）**。
+
+`src/jinguissl_contract/jinguissl/live/live.cj` 当前包含约 19k 行的活跃编排逻辑，覆盖 TLS / SSH / X.509 / AES 等协议面的启动材料与运行时组合。因此 `JinguiSSL-contract` 当前的实际定位是：
+
+- 对外暴露稳定 facade 接口
+- 同时包含非轻量的 live 编排层
+
+没有 `live.cj` 的配合，contract 的许多高层面（TLS startup、SSH bundle、provider orchestration）无法独立运作。后续版本（`OD-C70C`）计划对 live 层进行独立的包级重构。在此之前，"stable thin contract facade for all live protocol operations" 是不准确的描述。
+
+如果你需要直接控制 TLS/SSH handshake、record 层或密钥调度，建议回到 `JinguiSSL-core`；如果你需要动态库桥接或运行时接入，建议到 `JinguiSSL-bridge`。
+
 ## 当前能力
 
 - Digest / HMAC / HKDF contract：`SHA-256`、`SHA-384`、`SHA-512`、`HMAC`、`HKDF`
