@@ -1,6 +1,6 @@
 package jinguissl_contract.jinguissl.live
 
-import jinguissl_runtime.jinguissl.runtime.*
+import jinguissl_contract.jinguissl.runtime.*
 import std.collection.ArrayList
 
 // --- Old-live wrapper for the runtime-owned startup profile catalog ---

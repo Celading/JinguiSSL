@@ -11,6 +11,3 @@
 [dependencies]
   [dependencies.jinguissl_core]
     path = "../JinguiSSL-core"
-  [dependencies.jinguissl_runtime]
-    path = "../JinguiSSL-runtime"
-
