@@ -157,6 +157,7 @@ import jinguissl_core.jinguissl.crypto.tls.{
 }
 import jinguissl_core.jinguissl.crypto.utils.{constantTimeEquals, csprngBytes, csprngIsAvailable}
 import jinguissl_core.jinguissl.crypto.x25519.{x25519GeneratePrivateKey, x25519PublicFromPrivate}
+import jinguissl_contract.jinguissl.runtime.{StartupProfileCatalogEntry, jinguiListStartupProfileCatalog}
 import jinguissl_core.jinguissl.crypto.x509.{
     X509Certificate,
     X509VerificationPolicy,
@@ -4584,107 +4585,62 @@ public func contractTryRequireHttpSshStartupReadiness(
 public func contractDescribeHttpSshStartupProfile(
     profile: ContractHttpSshStartupProfile
 ): ContractHttpSshStartupProfileTemplate {
+    let entry = contractRuntimeStartupProfileEntry(profile)
+    ContractHttpSshStartupProfileTemplate(
+        profile,
+        entry.label,
+        ContractHttpSshStartupPolicy(
+            requireRandom: entry.requireRandom,
+            requireHttpTls: entry.requiresHttpTls,
+            requireSsh: entry.requiresSsh,
+            requireX509: entry.requiresX509,
+            requireAcceleration: entry.requiresAcceleration,
+            requireCurrentReleasePrimaryBackend: entry.requireCurrentReleasePrimaryBackend,
+            requireDirectStdxTlsServerConfigBridge: entry.requireDirectStdxTlsServerConfigBridge
+        ),
+        contractRuntimeDefaultAesEngineKind(entry.defaultAesEngineKind),
+        entry.notes,
+        defaultAesBackendHint: entry.defaultAesBackendHint
+    )
+}
+
+private func contractRuntimeStartupProfileEntry(profile: ContractHttpSshStartupProfile): StartupProfileCatalogEntry {
+    let catalog = jinguiListStartupProfileCatalog()
+    let index = profile.ordinalValue()
+    if (index < 0 || index >= catalog.size) {
+        throw ContractException(ContractErrorCode.BadInput, "runtime startup profile catalog is missing the requested profile")
+    }
+    let entry = catalog[index]
+    if (entry.label != contractHttpSshStartupProfileExpectedLabel(profile)) {
+        throw ContractException(ContractErrorCode.BadInput, "runtime startup profile catalog order does not match contract profile order")
+    }
+    entry
+}
+
+private func contractHttpSshStartupProfileExpectedLabel(profile: ContractHttpSshStartupProfile): String {
     match (profile) {
         case ContractHttpSshStartupProfile.LibraryDefault =>
-            ContractHttpSshStartupProfileTemplate(
-                profile,
-                "library-default",
-                ContractHttpSshStartupPolicy(
-                    requireRandom: true,
-                    requireHttpTls: true,
-                    requireSsh: true,
-                    requireX509: true
-                ),
-                ContractAesEngineKind.Auto,
-                [
-                    "default profile for libraries that expose both HTTP/TLS and SSH-facing capabilities",
-                    "does not require accelerated AES backend"
-                ]
-            )
+            "library-default"
         case ContractHttpSshStartupProfile.HttpClientLibrary =>
-            ContractHttpSshStartupProfileTemplate(
-                profile,
-                "http-client-library",
-                ContractHttpSshStartupPolicy(
-                    requireRandom: true,
-                    requireHttpTls: true,
-                    requireSsh: false,
-                    requireX509: true
-                ),
-                ContractAesEngineKind.Auto,
-                [
-                    "optimized for HTTPS client stacks that need TLS and certificate validation",
-                    "SSH readiness is not required"
-                ]
-            )
+            "http-client-library"
         case ContractHttpSshStartupProfile.HttpServerLibrary =>
-            ContractHttpSshStartupProfileTemplate(
-                profile,
-                "http-server-library",
-                ContractHttpSshStartupPolicy(
-                    requireRandom: true,
-                    requireHttpTls: true,
-                    requireSsh: false,
-                    requireX509: true
-                ),
-                ContractAesEngineKind.Auto,
-                [
-                    "optimized for HTTPS server stacks that still prepare certificate material in-library",
-                    "direct stdx.net.tls.TlsServerConfig bridge is not required by default"
-                ]
-            )
+            "http-server-library"
         case ContractHttpSshStartupProfile.SshClientLibrary =>
-            ContractHttpSshStartupProfileTemplate(
-                profile,
-                "ssh-client-library",
-                ContractHttpSshStartupPolicy(
-                    requireRandom: true,
-                    requireHttpTls: false,
-                    requireSsh: true,
-                    requireX509: false
-                ),
-                ContractAesEngineKind.Auto,
-                [
-                    "optimized for SSH client stacks that do not depend on X.509",
-                    "HTTP/TLS readiness is not required"
-                ]
-            )
+            "ssh-client-library"
         case ContractHttpSshStartupProfile.SshServerLibrary =>
-            ContractHttpSshStartupProfileTemplate(
-                profile,
-                "ssh-server-library",
-                ContractHttpSshStartupPolicy(
-                    requireRandom: true,
-                    requireHttpTls: false,
-                    requireSsh: true,
-                    requireX509: false
-                ),
-                ContractAesEngineKind.Auto,
-                [
-                    "optimized for SSH server stacks that terminate SSH without X.509 requirements",
-                    "HTTP/TLS readiness is not required"
-                ]
-            )
+            "ssh-server-library"
         case ContractHttpSshStartupProfile.ProductionAccelerated =>
-            ContractHttpSshStartupProfileTemplate(
-                profile,
-                "production-accelerated",
-                ContractHttpSshStartupPolicy(
-                    requireRandom: true,
-                    requireHttpTls: true,
-                    requireSsh: true,
-                    requireX509: true,
-                    requireAcceleration: true,
-                    requireCurrentReleasePrimaryBackend: true
-                ),
-                ContractAesEngineKind.Hardware,
-                [
-                    "requires the full HTTP/TLS + SSH + X.509 capability set",
-                    "fails closed when accelerated AES backend is unavailable",
-                    "pins the profile to the current release primary AES backend"
-                ],
-                defaultAesBackendHint: "armv8-ce"
-            )
+            "production-accelerated"
+    }
+}
+
+private func contractRuntimeDefaultAesEngineKind(defaultAesEngineKind: Int64): ContractAesEngineKind {
+    match (defaultAesEngineKind) {
+        case 0 => ContractAesEngineKind.Auto
+        case 1 => ContractAesEngineKind.Software
+        case 2 => ContractAesEngineKind.Hardware
+        case _ =>
+            throw ContractException(ContractErrorCode.BadInput, "runtime startup profile default AES engine kind is unsupported")
     }
 }
 
