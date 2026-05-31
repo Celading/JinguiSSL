@@ -1,6 +1,6 @@
 [package]
   cjc-version = "1.0.0"
-  version = "0.1.0"
+  version = "0.7.5"
   name = "jinguissl_contract"
   output-type = "static"
   src-dir = "src/jinguissl_contract"
@@ -9,5 +9,4 @@
   include = ["src"]
 
 [dependencies]
-  [dependencies.jinguissl_core]
-    path = "../JinguiSSL-core"
+  jinguissl_core = { git = "https://gitcode.com/CjKu/Jingui-Core.git" }

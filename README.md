@@ -62,12 +62,11 @@
 
 ### 依赖
 
-当前三仓的公开托管地址还没有在 README 中冻结，因此这里先给出最诚实、立刻可用的 sibling-path 用法。  
-等对外托管地址与统一文档站收口后，再把这里切成正式 `git` 依赖示例。
+公开仓库默认使用远程 Git 依赖；本地 sibling checkout 仅建议作为开发时的临时覆盖。
 
 ```toml
 [dependencies]
-jinguissl_contract = { path = "../JinguiSSL-contract" }
+jinguissl_contract = { git = "https://gitcode.com/cinyu/jinguiSSL.git" }
 ```
 
 ### 示例：先从 contract 入口拿稳定能力
