@@ -4714,6 +4714,17 @@ public func contractPrepareHttpServerLibraryStartupRequest(
     ContractHttpServerLibraryStartupBundle(template, readiness, material)
 }
 
+public func contractPlanHttpServerAttachRequest(
+    request: ContractHttpServerLibraryStartupRequest
+): ContractHttpServerAttachPlan {
+    let startup = contractPrepareHttpServerLibraryStartupRequest(request)
+    ContractHttpServerAttachPlan(
+        startup,
+        contractDescribeProviderConsumptionGate(ContractProviderConsumptionPath.HttpServerAttachPlanning),
+        contractDescribeProviderConsumptionGate(ContractProviderConsumptionPath.HttpServerStableAttach)
+    )
+}
+
 public func contractTryPrepareHttpServerLibraryStartupRequest(
     request: ContractHttpServerLibraryStartupRequest
 ): ContractHttpServerLibraryStartupOutcome {
@@ -5524,6 +5535,81 @@ public class ContractHttpServerLibraryStartupBundle {
         this.template = template
         this.readiness = readiness
         this.material = material
+    }
+}
+
+public class ContractHttpServerAttachPlan {
+    public let startup: ContractHttpServerLibraryStartupBundle
+    public let planningGate: ContractProviderConsumptionGateReport
+    public let stableAttachGate: ContractProviderConsumptionGateReport
+    public let attachSurface: String
+    public let listenerOwned: Bool
+    public let expectedTlsVersion: ContractTlsVersion
+    public let expectedAlpnProtocols: Array<String>
+
+    public init(
+        startup: ContractHttpServerLibraryStartupBundle,
+        planningGate: ContractProviderConsumptionGateReport,
+        stableAttachGate: ContractProviderConsumptionGateReport,
+        attachSurface!: String = "accepted-socket",
+        listenerOwned!: Bool = false,
+        expectedTlsVersion!: ContractTlsVersion = ContractTlsVersion.Tls13
+    ) {
+        let normalizedSurface = attachSurface.trimAscii()
+        if (normalizedSurface.size == 0) {
+            throw ContractException(ContractErrorCode.BadInput, "HTTP server attach surface must not be empty")
+        }
+        if (!planningGate.readyNow) {
+            throw ContractException(ContractErrorCode.Unsupported, "HTTP server attach planning gate is not ready")
+        }
+        if (planningGate.path != ContractProviderConsumptionPath.HttpServerAttachPlanning) {
+            throw ContractException(ContractErrorCode.BadInput, "HTTP server attach plan requires the planning gate")
+        }
+        if (stableAttachGate.path != ContractProviderConsumptionPath.HttpServerStableAttach) {
+            throw ContractException(ContractErrorCode.BadInput, "HTTP server attach plan requires the stable attach gate")
+        }
+        this.startup = startup
+        this.planningGate = planningGate
+        this.stableAttachGate = stableAttachGate
+        this.attachSurface = normalizedSurface
+        this.listenerOwned = listenerOwned
+        this.expectedTlsVersion = expectedTlsVersion
+        this.expectedAlpnProtocols = startup.material.validation.normalizedAlpnProtocols.clone()
+    }
+}
+
+public class ContractHttpServerAttachResult {
+    public let serverFlight: ContractTls13HttpServerFlight
+    public let tlsVersion: ContractTlsVersion
+    public let cipherSuite: String
+    public let negotiatedAlpn: String
+    public let requestedServerName: String
+    public let acknowledgedServerName: Bool
+    public let secureSessionReady: Bool
+    public let attachSurface: String
+
+    public init(
+        serverFlight: ContractTls13HttpServerFlight,
+        tlsVersion!: ContractTlsVersion = ContractTlsVersion.Tls13,
+        cipherSuite!: String = "UNKNOWN",
+        negotiatedAlpn!: String = "",
+        requestedServerName!: String = "",
+        acknowledgedServerName!: Bool = false,
+        secureSessionReady!: Bool = false,
+        attachSurface!: String = "accepted-socket"
+    ) {
+        let normalizedSurface = attachSurface.trimAscii()
+        if (normalizedSurface.size == 0) {
+            throw ContractException(ContractErrorCode.BadInput, "HTTP server attach result surface must not be empty")
+        }
+        this.serverFlight = serverFlight
+        this.tlsVersion = tlsVersion
+        this.cipherSuite = cipherSuite.trimAscii()
+        this.negotiatedAlpn = negotiatedAlpn.trimAscii()
+        this.requestedServerName = requestedServerName.trimAscii().toAsciiLower()
+        this.acknowledgedServerName = acknowledgedServerName
+        this.secureSessionReady = secureSessionReady
+        this.attachSurface = normalizedSurface
     }
 }
 
@@ -10374,6 +10460,22 @@ public func contractTls13ResolveCipherBindingFromServerFlight(
     serverFlight: ContractTls13HttpServerFlight
 ): ContractTls13CipherBinding {
     contractTls13ResolveCipherBindingFromServerHello(serverFlight.serverHello)
+}
+
+public func contractBuildHttpServerAttachResultFromTls13Flight(
+    serverFlight: ContractTls13HttpServerFlight
+): ContractHttpServerAttachResult {
+    let binding = contractTls13ResolveCipherBindingFromServerFlight(serverFlight)
+    ContractHttpServerAttachResult(
+        serverFlight,
+        tlsVersion: ContractTlsVersion.Tls13,
+        cipherSuite: binding.cipherSuiteName,
+        negotiatedAlpn: serverFlight.selectedAlpn,
+        requestedServerName: serverFlight.requestedServerName,
+        acknowledgedServerName: serverFlight.acknowledgedServerName,
+        secureSessionReady: false,
+        attachSurface: "accepted-socket-flight"
+    )
 }
 
 public func contractTls13DerivePskX25519SecretsForCipherSuite(
