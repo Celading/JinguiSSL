@@ -5613,6 +5613,141 @@ public class ContractHttpServerAttachResult {
     }
 }
 
+public enum ContractAcceptedTransportSessionStatus <: Equatable<ContractAcceptedTransportSessionStatus> & ToString {
+    | Ready
+    | Blocked
+    | Failed
+    | Closed
+
+    public operator func ==(right: ContractAcceptedTransportSessionStatus): Bool {
+        ordinalValue() == right.ordinalValue()
+    }
+
+    public operator func !=(right: ContractAcceptedTransportSessionStatus): Bool {
+        !(this == right)
+    }
+
+    public func ordinalValue(): Int64 {
+        match (this) {
+            case Ready => 0
+            case Blocked => 1
+            case Failed => 2
+            case Closed => 3
+        }
+    }
+
+    public func toString(): String {
+        match (this) {
+            case Ready => "READY"
+            case Blocked => "BLOCKED"
+            case Failed => "FAILED"
+            case Closed => "CLOSED"
+        }
+    }
+}
+
+public class ContractAcceptedTransportDescriptor {
+    public let transportId: String
+    public let transportKind: String
+    public let localEndpoint: String
+    public let remoteEndpoint: String
+
+    public init(
+        transportId: String,
+        transportKind!: String = "accepted-transport",
+        localEndpoint!: String = "",
+        remoteEndpoint!: String = ""
+    ) {
+        let normalizedId = transportId.trimAscii()
+        let normalizedKind = transportKind.trimAscii()
+        if (normalizedId.size == 0 || normalizedKind.size == 0) {
+            throw ContractException(
+                ContractErrorCode.BadInput,
+                "accepted transport descriptor id/kind must not be empty"
+            )
+        }
+        this.transportId = normalizedId
+        this.transportKind = normalizedKind
+        this.localEndpoint = localEndpoint.trimAscii()
+        this.remoteEndpoint = remoteEndpoint.trimAscii()
+    }
+}
+
+public class ContractHttpServerAcceptedTransportSession {
+    public let transport: ContractAcceptedTransportDescriptor
+    public let status: ContractAcceptedTransportSessionStatus
+    public let result: ContractHttpServerAttachResult
+    public let keyMaterial: ContractTls13ApplicationKeyMaterial
+    public let recordChannel: ContractTlsRecordChannel
+    public let closeReason: String
+
+    public init(
+        transport: ContractAcceptedTransportDescriptor,
+        status: ContractAcceptedTransportSessionStatus,
+        result: ContractHttpServerAttachResult,
+        keyMaterial: ContractTls13ApplicationKeyMaterial,
+        recordChannel: ContractTlsRecordChannel,
+        closeReason!: String = ""
+    ) {
+        if (status == ContractAcceptedTransportSessionStatus.Ready && !result.secureSessionReady) {
+            throw ContractException(
+                ContractErrorCode.BadInput,
+                "ready accepted transport session requires secureSessionReady=true"
+            )
+        }
+        if (recordChannel.version != ContractTlsVersion.Tls13) {
+            throw ContractException(
+                ContractErrorCode.BadInput,
+                "accepted transport first cut supports TLS1.3 record channels only"
+            )
+        }
+        this.transport = transport
+        this.status = status
+        this.result = result
+        this.keyMaterial = keyMaterial
+        this.recordChannel = recordChannel
+        this.closeReason = closeReason.trimAscii()
+    }
+
+    public prop secureSessionReady: Bool {
+        get() {
+            status == ContractAcceptedTransportSessionStatus.Ready && result.secureSessionReady
+        }
+    }
+}
+
+public class ContractHttpServerAcceptedTransportTls13X25519Request {
+    public let transport: ContractAcceptedTransportDescriptor
+    public let plan: ContractHttpServerAttachPlan
+    public let encodedClientHello: Array<Byte>
+    public let serverKeyExchangePrivate: Array<Byte>
+    public let policy: ContractTlsHttpNegotiationPolicy
+
+    public init(
+        transport: ContractAcceptedTransportDescriptor,
+        plan: ContractHttpServerAttachPlan,
+        encodedClientHello: Array<Byte>,
+        serverKeyExchangePrivate: Array<Byte>,
+        policy!: ContractTlsHttpNegotiationPolicy = ContractTlsHttpNegotiationPolicy()
+    ) {
+        if (encodedClientHello.size == 0 || serverKeyExchangePrivate.size != 32) {
+            throw ContractException(
+                ContractErrorCode.BadInput,
+                "accepted transport TLS1.3 X25519 request fields are invalid"
+            )
+        }
+        this.transport = transport
+        this.plan = plan
+        this.encodedClientHello = encodedClientHello.clone()
+        this.serverKeyExchangePrivate = serverKeyExchangePrivate.clone()
+        this.policy = ContractTlsHttpNegotiationPolicy(
+            requireServerName: policy.requireServerName,
+            allowedServerNames: policy.allowedServerNames,
+            alpnPreference: policy.alpnPreference
+        )
+    }
+}
+
 public class ContractHttpServerLibraryStartupOutcome {
     public let ok: Bool
     public let message: String
@@ -10475,6 +10610,126 @@ public func contractBuildHttpServerAttachResultFromTls13Flight(
         acknowledgedServerName: serverFlight.acknowledgedServerName,
         secureSessionReady: false,
         attachSurface: "accepted-socket-flight"
+    )
+}
+
+public func contractAttachAcceptedTransportTls13X25519Request(
+    request: ContractHttpServerAcceptedTransportTls13X25519Request
+): ContractHttpServerAcceptedTransportSession {
+    contractAttachAcceptedTransportTls13X25519(
+        request.transport,
+        request.plan,
+        request.encodedClientHello,
+        request.serverKeyExchangePrivate,
+        policy: request.policy
+    )
+}
+
+public func contractAttachAcceptedTransportTls13X25519(
+    transport: ContractAcceptedTransportDescriptor,
+    plan: ContractHttpServerAttachPlan,
+    encodedClientHello: Array<Byte>,
+    serverKeyExchangePrivate: Array<Byte>,
+    policy!: ContractTlsHttpNegotiationPolicy = ContractTlsHttpNegotiationPolicy()
+): ContractHttpServerAcceptedTransportSession {
+    try {
+        if (plan.stableAttachGate.readyNow) {
+            throw ContractException(
+                ContractErrorCode.BadInput,
+                "accepted transport first cut must not be opened from a stable attach gate"
+            )
+        }
+        let material = plan.startup.material
+        let certChain = x509ParsePemChain(material.certificateChainPemBundle())
+        if (certChain.size == 0) {
+            throw ContractException(ContractErrorCode.BadInput, "accepted transport certificate chain must not be empty")
+        }
+        let certChainDer = contractDerChainFromCertificates(certChain)
+        let certificatePrivateKeyRsa: ?RsaPrivateKey = contractTryParseRsaPrivateKeyPkcs8Pem(material.privateKeyPem)
+        let certificatePrivateKeyEcdsa: ?EcPrivateKey = if (let Some(_value) <- certificatePrivateKeyRsa) {
+            None
+        } else {
+            contractTryParseEcPrivateKeyPkcs8Pem(material.privateKeyPem)
+        }
+        if (
+            !contractIsSomeRsaPrivateKey(certificatePrivateKeyRsa) &&
+            !contractIsSomeEcPrivateKey(certificatePrivateKeyEcdsa)
+        ) {
+            throw ContractException(
+                ContractErrorCode.BadInput,
+                "accepted transport certificate private key must be PKCS8 RSA or EC"
+            )
+        }
+
+        let serverKeyShare = x25519PublicFromPrivate(serverKeyExchangePrivate)
+        let context = tls13BuildHttpServerHandshakeContextX25519(
+            encodedClientHello,
+            serverKeyExchangePrivate,
+            serverKeyShare,
+            certChainDer,
+            certificatePrivateKeyEcdsa: certificatePrivateKeyEcdsa,
+            certificatePrivateKeyRsa: certificatePrivateKeyRsa,
+            policy: contractToTlsHttpNegotiationPolicy(policy)
+        )
+        let flight = contractFromTls13ServerHandshakeFlight(context.flight)
+        let binding = contractTls13ResolveCipherBindingFromServerFlight(flight)
+        let keyMaterial = ContractTls13ApplicationKeyMaterial(
+            context.secrets.clientWriteKey,
+            context.secrets.clientWriteIv,
+            context.secrets.serverWriteKey,
+            context.secrets.serverWriteIv
+        )
+        let serverChannel = contractTls13CreateServerRecordChannel(
+            keyMaterial,
+            algorithm: binding.algorithm
+        )
+        let result = ContractHttpServerAttachResult(
+            flight,
+            tlsVersion: ContractTlsVersion.Tls13,
+            cipherSuite: binding.cipherSuiteName,
+            negotiatedAlpn: flight.selectedAlpn,
+            requestedServerName: flight.requestedServerName,
+            acknowledgedServerName: flight.acknowledgedServerName,
+            secureSessionReady: true,
+            attachSurface: "accepted-transport-session"
+        )
+        ContractHttpServerAcceptedTransportSession(
+            transport,
+            ContractAcceptedTransportSessionStatus.Ready,
+            result,
+            keyMaterial,
+            serverChannel
+        )
+    } catch (e: ContractException) {
+        throw e
+    } catch (e: CryptoException) {
+        throw ContractException(
+            mapCryptoErrorForOperation(e, "tls"),
+            "accepted transport TLS1.3 X25519 attach failed: ${e.message}"
+        )
+    }
+}
+
+public func contractCloseAcceptedTransportSession(
+    session: ContractHttpServerAcceptedTransportSession,
+    reason!: String = "close_notify"
+): ContractHttpServerAcceptedTransportSession {
+    ContractHttpServerAcceptedTransportSession(
+        session.transport,
+        ContractAcceptedTransportSessionStatus.Closed,
+        ContractHttpServerAttachResult(
+            session.result.serverFlight,
+            tlsVersion: session.result.tlsVersion,
+            cipherSuite: session.result.cipherSuite,
+            negotiatedAlpn: session.result.negotiatedAlpn,
+            requestedServerName: session.result.requestedServerName,
+            acknowledgedServerName: session.result.acknowledgedServerName,
+            secureSessionReady: false,
+            attachSurface: session.result.attachSurface
+        ),
+        session.keyMaterial,
+        session.recordChannel,
+        closeReason: reason
     )
 }
 
