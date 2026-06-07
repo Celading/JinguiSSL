@@ -360,22 +360,21 @@ public func contractProviderCapabilityRecord(): ContractProviderCapabilityRecord
         "primary darwin/aarch64; compile-target linux/ohos aarch64; x86_64 deferred to 0.7; loongarch64/riscv64 reserved skeletons",
         "cjc >= 1.1.0",
         true,
-        false,
         true,
-        true,
-        false,
         true,
         true,
         false,
+        true,
+        true,
+        true,
         [
-            "stable server-side TLS attach contract is not exposed in this repo",
             "direct stdx.net.tls.TlsServerConfig bridge is unavailable",
-            "current release line remains provider-candidate only and is not default HTTPS eligible"
+            "full browser-grade HTTPS/H2 runtime closure remains outside this contract"
         ],
         [
             "client TLS, X.509 verification, ALPN normalization, and session cache are available through jinguissl.contract.*",
-            "server integrations should currently stop at precheck/material preparation and finish attach in upper-layer provider glue such as lisi",
-            "mTLS should remain experimental until a stable server attach contract is published"
+            "server integrations may use the stable accepted-transport attach contract path for listener-owned TLS1.3 X25519 attach",
+            "mTLS should remain experimental until a dedicated stable mTLS contract is published"
         ]
     )
 }
@@ -385,7 +384,7 @@ public func contractProviderAttachContractInfo(): ContractProviderAttachContract
         "jinguissl",
         true,
         true,
-        false,
+        true,
         true,
         true,
         true,
@@ -426,13 +425,11 @@ public func contractProviderAttachContractInfo(): ContractProviderAttachContract
             "igniteCode",
             "message"
         ],
-        [
-            "stable server attach is not exposed; attach inputs are documented for upper-layer planning only"
-        ],
+        [],
         [
             "TLS precheck is a stable contract surface today",
             "client TLS and X.509 verify are stable library contracts",
-            "server attach fields are intentionally documented even though the final attach remains outside this repo"
+            "server attach fields are now backed by the stable accepted-transport attach contract path"
         ]
     )
 }
@@ -440,14 +437,11 @@ public func contractProviderAttachContractInfo(): ContractProviderAttachContract
 public func contractProviderServerAttachBoundary(): ContractProviderServerAttachBoundary {
     ContractProviderServerAttachBoundary(
         "jinguissl",
-        ContractProviderServerAttachStatus.PrecheckOnly,
-        false,
-        "stdx contract / attach bridge",
-        "fallback to stdx through lisi and keep jinguissl as provider-candidate only",
-        "this repository guarantees TLS precheck and material preparation, but does not expose a stable server-side attach entrypoint",
-        [
-            "server attach still depends on upper-layer stdx integration glue",
-            "without a stable attach bridge, jinguissl must not be presented as the default HTTPS listener path"
-        ]
+        ContractProviderServerAttachStatus.Stable,
+        true,
+        "jinguissl stable accepted-transport contract",
+        "stdx-default remains a manual fallback if provider attach fails before connection consumption",
+        "this repository publishes a listener-owned stable accepted-transport TLS1.3 X25519 attach entrypoint",
+        []
     )
 }

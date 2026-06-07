@@ -27,7 +27,7 @@ public class ContractProviderSmokeTestSuite {
         let report = contractDescribeProviderSmokeBaseline("success-x509-policy-chain")
         @Assert(report.expectedSuccess, true)
         @Assert(report.executionMode.toString(), "VERIFY_PATH")
-        @Assert(report.warnings.size > 0, true)
+        @Assert(report.warnings.size, 0)
         match (report.expectedDescriptor) {
             case Some(_) =>
                 @Fail("success baseline should not carry expected descriptor")
