@@ -67,6 +67,12 @@
 ```toml
 [dependencies]
 JinguiSSL = { git = "https://github.com/CangjieKu/JinGuiSSL.git" }
+
+# GitCode mirror
+# JinguiSSL = { git = "https://gitcode.com/cinyu/jinguiSSL.git" }
+
+# Local sibling checkout for family development
+# JinguiSSL = { path = "../JinguiSSL-contract" }
 ```
 
 ### 示例：先从 contract 入口拿稳定能力
