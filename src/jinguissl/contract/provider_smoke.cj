@@ -556,6 +556,310 @@ public class ContractProviderSmokeSuiteOutcome {
     }
 }
 
+public class ContractProviderSmokeExecutableMaterial {
+    public let leafPem: String
+    public let intermediatePemBundle: String
+    public let trustAnchorsPemBundle: String
+    public let certificatePrivateKeyPem: String
+    public let mismatchPrivateKeyPem: String
+    public let successHostname: String
+    public let mismatchHostname: String
+    public let validationTime: String
+
+    public init(
+        leafPem: String,
+        intermediatePemBundle: String,
+        trustAnchorsPemBundle: String,
+        certificatePrivateKeyPem: String,
+        mismatchPrivateKeyPem!: String = "",
+        successHostname!: String = "www.example.com",
+        mismatchHostname!: String = "api.policy.example",
+        validationTime!: String = "230101000000Z"
+    ) {
+        if (
+            leafPem.trimAscii().size == 0 ||
+            intermediatePemBundle.trimAscii().size == 0 ||
+            trustAnchorsPemBundle.trimAscii().size == 0 ||
+            certificatePrivateKeyPem.trimAscii().size == 0
+        ) {
+            throw ContractException(
+                ContractErrorCode.BadInput,
+                "provider smoke executable material must include leaf, intermediate, trust anchor, and private key PEM"
+            )
+        }
+        if (successHostname.trimAscii().size == 0 || mismatchHostname.trimAscii().size == 0) {
+            throw ContractException(
+                ContractErrorCode.BadInput,
+                "provider smoke executable material hostnames must not be empty"
+            )
+        }
+        this.leafPem = leafPem.trimAscii()
+        this.intermediatePemBundle = intermediatePemBundle.trimAscii()
+        this.trustAnchorsPemBundle = trustAnchorsPemBundle.trimAscii()
+        this.certificatePrivateKeyPem = certificatePrivateKeyPem.trimAscii()
+        this.mismatchPrivateKeyPem = mismatchPrivateKeyPem.trimAscii()
+        this.successHostname = successHostname.trimAscii()
+        this.mismatchHostname = mismatchHostname.trimAscii()
+        this.validationTime = validationTime.trimAscii()
+    }
+
+    public func certificateChainPemBundle(): String {
+        "${leafPem}\n${intermediatePemBundle}"
+    }
+}
+
+public class ContractProviderSmokeExecutableSuiteRequest {
+    public let fixtureIds: Array<String>
+    public let material: ?ContractProviderSmokeExecutableMaterial
+
+    public init(
+        fixtureIds!: Array<String> = [],
+        material!: ?ContractProviderSmokeExecutableMaterial = None
+    ) {
+        let normalized = ArrayList<String>()
+        for (fixtureId in fixtureIds) {
+            let trimmed = fixtureId.trimAscii()
+            if (trimmed.size == 0) {
+                throw ContractException(
+                    ContractErrorCode.BadInput,
+                    "provider smoke executable suite request fixtureIds must not contain empty values"
+                )
+            }
+            normalized.add(trimmed)
+        }
+        this.fixtureIds = normalized.toArray()
+        this.material = material
+    }
+}
+
+public enum ContractProviderSmokeExecutableStatus <: Equatable<ContractProviderSmokeExecutableStatus> & ToString {
+    | Passed
+    | Failed
+    | Skipped
+
+    public operator func ==(right: ContractProviderSmokeExecutableStatus): Bool {
+        ordinalValue() == right.ordinalValue()
+    }
+
+    public operator func !=(right: ContractProviderSmokeExecutableStatus): Bool {
+        !(this == right)
+    }
+
+    public func ordinalValue(): Int64 {
+        match (this) {
+            case Passed => 0
+            case Failed => 1
+            case Skipped => 2
+        }
+    }
+
+    public func toString(): String {
+        match (this) {
+            case Passed => "PASSED"
+            case Failed => "FAILED"
+            case Skipped => "SKIPPED"
+        }
+    }
+}
+
+public class ContractProviderSmokeExecutableResult {
+    public let fixture: ContractProviderSmokeFixtureInfo
+    public let executionMode: ContractProviderSmokeExecutionMode
+    public let status: ContractProviderSmokeExecutableStatus
+    public let message: String
+    public let executedEntrypoints: Array<String>
+    public let expectedCode: ?ContractErrorCode
+    public let actualCode: ?ContractErrorCode
+    public let expectedFamily: ?ContractProviderErrorFamily
+    public let actualFamily: ?ContractProviderErrorFamily
+
+    public init(
+        fixture: ContractProviderSmokeFixtureInfo,
+        executionMode: ContractProviderSmokeExecutionMode,
+        status: ContractProviderSmokeExecutableStatus,
+        message: String,
+        executedEntrypoints!: Array<String> = [],
+        expectedCode!: ?ContractErrorCode = None,
+        actualCode!: ?ContractErrorCode = None,
+        expectedFamily!: ?ContractProviderErrorFamily = None,
+        actualFamily!: ?ContractProviderErrorFamily = None
+    ) {
+        if (message.trimAscii().size == 0) {
+            throw ContractException(
+                ContractErrorCode.BadInput,
+                "provider smoke executable result message must not be empty"
+            )
+        }
+        if (status != ContractProviderSmokeExecutableStatus.Skipped && executedEntrypoints.size == 0) {
+            throw ContractException(
+                ContractErrorCode.BadInput,
+                "provider smoke executable non-skipped result must record at least one executed entrypoint"
+            )
+        }
+        this.fixture = fixture
+        this.executionMode = executionMode
+        this.status = status
+        this.message = message.trimAscii()
+        this.executedEntrypoints = executedEntrypoints.clone()
+        this.expectedCode = expectedCode
+        this.actualCode = actualCode
+        this.expectedFamily = expectedFamily
+        this.actualFamily = actualFamily
+    }
+}
+
+public class ContractProviderSmokeExecutableSuiteReport {
+    public let providerId: String
+    public let results: Array<ContractProviderSmokeExecutableResult>
+    public let totalFixtureCount: Int64
+    public let executedFixtureCount: Int64
+    public let skippedFixtureCount: Int64
+    public let passedFixtureCount: Int64
+    public let failedFixtureCount: Int64
+    public let verifyPathExecutedCount: Int64
+    public let precheckPathExecutedCount: Int64
+    public let providerSelectionPathExecutedCount: Int64
+    public let metadataOnlySkippedCount: Int64
+    public let warnings: Array<String>
+
+    public init(
+        providerId: String,
+        results: Array<ContractProviderSmokeExecutableResult>,
+        totalFixtureCount: Int64,
+        executedFixtureCount: Int64,
+        skippedFixtureCount: Int64,
+        passedFixtureCount: Int64,
+        failedFixtureCount: Int64,
+        verifyPathExecutedCount: Int64,
+        precheckPathExecutedCount: Int64,
+        providerSelectionPathExecutedCount: Int64,
+        metadataOnlySkippedCount: Int64,
+        warnings: Array<String>
+    ) {
+        if (providerId.trimAscii().size == 0) {
+            throw ContractException(
+                ContractErrorCode.BadInput,
+                "provider smoke executable suite report providerId must not be empty"
+            )
+        }
+        if (results.size == 0) {
+            throw ContractException(
+                ContractErrorCode.BadInput,
+                "provider smoke executable suite report must contain at least one result"
+            )
+        }
+        if (Int64(results.size) != totalFixtureCount) {
+            throw ContractException(
+                ContractErrorCode.BadInput,
+                "provider smoke executable suite report total count must match results"
+            )
+        }
+        if (executedFixtureCount + skippedFixtureCount != totalFixtureCount) {
+            throw ContractException(
+                ContractErrorCode.BadInput,
+                "provider smoke executable suite report executed/skipped counts must match total"
+            )
+        }
+        if (passedFixtureCount + failedFixtureCount != executedFixtureCount) {
+            throw ContractException(
+                ContractErrorCode.BadInput,
+                "provider smoke executable suite report pass/fail counts must match executed count"
+            )
+        }
+        this.providerId = providerId.trimAscii()
+        this.results = results.clone()
+        this.totalFixtureCount = totalFixtureCount
+        this.executedFixtureCount = executedFixtureCount
+        this.skippedFixtureCount = skippedFixtureCount
+        this.passedFixtureCount = passedFixtureCount
+        this.failedFixtureCount = failedFixtureCount
+        this.verifyPathExecutedCount = verifyPathExecutedCount
+        this.precheckPathExecutedCount = precheckPathExecutedCount
+        this.providerSelectionPathExecutedCount = providerSelectionPathExecutedCount
+        this.metadataOnlySkippedCount = metadataOnlySkippedCount
+        this.warnings = warnings.clone()
+    }
+}
+
+public class ContractProviderSmokeExecutableSuiteOutcome {
+    public let ok: Bool
+    public let message: String
+    public let code: ?ContractErrorCode
+    public let igniteCode: ?ContractIgniteCryptoErrorCode
+    public let result: ?ContractProviderSmokeExecutableSuiteReport
+
+    public init(
+        ok: Bool,
+        message: String,
+        code!: ?ContractErrorCode = None,
+        igniteCode!: ?ContractIgniteCryptoErrorCode = None,
+        result!: ?ContractProviderSmokeExecutableSuiteReport = None
+    ) {
+        if (message.trimAscii().size == 0) {
+            throw ContractException(
+                ContractErrorCode.BadInput,
+                "provider smoke executable suite outcome message must not be empty"
+            )
+        }
+        if (ok) {
+            match (code) {
+                case Some(_) =>
+                    throw ContractException(
+                        ContractErrorCode.BadInput,
+                        "provider smoke executable suite outcome code must be empty when ok is true"
+                    )
+                case None => ()
+            }
+            match (igniteCode) {
+                case Some(_) =>
+                    throw ContractException(
+                        ContractErrorCode.BadInput,
+                        "provider smoke executable suite outcome ignite code must be empty when ok is true"
+                    )
+                case None => ()
+            }
+            match (result) {
+                case Some(_) => ()
+                case None =>
+                    throw ContractException(
+                        ContractErrorCode.BadInput,
+                        "provider smoke executable suite outcome result must exist when ok is true"
+                    )
+            }
+        } else {
+            match (code) {
+                case Some(_) => ()
+                case None =>
+                    throw ContractException(
+                        ContractErrorCode.BadInput,
+                        "provider smoke executable suite outcome code must exist when ok is false"
+                    )
+            }
+            match (igniteCode) {
+                case Some(_) => ()
+                case None =>
+                    throw ContractException(
+                        ContractErrorCode.BadInput,
+                        "provider smoke executable suite outcome ignite code must exist when ok is false"
+                    )
+            }
+            match (result) {
+                case Some(_) =>
+                    throw ContractException(
+                        ContractErrorCode.BadInput,
+                        "provider smoke executable suite outcome result must be empty when ok is false"
+                    )
+                case None => ()
+            }
+        }
+        this.ok = ok
+        this.message = message.trimAscii()
+        this.code = code
+        this.igniteCode = igniteCode
+        this.result = result
+    }
+}
+
 public func contractProviderSmokeFixtureCatalog(): Array<ContractProviderSmokeFixtureInfo> {
     let fixtures = ArrayList<ContractProviderSmokeFixtureInfo>()
     fixtures.add(
@@ -563,7 +867,7 @@ public func contractProviderSmokeFixtureCatalog(): Array<ContractProviderSmokeFi
             "jinguissl",
             "success-x509-policy-chain",
             ContractProviderSmokeFixtureCategory.Success,
-            "policy root + intermediate + leaf chain verifies cleanly for the bundled host policy fixture",
+            "policy root + intermediate + leaf chain verifies cleanly for the bundled www.example.com fixture",
             [
                 "testdata/x509/policy_root.pem",
                 "testdata/x509/policy_intermediate.pem",
@@ -576,8 +880,8 @@ public func contractProviderSmokeFixtureCatalog(): Array<ContractProviderSmokeFi
                 "contractTls13VerifyHttpServerFlightX25519(...)"
             ],
             notes: [
-                "recommended baseline success smoke for provider-side X.509 and TLS verification wiring",
-                "hostname expectation matches the policy leaf fixture used throughout contract tests"
+                "recommended baseline success smoke for provider-side X.509 verification wiring",
+                "the bundled policy leaf fixture is issued to www.example.com"
             ]
         )
     )
@@ -615,7 +919,7 @@ public func contractProviderSmokeFixtureCatalog(): Array<ContractProviderSmokeFi
                 "testdata/x509/policy_root.pem",
                 "testdata/x509/policy_intermediate.pem",
                 "testdata/x509/policy_leaf.pem",
-                "hostname: api.policy.example"
+                "hostname: not.policy.example"
             ],
             [
                 "contractVerifyServerCertificatePem(...)",
@@ -940,6 +1244,94 @@ public func contractTryDescribeProviderSmokeSuiteRequest(
     }
 }
 
+public func contractRunProviderSmokeExecutableSuite(): ContractProviderSmokeExecutableSuiteReport {
+    contractRunProviderSmokeExecutableSuiteRequest(ContractProviderSmokeExecutableSuiteRequest())
+}
+
+public func contractRunProviderSmokeExecutableSuiteRequest(
+    request: ContractProviderSmokeExecutableSuiteRequest
+): ContractProviderSmokeExecutableSuiteReport {
+    let fixtureIds = contractProviderSmokeExecutableSuiteFixtureIds(request)
+    let results = ArrayList<ContractProviderSmokeExecutableResult>()
+    let warnings = ArrayList<String>()
+    let capability = contractProviderCapabilityRecord()
+    var executedFixtureCount: Int64 = 0
+    var skippedFixtureCount: Int64 = 0
+    var passedFixtureCount: Int64 = 0
+    var failedFixtureCount: Int64 = 0
+    var verifyPathExecutedCount: Int64 = 0
+    var precheckPathExecutedCount: Int64 = 0
+    var providerSelectionPathExecutedCount: Int64 = 0
+    var metadataOnlySkippedCount: Int64 = 0
+    for (fixtureId in fixtureIds) {
+        let fixture = contractRequireProviderSmokeFixture(fixtureId)
+        let result = contractRunProviderSmokeExecutableFixture(fixture, request.material)
+        results.add(result)
+        match (result.status) {
+            case ContractProviderSmokeExecutableStatus.Passed =>
+                executedFixtureCount += 1
+                passedFixtureCount += 1
+            case ContractProviderSmokeExecutableStatus.Failed =>
+                executedFixtureCount += 1
+                failedFixtureCount += 1
+            case ContractProviderSmokeExecutableStatus.Skipped =>
+                skippedFixtureCount += 1
+        }
+        if (result.status != ContractProviderSmokeExecutableStatus.Skipped) {
+            match (result.executionMode) {
+                case ContractProviderSmokeExecutionMode.VerifyPath =>
+                    verifyPathExecutedCount += 1
+                case ContractProviderSmokeExecutionMode.PrecheckPath =>
+                    precheckPathExecutedCount += 1
+                case ContractProviderSmokeExecutionMode.ProviderSelectionPath =>
+                    providerSelectionPathExecutedCount += 1
+                case ContractProviderSmokeExecutionMode.MetadataOnly => ()
+            }
+        } else if (result.executionMode == ContractProviderSmokeExecutionMode.MetadataOnly) {
+            metadataOnlySkippedCount += 1
+        }
+        if (result.status == ContractProviderSmokeExecutableStatus.Skipped) {
+            contractAppendUniqueString(warnings, result.message)
+        }
+    }
+    if (metadataOnlySkippedCount > 0) {
+        contractAppendUniqueString(
+            warnings,
+            "metadata-only provider smoke fixtures remain skipped by the executable runner until a stable live attach or TLS-flight seam is published"
+        )
+    }
+    ContractProviderSmokeExecutableSuiteReport(
+        capability.providerId,
+        results.toArray(),
+        Int64(results.size),
+        executedFixtureCount,
+        skippedFixtureCount,
+        passedFixtureCount,
+        failedFixtureCount,
+        verifyPathExecutedCount,
+        precheckPathExecutedCount,
+        providerSelectionPathExecutedCount,
+        metadataOnlySkippedCount,
+        warnings.toArray()
+    )
+}
+
+public func contractTryRunProviderSmokeExecutableSuiteRequest(
+    request: ContractProviderSmokeExecutableSuiteRequest
+): ContractProviderSmokeExecutableSuiteOutcome {
+    try {
+        let result = contractRunProviderSmokeExecutableSuiteRequest(request)
+        ContractProviderSmokeExecutableSuiteOutcome(true, "OK", result: Some(result))
+    } catch (e: ContractException) {
+        ContractProviderSmokeExecutableSuiteOutcome(
+            false,
+            e.message,
+            code: Some(e.code),
+            igniteCode: Some(contractMapToIgniteCryptoErrorCode(e.code))
+        )
+    }
+}
+
 private func contractMapProviderErrorFamily(
     code: ContractErrorCode,
     phase: ContractProviderErrorPhase
@@ -1050,6 +1442,369 @@ private func contractProviderSmokeExpectedPhase(
     }
 }
 
+private func contractProviderSmokeExpectedFamily(
+    fixture: ContractProviderSmokeFixtureInfo
+): ContractProviderErrorFamily {
+    match (fixture.expectedFamily) {
+        case Some(value) => value
+        case None =>
+            throw ContractException(
+                ContractErrorCode.BadInput,
+                "provider smoke fixture ${fixture.fixtureId} does not define an expected family"
+            )
+    }
+}
+
+private func contractRunProviderSmokeExecutableFixture(
+    fixture: ContractProviderSmokeFixtureInfo,
+    material: ?ContractProviderSmokeExecutableMaterial
+): ContractProviderSmokeExecutableResult {
+    let executionMode = contractProviderSmokeExecutionModeForFixture(fixture)
+    match (executionMode) {
+        case ContractProviderSmokeExecutionMode.MetadataOnly =>
+            return contractProviderSmokeExecutableSkip(
+                fixture,
+                executionMode,
+                "fixture ${fixture.fixtureId} is metadata-only; no live handshake or attach execution is claimed"
+            )
+        case ContractProviderSmokeExecutionMode.ProviderSelectionPath =>
+            return contractRunProviderSelectionSmokeFixture(fixture, executionMode)
+        case ContractProviderSmokeExecutionMode.PrecheckPath =>
+            match (material) {
+                case Some(value) =>
+                    return contractRunPrecheckSmokeFixture(fixture, executionMode, value)
+                case None =>
+                    return contractProviderSmokeExecutableSkip(
+                        fixture,
+                        executionMode,
+                        "fixture ${fixture.fixtureId} requires executable PEM material"
+                    )
+            }
+        case ContractProviderSmokeExecutionMode.VerifyPath =>
+            match (material) {
+                case Some(value) =>
+                    return contractRunVerifySmokeFixture(fixture, executionMode, value)
+                case None =>
+                    return contractProviderSmokeExecutableSkip(
+                        fixture,
+                        executionMode,
+                        "fixture ${fixture.fixtureId} requires executable PEM material"
+                    )
+            }
+    }
+}
+
+private func contractRunVerifySmokeFixture(
+    fixture: ContractProviderSmokeFixtureInfo,
+    executionMode: ContractProviderSmokeExecutionMode,
+    material: ContractProviderSmokeExecutableMaterial
+): ContractProviderSmokeExecutableResult {
+    match (fixture.fixtureId) {
+        case "success-x509-policy-chain" =>
+            try {
+                let leafResult = contractVerifyServerCertificatePem(
+                    material.leafPem,
+                    material.trustAnchorsPemBundle,
+                    intermediatesPemBundle: material.intermediatePemBundle,
+                    hostname: material.successHostname,
+                    validationTime: material.validationTime
+                )
+                let chainResult = contractVerifyServerCertificateChainPem(
+                    material.certificateChainPemBundle(),
+                    material.trustAnchorsPemBundle,
+                    intermediatesPemBundle: material.intermediatePemBundle,
+                    hostname: material.successHostname,
+                    validationTime: material.validationTime
+                )
+                if (leafResult.chainLength <= 0 || chainResult.chainLength <= 0) {
+                    return contractProviderSmokeExecutableFail(
+                        fixture,
+                        executionMode,
+                        "success fixture returned an invalid verified chain length",
+                        executedEntrypoints: [
+                            "contractVerifyServerCertificatePem(...)",
+                            "contractVerifyServerCertificateChainPem(...)"
+                        ]
+                    )
+                }
+                return contractProviderSmokeExecutablePass(
+                    fixture,
+                    executionMode,
+                    "success fixture executed X.509 leaf and chain verification paths",
+                    executedEntrypoints: [
+                        "contractVerifyServerCertificatePem(...)",
+                        "contractVerifyServerCertificateChainPem(...)"
+                    ]
+                )
+            } catch (e: ContractException) {
+                return contractProviderSmokeExecutableFail(
+                    fixture,
+                    executionMode,
+                    "success fixture failed unexpectedly: ${e.message}",
+                    executedEntrypoints: [
+                        "contractVerifyServerCertificatePem(...)",
+                        "contractVerifyServerCertificateChainPem(...)"
+                    ],
+                    actualCode: Some(e.code)
+                )
+            }
+        case "verify-hostname-mismatch" =>
+            try {
+                _ = contractVerifyServerCertificatePem(
+                    material.leafPem,
+                    material.trustAnchorsPemBundle,
+                    intermediatesPemBundle: material.intermediatePemBundle,
+                    hostname: material.mismatchHostname,
+                    validationTime: material.validationTime
+                )
+                return contractProviderSmokeExecutableFail(
+                    fixture,
+                    executionMode,
+                    "hostname mismatch fixture unexpectedly verified",
+                    executedEntrypoints: ["contractVerifyServerCertificatePem(...)"],
+                    expectedCode: Some(contractProviderSmokeExpectedCode(fixture))
+                )
+            } catch (e: ContractException) {
+                return contractProviderSmokeExpectedFailureResult(
+                    fixture,
+                    executionMode,
+                    e,
+                    "hostname mismatch fixture failed with the expected verification error",
+                    ["contractVerifyServerCertificatePem(...)"]
+                )
+            }
+        case "verify-pin-mismatch" =>
+            let wrongPin = Array<Byte>(32, repeat: 0)
+            try {
+                _ = contractVerifyServerCertificatePem(
+                    material.leafPem,
+                    material.trustAnchorsPemBundle,
+                    intermediatesPemBundle: material.intermediatePemBundle,
+                    hostname: material.successHostname,
+                    validationTime: material.validationTime,
+                    pinPolicy: ContractX509PinPolicy(allowedLeafDerSha256: [wrongPin])
+                )
+                return contractProviderSmokeExecutableFail(
+                    fixture,
+                    executionMode,
+                    "pin mismatch fixture unexpectedly verified",
+                    executedEntrypoints: ["contractVerifyServerCertificatePem(...)"],
+                    expectedCode: Some(contractProviderSmokeExpectedCode(fixture))
+                )
+            } catch (e: ContractException) {
+                return contractProviderSmokeExpectedFailureResult(
+                    fixture,
+                    executionMode,
+                    e,
+                    "pin mismatch fixture failed with the expected verification error",
+                    ["contractVerifyServerCertificatePem(...)"]
+                )
+            }
+        case _ =>
+            contractProviderSmokeExecutableSkip(
+                fixture,
+                executionMode,
+                "fixture ${fixture.fixtureId} has no stable contract-local executable verify handler yet"
+            )
+    }
+}
+
+private func contractRunPrecheckSmokeFixture(
+    fixture: ContractProviderSmokeFixtureInfo,
+    executionMode: ContractProviderSmokeExecutionMode,
+    material: ContractProviderSmokeExecutableMaterial
+): ContractProviderSmokeExecutableResult {
+    if (fixture.fixtureId != "precheck-cert-key-mismatch") {
+        return contractProviderSmokeExecutableSkip(
+            fixture,
+            executionMode,
+            "fixture ${fixture.fixtureId} has no stable contract-local executable precheck handler yet"
+        )
+    }
+    if (material.mismatchPrivateKeyPem.size == 0) {
+        return contractProviderSmokeExecutableSkip(
+            fixture,
+            executionMode,
+            "fixture ${fixture.fixtureId} requires a mismatch private key PEM"
+        )
+    }
+    try {
+        _ = contractValidateHttpServerTlsConfigInput(
+            material.certificateChainPemBundle(),
+            material.mismatchPrivateKeyPem,
+            alpnProtocols: ["h2", "http/1.1"],
+            requireHttp2Alpn: true
+        )
+        return contractProviderSmokeExecutableFail(
+            fixture,
+            executionMode,
+            "precheck mismatch fixture unexpectedly validated",
+            executedEntrypoints: ["contractValidateHttpServerTlsConfigInput(...)"],
+            expectedCode: Some(contractProviderSmokeExpectedCode(fixture))
+        )
+    } catch (e: ContractException) {
+        return contractProviderSmokeExpectedFailureResult(
+            fixture,
+            executionMode,
+            e,
+            "precheck mismatch fixture failed with the expected TLS precheck error",
+            ["contractValidateHttpServerTlsConfigInput(...)"]
+        )
+    }
+}
+
+private func contractRunProviderSelectionSmokeFixture(
+    fixture: ContractProviderSmokeFixtureInfo,
+    executionMode: ContractProviderSmokeExecutionMode
+): ContractProviderSmokeExecutableResult {
+    let expectedCode = contractProviderSmokeExpectedCode(fixture)
+    let expectedPhase = contractProviderSmokeExpectedPhase(fixture)
+    let expectedFamily = contractProviderSmokeExpectedFamily(fixture)
+    let descriptor = contractDescribeProviderErrorCode(
+        expectedCode,
+        phase: expectedPhase,
+        detail: "provider smoke executable ${fixture.fixtureId}: ${fixture.summary}"
+    )
+    let fallback = contractRecommendProviderFallback(descriptor)
+    if (descriptor.family != expectedFamily) {
+        return contractProviderSmokeExecutableFail(
+            fixture,
+            executionMode,
+            "provider selection descriptor family did not match expected family",
+            executedEntrypoints: [
+                "contractDescribeProviderErrorCode(...)",
+                "contractRecommendProviderFallback(...)"
+            ],
+            expectedCode: Some(expectedCode),
+            actualCode: Some(expectedCode),
+            expectedFamily: Some(expectedFamily),
+            actualFamily: Some(descriptor.family)
+        )
+    }
+    if (!fallback.fallbackSuggested) {
+        return contractProviderSmokeExecutableFail(
+            fixture,
+            executionMode,
+            "provider selection fixture did not suggest fallback for unavailable provider",
+            executedEntrypoints: [
+                "contractDescribeProviderErrorCode(...)",
+                "contractRecommendProviderFallback(...)"
+            ],
+            expectedCode: Some(expectedCode),
+            actualCode: Some(expectedCode),
+            expectedFamily: Some(expectedFamily),
+            actualFamily: Some(descriptor.family)
+        )
+    }
+    contractProviderSmokeExecutablePass(
+        fixture,
+        executionMode,
+        "provider selection fixture executed descriptor and fallback decision helpers",
+        executedEntrypoints: [
+            "contractDescribeProviderErrorCode(...)",
+            "contractRecommendProviderFallback(...)"
+        ],
+        expectedCode: Some(expectedCode),
+        actualCode: Some(expectedCode),
+        expectedFamily: Some(expectedFamily),
+        actualFamily: Some(descriptor.family)
+    )
+}
+
+private func contractProviderSmokeExpectedFailureResult(
+    fixture: ContractProviderSmokeFixtureInfo,
+    executionMode: ContractProviderSmokeExecutionMode,
+    exception: ContractException,
+    passMessage: String,
+    executedEntrypoints: Array<String>
+): ContractProviderSmokeExecutableResult {
+    let expectedCode = contractProviderSmokeExpectedCode(fixture)
+    let expectedPhase = contractProviderSmokeExpectedPhase(fixture)
+    let expectedFamily = contractProviderSmokeExpectedFamily(fixture)
+    let actualFamily = contractMapProviderErrorFamily(exception.code, expectedPhase)
+    if (exception.code == expectedCode && actualFamily == expectedFamily) {
+        return contractProviderSmokeExecutablePass(
+            fixture,
+            executionMode,
+            passMessage,
+            executedEntrypoints: executedEntrypoints,
+            expectedCode: Some(expectedCode),
+            actualCode: Some(exception.code),
+            expectedFamily: Some(expectedFamily),
+            actualFamily: Some(actualFamily)
+        )
+    }
+    contractProviderSmokeExecutableFail(
+        fixture,
+        executionMode,
+        "fixture ${fixture.fixtureId} failed with unexpected code ${exception.code.toString()}: ${exception.message}",
+        executedEntrypoints: executedEntrypoints,
+        expectedCode: Some(expectedCode),
+        actualCode: Some(exception.code),
+        expectedFamily: Some(expectedFamily),
+        actualFamily: Some(actualFamily)
+    )
+}
+
+private func contractProviderSmokeExecutablePass(
+    fixture: ContractProviderSmokeFixtureInfo,
+    executionMode: ContractProviderSmokeExecutionMode,
+    message: String,
+    executedEntrypoints!: Array<String>,
+    expectedCode!: ?ContractErrorCode = None,
+    actualCode!: ?ContractErrorCode = None,
+    expectedFamily!: ?ContractProviderErrorFamily = None,
+    actualFamily!: ?ContractProviderErrorFamily = None
+): ContractProviderSmokeExecutableResult {
+    ContractProviderSmokeExecutableResult(
+        fixture,
+        executionMode,
+        ContractProviderSmokeExecutableStatus.Passed,
+        message,
+        executedEntrypoints: executedEntrypoints,
+        expectedCode: expectedCode,
+        actualCode: actualCode,
+        expectedFamily: expectedFamily,
+        actualFamily: actualFamily
+    )
+}
+
+private func contractProviderSmokeExecutableFail(
+    fixture: ContractProviderSmokeFixtureInfo,
+    executionMode: ContractProviderSmokeExecutionMode,
+    message: String,
+    executedEntrypoints!: Array<String>,
+    expectedCode!: ?ContractErrorCode = None,
+    actualCode!: ?ContractErrorCode = None,
+    expectedFamily!: ?ContractProviderErrorFamily = None,
+    actualFamily!: ?ContractProviderErrorFamily = None
+): ContractProviderSmokeExecutableResult {
+    ContractProviderSmokeExecutableResult(
+        fixture,
+        executionMode,
+        ContractProviderSmokeExecutableStatus.Failed,
+        message,
+        executedEntrypoints: executedEntrypoints,
+        expectedCode: expectedCode,
+        actualCode: actualCode,
+        expectedFamily: expectedFamily,
+        actualFamily: actualFamily
+    )
+}
+
+private func contractProviderSmokeExecutableSkip(
+    fixture: ContractProviderSmokeFixtureInfo,
+    executionMode: ContractProviderSmokeExecutionMode,
+    message: String
+): ContractProviderSmokeExecutableResult {
+    ContractProviderSmokeExecutableResult(
+        fixture,
+        executionMode,
+        ContractProviderSmokeExecutableStatus.Skipped,
+        message
+    )
+}
+
 private func contractProviderSmokeWarnings(
     fixture: ContractProviderSmokeFixtureInfo,
     executionMode: ContractProviderSmokeExecutionMode,
@@ -1086,6 +1841,19 @@ private func contractProviderSmokeWarnings(
 
 private func contractProviderSmokeSuiteFixtureIds(
     request: ContractProviderSmokeSuiteRequest
+): Array<String> {
+    if (request.fixtureIds.size == 0) {
+        let fixtureIds = ArrayList<String>()
+        for (fixture in contractProviderSmokeFixtureCatalog()) {
+            fixtureIds.add(fixture.fixtureId)
+        }
+        return fixtureIds.toArray()
+    }
+    request.fixtureIds.clone()
+}
+
+private func contractProviderSmokeExecutableSuiteFixtureIds(
+    request: ContractProviderSmokeExecutableSuiteRequest
 ): Array<String> {
     if (request.fixtureIds.size == 0) {
         let fixtureIds = ArrayList<String>()
