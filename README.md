@@ -40,7 +40,7 @@
 
 本仓库**不是纯瘦 facade（thin facade）**。
 
-`src/jinguissl_contract/jinguissl/live/live.cj` 当前包含约 19k 行的活跃编排逻辑，覆盖 TLS / SSH / X.509 / AES 等协议面的启动材料与运行时组合。因此 `JinguiSSL-contract` 当前的实际定位是：
+`src/jinguissl/live/live.cj` 当前包含约 19k 行的活跃编排逻辑，覆盖 TLS / SSH / X.509 / AES 等协议面的启动材料与运行时组合。因此 `JinguiSSL-contract` 当前的实际定位是：
 
 - 对外暴露稳定 facade 接口
 - 同时包含非轻量的 live 编排层
@@ -66,13 +66,13 @@
 
 ```toml
 [dependencies]
-jinguissl_contract = { git = "https://gitcode.com/cinyu/jinguiSSL.git" }
+JinguiSSL = { git = "https://gitcode.com/cinyu/jinguiSSL.git" }
 ```
 
 ### 示例：先从 contract 入口拿稳定能力
 
 ```cangjie
-import jinguissl_contract.jinguissl.contract.*
+import JinguiSSL.jinguissl.contract.*
 
 main() {
     let facade = contractFacadeInfo()
@@ -123,7 +123,8 @@ cjpm test
 
 ```text
 JinguiSSL-contract/
-├── src/jinguissl_contract/
+├── src/
+│   ├── package.cj
 │   └── jinguissl/
 │       ├── contract/   # 对外 facade 与 contract
 │       ├── live/       # 面向 live 组合的共享实现
