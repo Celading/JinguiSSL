@@ -10,8 +10,8 @@ public class ContractProviderGateTestSuite {
         @Assert(capability.providerId, "jinguissl")
         @Assert(capability.providerVersion, "0.6.21")
         @Assert(capability.supportsClientTls, true)
-        @Assert(capability.supportsServerTlsAttach, false)
-        @Assert(capability.defaultEligible, false)
+        @Assert(capability.supportsServerTlsAttach, true)
+        @Assert(capability.defaultEligible, true)
         @Assert(capability.unsupportedReasons.size > 0, true)
         @Assert(capability.notes.size > 0, true)
     }
@@ -21,7 +21,7 @@ public class ContractProviderGateTestSuite {
         let info = contractProviderAttachContractInfo()
         @Assert(info.providerId, "jinguissl")
         @Assert(info.supportsTlsPrecheck, true)
-        @Assert(info.supportsServerTlsAttach, false)
+        @Assert(info.supportsServerTlsAttach, true)
         @Assert(info.tlsPrecheckInputs.contains("serverName"), true)
         @Assert(info.failureFields.contains("contractCode"), true)
         @Assert(info.notes.size > 0, true)
@@ -31,11 +31,11 @@ public class ContractProviderGateTestSuite {
     public func testContractProviderServerAttachBoundaryShape(): Unit {
         let boundary = contractProviderServerAttachBoundary()
         @Assert(boundary.providerId, "jinguissl")
-        @Assert(boundary.status.toString(), "PRECHECK_ONLY")
-        @Assert(boundary.stableAttach, false)
-        @Assert(boundary.blockingLayer.contains("stdx"), true)
-        @Assert(boundary.recommendedFallback.contains("lisi"), true)
-        @Assert(boundary.unsupportedReasons.size > 0, true)
+        @Assert(boundary.status.toString(), "STABLE")
+        @Assert(boundary.stableAttach, true)
+        @Assert(boundary.blockingLayer.contains("stable accepted-transport"), true)
+        @Assert(boundary.recommendedFallback.contains("stdx-default"), true)
+        @Assert(boundary.unsupportedReasons.size, 0)
     }
 
     @TestCase

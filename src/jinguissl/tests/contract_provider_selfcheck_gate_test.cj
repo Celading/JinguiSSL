@@ -11,8 +11,8 @@ public class ContractProviderSelfCheckGateTestSuite {
         @Assert(report.supportsClientTls, true)
         @Assert(report.supportsX509Verify, true)
         @Assert(report.supportsTlsPrecheck, true)
-        @Assert(report.stableServerAttach, false)
-        @Assert(report.defaultEligible, false)
+        @Assert(report.stableServerAttach, true)
+        @Assert(report.defaultEligible, true)
         @Assert(report.warnings.contains("provider remains experimental in the current public release line"), true)
     }
 
@@ -60,34 +60,36 @@ public class ContractProviderSelfCheckGateTestSuite {
     }
 
     @TestCase
-    public func testContractProviderConsumptionGateStableAttachStaysBlocked(): Unit {
+    public func testContractProviderConsumptionGateStableAttachIsPublished(): Unit {
         let gate = contractDescribeProviderConsumptionGate(
             ContractProviderConsumptionPath.HttpServerStableAttach
         )
-        @Assert(gate.readyNow, false)
-        @Assert(gate.status.toString(), "BLOCKED")
-        @Assert(gate.blockedCandidates.size == Int64(1), true)
-        @Assert(gate.blockedCandidates[0], "jinguissl-provider-candidate:stable_attach_unpublished")
+        @Assert(gate.readyNow, true)
+        @Assert(gate.status.toString(), "PROVIDER_CANDIDATE")
+        @Assert(gate.blockedCandidates.size == Int64(0), true)
+        @Assert(gate.selectedEntryId, "jinguissl-provider-candidate")
+        @Assert(gate.guide.publishedContractPath, true)
+        @Assert(gate.guide.requiresUpperLayerAttachGlue, false)
+        @Assert(gate.selectedReason.contains("provider-candidate route"), true)
         match (gate.smokeReadiness) {
             case Some(readiness) =>
-                @Assert(readiness.overallReady, false)
+                @Assert(readiness.overallReady, true)
+                @Assert(readiness.stableServerAttach, true)
+                @Assert(readiness.defaultEligible, true)
             case None =>
                 @Fail("stable attach gate should carry mapped smoke readiness")
         }
         let outcome = contractTryRequireProviderConsumptionGate(
             ContractProviderConsumptionPath.HttpServerStableAttach
         )
-        @Assert(outcome.ok, false)
-        match (outcome.code) {
-            case Some(code) =>
-                @Assert(code.toString(), "UNSUPPORTED")
+        @Assert(outcome.ok, true)
+        match (outcome.result) {
+            case Some(report) =>
+                @Assert(report.readyNow, true)
+                @Assert(report.selectedEntryId, "jinguissl-provider-candidate")
             case None =>
-                @Fail("blocked stable attach outcome should carry contract error code")
+                @Fail("published stable attach outcome should carry a success result")
         }
-        @Assert(
-            outcome.message.contains("stable HTTPS listener attach is not a published jinguissl contract"),
-            true
-        )
     }
 
     @TestCase
