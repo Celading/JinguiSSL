@@ -1,6 +1,9 @@
 package JinguiSSL.jinguissl.tests
 
+import std.fs.File
 import JinguiSSL.jinguissl.contract.*
+
+private let LIVE_SOURCE_ROOT: String = ""
 
 @Test
 public class ContractProviderSmokeTestSuite {
@@ -114,4 +117,131 @@ public class ContractProviderSmokeTestSuite {
             case None => ()
         }
     }
+
+    @TestCase
+    public func testContractProviderSmokeExecutableRunnerExecutesStableFixtures(): Unit {
+        let report = contractRunProviderSmokeExecutableSuiteRequest(
+            ContractProviderSmokeExecutableSuiteRequest(
+                fixtureIds: [
+                    "success-x509-policy-chain",
+                    "verify-hostname-mismatch",
+                    "verify-pin-mismatch",
+                    "precheck-cert-key-mismatch",
+                    "provider-not-linked",
+                    "attach-stable-listener-unpublished"
+                ],
+                material: Some(providerSmokeExecutableMaterial())
+            )
+        )
+        @Assert(report.totalFixtureCount, 6)
+        @Assert(report.executedFixtureCount, 5)
+        @Assert(report.skippedFixtureCount, 1)
+        @Assert(report.verifyPathExecutedCount, 3)
+        @Assert(report.precheckPathExecutedCount, 1)
+        @Assert(report.providerSelectionPathExecutedCount, 1)
+        @Assert(report.metadataOnlySkippedCount, 1)
+        @Assert(report.warnings.contains(
+            "fixture attach-stable-listener-unpublished is metadata-only; no live handshake or attach execution is claimed"
+        ), true)
+
+        let success = requireExecutableResult(report, "success-x509-policy-chain")
+        if (success.status.toString() != "PASSED") {
+            @Fail(success.message)
+        }
+        @Assert(success.executedEntrypoints.size, 2)
+
+        let hostname = requireExecutableResult(report, "verify-hostname-mismatch")
+        @Assert(hostname.status.toString(), "PASSED")
+
+        let pin = requireExecutableResult(report, "verify-pin-mismatch")
+        @Assert(pin.status.toString(), "PASSED")
+
+        let precheck = requireExecutableResult(report, "precheck-cert-key-mismatch")
+        @Assert(precheck.status.toString(), "PASSED")
+
+        let provider = requireExecutableResult(report, "provider-not-linked")
+        @Assert(provider.status.toString(), "PASSED")
+
+        let attach = requireExecutableResult(report, "attach-stable-listener-unpublished")
+        @Assert(attach.status.toString(), "SKIPPED")
+        @Assert(attach.executedEntrypoints.size, 0)
+
+        @Assert(report.passedFixtureCount, 5)
+        @Assert(report.failedFixtureCount, 0)
+    }
+
+    @TestCase
+    public func testContractProviderSmokeExecutableRunnerSkipsMaterialBoundFixturesWithoutMaterial(): Unit {
+        let report = contractRunProviderSmokeExecutableSuiteRequest(
+            ContractProviderSmokeExecutableSuiteRequest(
+                fixtureIds: [
+                    "success-x509-policy-chain",
+                    "provider-not-linked"
+                ]
+            )
+        )
+        @Assert(report.totalFixtureCount, 2)
+        @Assert(report.executedFixtureCount, 1)
+        @Assert(report.skippedFixtureCount, 1)
+        @Assert(report.passedFixtureCount, 1)
+        @Assert(report.failedFixtureCount, 0)
+
+        let success = requireExecutableResult(report, "success-x509-policy-chain")
+        @Assert(success.status.toString(), "SKIPPED")
+        @Assert(success.message, "fixture success-x509-policy-chain requires executable PEM material")
+
+        let provider = requireExecutableResult(report, "provider-not-linked")
+        @Assert(provider.status.toString(), "PASSED")
+    }
+
+    @TestCase
+    public func testContractTryRunProviderSmokeExecutableSuiteMapsBadInput(): Unit {
+        let outcome = contractTryRunProviderSmokeExecutableSuiteRequest(
+            ContractProviderSmokeExecutableSuiteRequest(
+                fixtureIds: ["missing-fixture"]
+            )
+        )
+        @Assert(outcome.ok, false)
+        match (outcome.code) {
+            case Some(code) =>
+                @Assert(code.toString(), "BAD_INPUT")
+            case None =>
+                @Fail("executable suite failure should carry contract error code")
+        }
+        match (outcome.igniteCode) {
+            case Some(code) =>
+                @Assert(code.toString(), "BAD_ENVELOPE")
+            case None =>
+                @Fail("executable suite failure should carry ignite error code")
+        }
+    }
+}
+
+private func providerSmokeExecutableMaterial(): ContractProviderSmokeExecutableMaterial {
+    ContractProviderSmokeExecutableMaterial(
+        readText("testdata/x509/policy_leaf.pem"),
+        readText("testdata/x509/policy_intermediate.pem"),
+        readText("testdata/x509/policy_root.pem"),
+        readText("testdata/x509/policy_leaf_key_pkcs8.pem"),
+        mismatchPrivateKeyPem: readText("testdata/x509/rsa_2048_pkcs8.pem"),
+        successHostname: "www.example.com",
+        mismatchHostname: "not.policy.example",
+        validationTime: "230101000000Z"
+    )
+}
+
+private func requireExecutableResult(
+    report: ContractProviderSmokeExecutableSuiteReport,
+    fixtureId: String
+): ContractProviderSmokeExecutableResult {
+    for (result in report.results) {
+        if (result.fixture.fixtureId == fixtureId) {
+            return result
+        }
+    }
+    @Fail("missing executable result ${fixtureId}")
+}
+
+private func readText(path: String): String {
+    String.fromUtf8(File.readFrom("${LIVE_SOURCE_ROOT}${path}"))
 }
