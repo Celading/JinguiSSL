@@ -1038,14 +1038,14 @@ public func contractDescribeProviderConsumptionPath(
                 path,
                 "http-server-stable-attach",
                 "stable-server-attach",
-                false,
                 true,
                 true,
                 false,
-                "a stable HTTPS listener attach attempt is not a published jinguissl contract in this repo; treat this path as blocked until stable attach, default eligibility, and live handshake coverage become public facts",
+                true,
+                "a stable HTTPS listener attach attempt may use the published stable accepted-transport TLS1.3 X25519 contract path; full browser-grade HTTPS/H2 runtime closure remains a separate consumer/runtime concern",
                 [
-                    "this path intentionally fails closed to protect the current provider-candidate boundary",
-                    "use attach-planning plus stdx-default fallback instead of presenting jinguissl as the default listener"
+                    "this path is source-owned by JinguiSSL-contract and is safe for provider-gate selection",
+                    "use stdx-default only as a manual fallback when the provider attach fails before connection consumption"
                 ],
                 suggestedSmokeProfile: Some(ContractProviderSmokeProfile.DefaultHttpsEligible),
                 suggestedFallbackTarget: "stdx-default"
@@ -1347,7 +1347,7 @@ public func contractDescribeProviderConsumptionGate(
         case ContractProviderConsumptionPath.HttpServerAttachPlanning =>
             ContractProviderConsumptionGateStatus.PlanningOnly
         case ContractProviderConsumptionPath.HttpServerStableAttach =>
-            ContractProviderConsumptionGateStatus.Blocked
+            ContractProviderConsumptionGateStatus.ProviderCandidate
         case ContractProviderConsumptionPath.SshClientLibrary =>
             ContractProviderConsumptionGateStatus.LibraryContract
         case ContractProviderConsumptionPath.SshServerLibrary =>
