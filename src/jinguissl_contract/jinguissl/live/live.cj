@@ -11118,6 +11118,32 @@ public func contractTls13CreateVerifiedSessionChannelSetRequest(
     contractTls13CreateVerifiedSessionChannelSet(request.session)
 }
 
+public func contractTls13OpenHttpClientVerifiedSessionRuntime(
+    session: ContractTls13HttpClientVerifiedSession
+): ContractTls13HttpClientVerifiedSessionRuntime {
+    ContractTls13HttpClientVerifiedSessionRuntime(
+        ContractTls13HttpClientSessionStatus.Ready,
+        contractTls13CreateVerifiedSessionChannelSet(session)
+    )
+}
+
+public func contractTls13OpenHttpClientVerifiedSessionRuntimeRequest(
+    request: ContractTls13HttpVerifiedSessionRequest
+): ContractTls13HttpClientVerifiedSessionRuntime {
+    contractTls13OpenHttpClientVerifiedSessionRuntime(request.session)
+}
+
+public func contractTls13CloseHttpClientVerifiedSessionRuntime(
+    runtime: ContractTls13HttpClientVerifiedSessionRuntime,
+    reason!: String = "close_notify"
+): ContractTls13HttpClientVerifiedSessionRuntime {
+    ContractTls13HttpClientVerifiedSessionRuntime(
+        ContractTls13HttpClientSessionStatus.Closed,
+        runtime.channelSet,
+        closeReason: reason
+    )
+}
+
 public func contractTls13DeriveExporterMasterSecretFromVerifiedSession(
     session: ContractTls13HttpClientVerifiedSession
 ): Array<Byte> {
@@ -12348,6 +12374,76 @@ public class ContractTls13HttpVerifiedSessionTrafficUpdateResult {
         this.encodedKeyUpdate = encodedKeyUpdate.clone()
         this.requestPeerUpdate = requestPeerUpdate
         this.runtime = runtime
+    }
+}
+
+public enum ContractTls13HttpClientSessionStatus <: Equatable<ContractTls13HttpClientSessionStatus> & ToString {
+    | Ready
+    | Blocked
+    | Failed
+    | Closed
+
+    public operator func ==(right: ContractTls13HttpClientSessionStatus): Bool {
+        ordinalValue() == right.ordinalValue()
+    }
+
+    public operator func !=(right: ContractTls13HttpClientSessionStatus): Bool {
+        !(this == right)
+    }
+
+    public func ordinalValue(): Int64 {
+        match (this) {
+            case Ready => 0
+            case Blocked => 1
+            case Failed => 2
+            case Closed => 3
+        }
+    }
+
+    public func toString(): String {
+        match (this) {
+            case Ready => "READY"
+            case Blocked => "BLOCKED"
+            case Failed => "FAILED"
+            case Closed => "CLOSED"
+        }
+    }
+}
+
+public class ContractTls13HttpClientVerifiedSessionRuntime {
+    public let status: ContractTls13HttpClientSessionStatus
+    public let channelSet: ContractTls13HttpVerifiedSessionChannelSet
+    public let closeReason: String
+
+    public init(
+        status: ContractTls13HttpClientSessionStatus,
+        channelSet: ContractTls13HttpVerifiedSessionChannelSet,
+        closeReason!: String = ""
+    ) {
+        if (
+            status == ContractTls13HttpClientSessionStatus.Ready &&
+            channelSet.session.result.chainLength <= 0
+        ) {
+            throw ContractException(
+                ContractErrorCode.BadInput,
+                "ready TLS1.3 HTTP client session runtime requires verified chain metadata"
+            )
+        }
+        this.status = status
+        this.channelSet = channelSet
+        this.closeReason = closeReason.trimAscii()
+    }
+
+    public prop secureSessionReady: Bool {
+        get() {
+            status == ContractTls13HttpClientSessionStatus.Ready
+        }
+    }
+
+    public prop result: ContractTls13HttpClientResult {
+        get() {
+            channelSet.session.result
+        }
     }
 }
 
