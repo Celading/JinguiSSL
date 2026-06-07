@@ -36,6 +36,19 @@
 
 如果你只是想把安全能力接进服务，建议先从这个仓库开始。
 
+## 当前分层说明
+
+本仓库**不是纯瘦 facade（thin facade）**。
+
+`src/jinguissl/live/live.cj` 当前包含约 19k 行的活跃编排逻辑，覆盖 TLS / SSH / X.509 / AES 等协议面的启动材料与运行时组合。因此 `JinguiSSL-contract` 当前的实际定位是：
+
+- 对外暴露稳定 facade 接口
+- 同时包含非轻量的 live 编排层
+
+没有 `live.cj` 的配合，contract 的许多高层面（TLS startup、SSH bundle、provider orchestration）无法独立运作。后续版本计划对 live 层进行独立的包级重构。在此之前，"stable thin contract facade for all live protocol operations" 是不准确的描述。
+
+如果你需要直接控制 TLS/SSH handshake、record 层或密钥调度，建议回到 `JinguiSSL-core`；如果你需要动态库桥接或运行时接入，建议到 `JinguiSSL-bridge`。
+
 ## 当前能力
 
 - Digest / HMAC / HKDF contract：`SHA-256`、`SHA-384`、`SHA-512`、`HMAC`、`HKDF`
@@ -49,25 +62,23 @@
 
 ### 依赖
 
-当前已经有可用的 hosted mirror，可直接按需引用。  
-如果你在同一工作区内做 Jingui family 联调，也仍然可以继续用 sibling checkout。
+公开仓库默认使用远程 Git 依赖；本地 sibling checkout 仅建议作为开发时的临时覆盖。
 
 ```toml
 [dependencies]
-# GitHub mirror
-jinguissl_contract = { git = "https://github.com/Celading/JinguiSSL" }
+JinguiSSL = { git = "https://github.com/CangjieKu/JinGuiSSL.git" }
 
 # GitCode mirror
-# jinguissl_contract = { git = "https://gitcode.com/cinyu/jinguiSSL.git" }
+# JinguiSSL = { git = "https://gitcode.com/cinyu/jinguiSSL.git" }
 
 # Local sibling checkout for family development
-# jinguissl_contract = { path = "../JinguiSSL-contract" }
+# JinguiSSL = { path = "../JinguiSSL-contract" }
 ```
 
 ### 示例：先从 contract 入口拿稳定能力
 
 ```cangjie
-import jinguissl_contract.jinguissl.contract.*
+import JinguiSSL.jinguissl.contract.*
 
 main() {
     let facade = contractFacadeInfo()
@@ -118,7 +129,8 @@ cjpm test
 
 ```text
 JinguiSSL-contract/
-├── src/jinguissl_contract/
+├── src/
+│   ├── package.cj
 │   └── jinguissl/
 │       ├── contract/   # 对外 facade 与 contract
 │       ├── live/       # 面向 live 组合的共享实现
