@@ -12117,6 +12117,7 @@ public func contractTls13ExtractServerSelectedPskIdentity(
     }
 }
 
+/** Proof-carrying HTTP client verification result. Construct through verifier helpers. */
 public class ContractTls13HttpClientResult {
     public let selectedAlpn: String
     public let requestedServerName: String
@@ -12129,7 +12130,7 @@ public class ContractTls13HttpClientResult {
     public let keyMaterial: ContractTls13ApplicationKeyMaterial
     public let cipherBinding: ?ContractTls13CipherBinding
 
-    public init(
+    internal init(
         selectedAlpn: String,
         requestedServerName: String,
         acknowledgedServerName: Bool,
@@ -12159,6 +12160,7 @@ public class ContractTls13HttpClientResult {
     }
 }
 
+/** Proof-carrying verified session. Construct through verifier helpers. */
 public class ContractTls13HttpClientVerifiedSession {
     public let result: ContractTls13HttpClientResult
     public let clientAppTrafficSecret: Array<Byte>
@@ -12166,7 +12168,7 @@ public class ContractTls13HttpClientVerifiedSession {
     public let masterSecret: Array<Byte>
     public let transcriptHash: Array<Byte>
 
-    public init(
+    internal init(
         result: ContractTls13HttpClientResult,
         clientAppTrafficSecret: Array<Byte>,
         serverAppTrafficSecret: Array<Byte>,
@@ -12326,12 +12328,13 @@ public class ContractTls13HttpVerifiedSessionPeerKeyUpdateRequest {
     }
 }
 
+/** Runtime channel set for a proof-carrying verified session. */
 public class ContractTls13HttpVerifiedSessionChannelSet {
     public let session: ContractTls13HttpClientVerifiedSession
     public let clientChannel: ContractTlsRecordChannel
     public let serverChannel: ContractTlsRecordChannel
 
-    public init(
+    internal init(
         session: ContractTls13HttpClientVerifiedSession,
         clientChannel: ContractTlsRecordChannel,
         serverChannel: ContractTlsRecordChannel
@@ -12410,12 +12413,13 @@ public enum ContractTls13HttpClientSessionStatus <: Equatable<ContractTls13HttpC
     }
 }
 
+/** Runtime carrier for a proof-carrying verified session. Construct through runtime helpers. */
 public class ContractTls13HttpClientVerifiedSessionRuntime {
     public let status: ContractTls13HttpClientSessionStatus
     public let channelSet: ContractTls13HttpVerifiedSessionChannelSet
     public let closeReason: String
 
-    public init(
+    internal init(
         status: ContractTls13HttpClientSessionStatus,
         channelSet: ContractTls13HttpVerifiedSessionChannelSet,
         closeReason!: String = ""
