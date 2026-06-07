@@ -9,4 +9,4 @@
   include = ["src"]
 
 [dependencies]
-  jinguissl_core = { git = "https://gitcode.com/CjKu/JinguiCore.git" }
+  jinguissl_core = { git = "https://github.com/CangjieKu/JinGuiSSLCore.git" }

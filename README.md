@@ -66,7 +66,7 @@
 
 ```toml
 [dependencies]
-JinguiSSL = { git = "https://gitcode.com/cinyu/jinguiSSL.git" }
+JinguiSSL = { git = "https://github.com/CangjieKu/JinGuiSSL.git" }
 ```
 
 ### 示例：先从 contract 入口拿稳定能力
