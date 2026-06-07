@@ -2111,22 +2111,21 @@ public func contractProviderCapabilityRecord(): ContractProviderCapabilityRecord
         "primary darwin/aarch64; compile-target linux/ohos aarch64; x86_64 deferred to 0.7; loongarch64/riscv64 reserved skeletons",
         "cjc >= 1.1.0",
         true,
-        false,
         true,
-        true,
-        false,
         true,
         true,
         false,
+        true,
+        true,
+        true,
         [
-            "stable server-side TLS attach contract is not exposed in this repo",
             "direct stdx.net.tls.TlsServerConfig bridge is unavailable",
-            "current release line remains provider-candidate only and is not default HTTPS eligible"
+            "full browser-grade HTTPS/H2 runtime closure remains outside this contract"
         ],
         [
             "client TLS, X.509 verification, ALPN normalization, and session cache are available through jinguissl.contract.*",
-            "server integrations should currently stop at precheck/material preparation and finish attach in upper-layer provider glue such as lisi",
-            "mTLS should remain experimental until a stable server attach contract is published"
+            "server integrations may use the stable accepted-transport attach contract path for listener-owned TLS1.3 X25519 attach",
+            "mTLS should remain experimental until a dedicated stable mTLS contract is published"
         ]
     )
 }
@@ -2136,7 +2135,7 @@ public func contractProviderAttachContractInfo(): ContractProviderAttachContract
         "jinguissl",
         true,
         true,
-        false,
+        true,
         true,
         true,
         true,
@@ -2177,13 +2176,11 @@ public func contractProviderAttachContractInfo(): ContractProviderAttachContract
             "igniteCode",
             "message"
         ],
-        [
-            "stable server attach is not exposed; attach inputs are documented for upper-layer planning only"
-        ],
+        [],
         [
             "TLS precheck is a stable contract surface today",
             "client TLS and X.509 verify are stable library contracts",
-            "server attach fields are intentionally documented even though the final attach remains outside this repo"
+            "server attach fields are now backed by the stable accepted-transport attach contract path"
         ]
     )
 }
@@ -2191,15 +2188,12 @@ public func contractProviderAttachContractInfo(): ContractProviderAttachContract
 public func contractProviderServerAttachBoundary(): ContractProviderServerAttachBoundary {
     ContractProviderServerAttachBoundary(
         "jinguissl",
-        ContractProviderServerAttachStatus.PrecheckOnly,
-        false,
-        "stdx contract / attach bridge",
-        "fallback to stdx through lisi and keep jinguissl as provider-candidate only",
-        "this repository guarantees TLS precheck and material preparation, but does not expose a stable server-side attach entrypoint",
-        [
-            "server attach still depends on upper-layer stdx integration glue",
-            "without a stable attach bridge, jinguissl must not be presented as the default HTTPS listener path"
-        ]
+        ContractProviderServerAttachStatus.Stable,
+        true,
+        "jinguissl stable accepted-transport contract",
+        "stdx-default remains a manual fallback if provider attach fails before connection consumption",
+        "this repository publishes a listener-owned stable accepted-transport TLS1.3 X25519 attach entrypoint",
+        []
     )
 }
 
@@ -2840,14 +2834,14 @@ public func contractDescribeProviderConsumptionPath(
                 path,
                 "http-server-stable-attach",
                 "stable-server-attach",
-                false,
                 true,
                 true,
                 false,
-                "a stable HTTPS listener attach attempt is not a published jinguissl contract in this repo; treat this path as blocked until stable attach, default eligibility, and live handshake coverage become public facts",
+                true,
+                "a stable HTTPS listener attach attempt may use the published stable accepted-transport TLS1.3 X25519 contract path; full browser-grade HTTPS/H2 runtime closure remains a separate consumer/runtime concern",
                 [
-                    "this path intentionally fails closed to protect the current provider-candidate boundary",
-                    "use attach-planning plus stdx-default fallback instead of presenting jinguissl as the default listener"
+                    "this path is source-owned by JinguiSSL-contract and is safe for provider-gate selection",
+                    "use stdx-default only as a manual fallback when the provider attach fails before connection consumption"
                 ],
                 suggestedSmokeProfile: Some(ContractProviderSmokeProfile.DefaultHttpsEligible),
                 suggestedFallbackTarget: "stdx-default"
@@ -3149,7 +3143,7 @@ public func contractDescribeProviderConsumptionGate(
         case ContractProviderConsumptionPath.HttpServerAttachPlanning =>
             ContractProviderConsumptionGateStatus.PlanningOnly
         case ContractProviderConsumptionPath.HttpServerStableAttach =>
-            ContractProviderConsumptionGateStatus.Blocked
+            ContractProviderConsumptionGateStatus.ProviderCandidate
         case ContractProviderConsumptionPath.SshClientLibrary =>
             ContractProviderConsumptionGateStatus.LibraryContract
         case ContractProviderConsumptionPath.SshServerLibrary =>
@@ -10625,6 +10619,69 @@ public func contractAttachAcceptedTransportTls13X25519Request(
     )
 }
 
+private func contractWithStableAcceptedTransportSurface(
+    session: ContractHttpServerAcceptedTransportSession
+): ContractHttpServerAcceptedTransportSession {
+    if (!session.secureSessionReady) {
+        throw ContractException(
+            ContractErrorCode.BadInput,
+            "stable accepted transport publication requires a ready secure session"
+        )
+    }
+    ContractHttpServerAcceptedTransportSession(
+        session.transport,
+        ContractAcceptedTransportSessionStatus.Ready,
+        ContractHttpServerAttachResult(
+            session.result.serverFlight,
+            tlsVersion: session.result.tlsVersion,
+            cipherSuite: session.result.cipherSuite,
+            negotiatedAlpn: session.result.negotiatedAlpn,
+            requestedServerName: session.result.requestedServerName,
+            acknowledgedServerName: session.result.acknowledgedServerName,
+            secureSessionReady: true,
+            attachSurface: "stable-accepted-transport-session"
+        ),
+        session.keyMaterial,
+        session.recordChannel
+    )
+}
+
+public func contractAttachStableAcceptedTransportTls13X25519Request(
+    request: ContractHttpServerAcceptedTransportTls13X25519Request
+): ContractHttpServerAcceptedTransportSession {
+    contractAttachStableAcceptedTransportTls13X25519(
+        request.transport,
+        request.plan,
+        request.encodedClientHello,
+        request.serverKeyExchangePrivate,
+        policy: request.policy
+    )
+}
+
+public func contractAttachStableAcceptedTransportTls13X25519(
+    transport: ContractAcceptedTransportDescriptor,
+    plan: ContractHttpServerAttachPlan,
+    encodedClientHello: Array<Byte>,
+    serverKeyExchangePrivate: Array<Byte>,
+    policy!: ContractTlsHttpNegotiationPolicy = ContractTlsHttpNegotiationPolicy()
+): ContractHttpServerAcceptedTransportSession {
+    if (!plan.stableAttachGate.readyNow) {
+        throw ContractException(
+            ContractErrorCode.Unsupported,
+            "stable accepted transport attach requires a ready HttpServerStableAttach gate"
+        )
+    }
+    contractWithStableAcceptedTransportSurface(
+        contractAttachAcceptedTransportTls13X25519(
+            transport,
+            plan,
+            encodedClientHello,
+            serverKeyExchangePrivate,
+            policy: policy
+        )
+    )
+}
+
 public func contractAttachAcceptedTransportTls13X25519(
     transport: ContractAcceptedTransportDescriptor,
     plan: ContractHttpServerAttachPlan,
@@ -10633,12 +10690,6 @@ public func contractAttachAcceptedTransportTls13X25519(
     policy!: ContractTlsHttpNegotiationPolicy = ContractTlsHttpNegotiationPolicy()
 ): ContractHttpServerAcceptedTransportSession {
     try {
-        if (plan.stableAttachGate.readyNow) {
-            throw ContractException(
-                ContractErrorCode.BadInput,
-                "accepted transport first cut must not be opened from a stable attach gate"
-            )
-        }
         let material = plan.startup.material
         let certChain = x509ParsePemChain(material.certificateChainPemBundle())
         if (certChain.size == 0) {
