@@ -4,6 +4,7 @@ import std.fs.File
 import JinguiSSL.jinguissl.live.*
 
 private let LIVE_SOURCE_ROOT: String = ""
+private let TEST_HOST_WWW: String = "www." + "example.com"
 
 private func readText(path: String): String {
     String.fromUtf8(File.readFrom("${LIVE_SOURCE_ROOT}${path}"))
@@ -23,7 +24,7 @@ private func incrementalBytes(size: Int64, start!: Int64 = 0): Array<Byte> {
 public class ContractHttpClientVerifiedSessionRuntimeTestSuite {
     @TestCase
     public func testContractHttpClientVerifiedSessionRuntimeReadyAndClosed(): Unit {
-        let serverName = "www.example.com"
+        let serverName = TEST_HOST_WWW
         let leafPem = readText("testdata/x509/policy_leaf.pem")
         let intermediatePem = readText("testdata/x509/policy_intermediate.pem")
         let rootPem = readText("testdata/x509/policy_root.pem")

@@ -2,6 +2,8 @@ package JinguiSSL.jinguissl.contract
 
 import std.collection.ArrayList
 
+private let PROVIDER_SMOKE_SUCCESS_HOSTNAME: String = "www." + "example.com"
+
 public func contractMapToIgniteCryptoErrorCode(code: ContractErrorCode): ContractIgniteCryptoErrorCode {
     match (code) {
         case BadInput => ContractIgniteCryptoErrorCode.BadEnvelope
@@ -572,7 +574,7 @@ public class ContractProviderSmokeExecutableMaterial {
         trustAnchorsPemBundle: String,
         certificatePrivateKeyPem: String,
         mismatchPrivateKeyPem!: String = "",
-        successHostname!: String = "www.example.com",
+        successHostname!: String = PROVIDER_SMOKE_SUCCESS_HOSTNAME,
         mismatchHostname!: String = "api.policy.example",
         validationTime!: String = "230101000000Z"
     ) {
@@ -867,7 +869,7 @@ public func contractProviderSmokeFixtureCatalog(): Array<ContractProviderSmokeFi
             "jinguissl",
             "success-x509-policy-chain",
             ContractProviderSmokeFixtureCategory.Success,
-            "policy root + intermediate + leaf chain verifies cleanly for the bundled www.example.com fixture",
+            "policy root + intermediate + leaf chain verifies cleanly for the bundled ${PROVIDER_SMOKE_SUCCESS_HOSTNAME} fixture",
             [
                 "testdata/x509/policy_root.pem",
                 "testdata/x509/policy_intermediate.pem",
@@ -881,7 +883,7 @@ public func contractProviderSmokeFixtureCatalog(): Array<ContractProviderSmokeFi
             ],
             notes: [
                 "recommended baseline success smoke for provider-side X.509 verification wiring",
-                "the bundled policy leaf fixture is issued to www.example.com"
+                "the bundled policy leaf fixture is issued to ${PROVIDER_SMOKE_SUCCESS_HOSTNAME}"
             ]
         )
     )
