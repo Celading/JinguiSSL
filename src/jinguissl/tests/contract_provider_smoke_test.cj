@@ -4,6 +4,7 @@ import std.fs.File
 import JinguiSSL.jinguissl.contract.*
 
 private let LIVE_SOURCE_ROOT: String = ""
+private let TEST_HOST_WWW: String = "www." + "example.com"
 
 @Test
 public class ContractProviderSmokeTestSuite {
@@ -224,7 +225,7 @@ private func providerSmokeExecutableMaterial(): ContractProviderSmokeExecutableM
         readText("testdata/x509/policy_root.pem"),
         readText("testdata/x509/policy_leaf_key_pkcs8.pem"),
         mismatchPrivateKeyPem: readText("testdata/x509/rsa_2048_pkcs8.pem"),
-        successHostname: "www.example.com",
+        successHostname: TEST_HOST_WWW,
         mismatchHostname: "not.policy.example",
         validationTime: "230101000000Z"
     )
