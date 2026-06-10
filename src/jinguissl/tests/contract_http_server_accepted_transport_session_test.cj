@@ -125,5 +125,19 @@ public class ContractHttpServerAcceptedTransportSessionTestSuite {
         @Assert(session.result.negotiatedAlpn, "h2")
         @Assert(session.result.requestedServerName, serverName)
         @Assert(session.recordChannel.version.toString(), "TLS1.3")
+        @Assert(session.recordChannel.writeSequence, Int64(0))
+        @Assert(session.initialHandshake.facadeSurface, "http-server-initial-handshake-facade")
+        @Assert(session.initialHandshake.recordCount, Int64(5))
+        @Assert(session.initialHandshake.records.size, Int64(5))
+        @Assert(session.initialHandshake.records[0][0], UInt8(22))
+        @Assert(session.initialHandshake.records[1][0], UInt8(23))
+        @Assert(session.initialHandshake.records[2][0], UInt8(23))
+        @Assert(session.initialHandshake.records[3][0], UInt8(23))
+        @Assert(session.initialHandshake.records[4][0], UInt8(23))
+        @Assert(session.initialHandshake.wireBytes > session.result.serverFlight.serverHello.size, true)
+
+        let facade = contractBuildHttpServerInitialHandshakeFacade(session)
+        @Assert(facade.recordCount, Int64(5))
+        @Assert(facade.records[0], session.initialHandshake.records[0])
     }
 }
