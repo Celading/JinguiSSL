@@ -450,6 +450,7 @@ public func contractCapabilityInfo(): ContractCapabilityInfo {
             "tls13-key-update",
             "http-server-tls-config-validation",
             "http-server-tls-material-preparation",
+            "http-server-initial-handshake-facade",
             "http-client-tls-config-validation",
             "http-client-trust-material-preparation",
             "alpn-normalization"
@@ -5607,6 +5608,33 @@ public class ContractHttpServerAttachResult {
     }
 }
 
+public class ContractHttpServerInitialHandshakeFacade {
+    public let serverFlight: ContractTls13HttpServerFlight
+    public let records: Array<Array<Byte>>
+    public let recordCount: Int64
+    public let wireBytes: Int64
+    public let facadeSurface: String
+
+    public init(
+        serverFlight: ContractTls13HttpServerFlight,
+        records: Array<Array<Byte>>,
+        facadeSurface!: String = "http-server-initial-handshake-facade"
+    ) {
+        let normalizedSurface = facadeSurface.trimAscii()
+        if (normalizedSurface.size == 0) {
+            throw ContractException(ContractErrorCode.BadInput, "HTTP server initial handshake facade surface must not be empty")
+        }
+        if (records.size == 0) {
+            throw ContractException(ContractErrorCode.BadInput, "HTTP server initial handshake records must not be empty")
+        }
+        this.serverFlight = serverFlight
+        this.records = contractCloneRecordWire(records, "HTTP server initial handshake record")
+        this.recordCount = Int64(this.records.size)
+        this.wireBytes = contractCountRecordWireBytes(this.records)
+        this.facadeSurface = normalizedSurface
+    }
+}
+
 public enum ContractAcceptedTransportSessionStatus <: Equatable<ContractAcceptedTransportSessionStatus> & ToString {
     | Ready
     | Blocked
@@ -5671,6 +5699,7 @@ public class ContractHttpServerAcceptedTransportSession {
     public let transport: ContractAcceptedTransportDescriptor
     public let status: ContractAcceptedTransportSessionStatus
     public let result: ContractHttpServerAttachResult
+    public let initialHandshake: ContractHttpServerInitialHandshakeFacade
     public let keyMaterial: ContractTls13ApplicationKeyMaterial
     public let recordChannel: ContractTlsRecordChannel
     public let closeReason: String
@@ -5679,6 +5708,7 @@ public class ContractHttpServerAcceptedTransportSession {
         transport: ContractAcceptedTransportDescriptor,
         status: ContractAcceptedTransportSessionStatus,
         result: ContractHttpServerAttachResult,
+        initialHandshake: ContractHttpServerInitialHandshakeFacade,
         keyMaterial: ContractTls13ApplicationKeyMaterial,
         recordChannel: ContractTlsRecordChannel,
         closeReason!: String = ""
@@ -5698,6 +5728,7 @@ public class ContractHttpServerAcceptedTransportSession {
         this.transport = transport
         this.status = status
         this.result = result
+        this.initialHandshake = initialHandshake
         this.keyMaterial = keyMaterial
         this.recordChannel = recordChannel
         this.closeReason = closeReason.trimAscii()
@@ -10607,6 +10638,52 @@ public func contractBuildHttpServerAttachResultFromTls13Flight(
     )
 }
 
+public func contractBuildHttpServerInitialHandshakeFacade(
+    session: ContractHttpServerAcceptedTransportSession
+): ContractHttpServerInitialHandshakeFacade {
+    session.initialHandshake
+}
+
+private func contractBuildHttpServerInitialHandshakeFacadeFromContext(
+    flight: ContractTls13HttpServerFlight,
+    secrets: Tls13HandshakeSecrets,
+    binding: ContractTls13CipherBinding
+): ContractHttpServerInitialHandshakeFacade {
+    let (clientHandshakeKey, clientHandshakeIv) = contractTls13DeriveApplicationTrafficKeyIv(
+        secrets.clientHsTrafficSecret,
+        keyLen: binding.keyLen,
+        ivLen: binding.ivLen
+    )
+    let (serverHandshakeKey, serverHandshakeIv) = contractTls13DeriveApplicationTrafficKeyIv(
+        secrets.serverHsTrafficSecret,
+        keyLen: binding.keyLen,
+        ivLen: binding.ivLen
+    )
+    let handshakeKeyMaterial = ContractTls13ApplicationKeyMaterial(
+        clientHandshakeKey,
+        clientHandshakeIv,
+        serverHandshakeKey,
+        serverHandshakeIv
+    )
+    let handshakeChannel = contractTls13CreateServerRecordChannel(
+        handshakeKeyMaterial,
+        algorithm: binding.algorithm
+    )
+    let records = ArrayList<Array<Byte>>()
+    records.add(
+        contractTlsEncodePlaintextRecord(
+            ContractTlsVersion.Tls13,
+            ContractTlsRecordContentType.Handshake,
+            flight.serverHello
+        )
+    )
+    records.add(handshakeChannel.seal(ContractTlsRecordContentType.Handshake, flight.encryptedExtensions))
+    records.add(handshakeChannel.seal(ContractTlsRecordContentType.Handshake, flight.certificateHandshake))
+    records.add(handshakeChannel.seal(ContractTlsRecordContentType.Handshake, flight.certificateVerifyHandshake))
+    records.add(handshakeChannel.seal(ContractTlsRecordContentType.Handshake, flight.finishedHandshake))
+    ContractHttpServerInitialHandshakeFacade(flight, records.toArray())
+}
+
 public func contractAttachAcceptedTransportTls13X25519Request(
     request: ContractHttpServerAcceptedTransportTls13X25519Request
 ): ContractHttpServerAcceptedTransportSession {
@@ -10641,6 +10718,7 @@ private func contractWithStableAcceptedTransportSurface(
             secureSessionReady: true,
             attachSurface: "stable-accepted-transport-session"
         ),
+        session.initialHandshake,
         session.keyMaterial,
         session.recordChannel
     )
@@ -10734,6 +10812,11 @@ public func contractAttachAcceptedTransportTls13X25519(
             keyMaterial,
             algorithm: binding.algorithm
         )
+        let initialHandshake = contractBuildHttpServerInitialHandshakeFacadeFromContext(
+            flight,
+            context.secrets,
+            binding
+        )
         let result = ContractHttpServerAttachResult(
             flight,
             tlsVersion: ContractTlsVersion.Tls13,
@@ -10748,6 +10831,7 @@ public func contractAttachAcceptedTransportTls13X25519(
             transport,
             ContractAcceptedTransportSessionStatus.Ready,
             result,
+            initialHandshake,
             keyMaterial,
             serverChannel
         )
@@ -10778,6 +10862,7 @@ public func contractCloseAcceptedTransportSession(
             secureSessionReady: false,
             attachSurface: session.result.attachSurface
         ),
+        session.initialHandshake,
         session.keyMaterial,
         session.recordChannel,
         closeReason: reason
@@ -19486,6 +19571,25 @@ private func clonePinList(pins: Array<Array<Byte>>, label: String): Array<Array<
         out.add(pin.clone())
     }
     out.toArray()
+}
+
+private func contractCloneRecordWire(records: Array<Array<Byte>>, label: String): Array<Array<Byte>> {
+    let out = ArrayList<Array<Byte>>()
+    for (record in records) {
+        if (record.size == 0) {
+            throw ContractException(ContractErrorCode.BadInput, "${label} must not be empty")
+        }
+        out.add(record.clone())
+    }
+    out.toArray()
+}
+
+private func contractCountRecordWireBytes(records: Array<Array<Byte>>): Int64 {
+    var total: Int64 = 0
+    for (record in records) {
+        total += record.size
+    }
+    total
 }
 
 private func requireSha256Pin(pin: Array<Byte>, fieldName: String): Unit {
