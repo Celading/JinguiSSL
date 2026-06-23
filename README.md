@@ -66,13 +66,13 @@
 
 ```toml
 [dependencies]
-JinguiSSL = { git = "https://gitcode.com/cinyu/jinguiSSL.git" }
+jinguissl = { git = "https://gitcode.com/cinyu/jinguiSSL.git" }
 ```
 
 ### 示例：先从 contract 入口拿稳定能力
 
 ```cangjie
-import JinguiSSL.jinguissl.contract.*
+import jinguissl.contract.*
 
 main() {
     let facade = contractFacadeInfo()
