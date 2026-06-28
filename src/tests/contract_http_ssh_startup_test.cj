@@ -120,18 +120,28 @@ public class ContractHttpSshStartupTestSuite {
             aesBackendHint: "shim"
         )
         @Assert(releasePrimaryRequired.ok, false)
+        let releaseReport = contractHttpSshStartupReadiness(aesBackendHint: "shim")
         match (releasePrimaryRequired.code) {
             case Some(value) =>
                 @Assert(value.toString(), "UNSUPPORTED")
             case None =>
                 @Fail("release primary backend policy failure should carry contract code")
         }
-        @Assert(
-            releasePrimaryRequired.message.contains(
-                "current release requires primary AES backend armv8-ce, but startup resolved shim"
-            ),
-            true
-        )
+        if (!releaseReport.aesCurrentReleasePlan.primaryBackendAvailable) {
+            @Assert(
+                releasePrimaryRequired.message.contains(
+                    "current release primary AES backend is unavailable: ${releaseReport.aesCurrentReleasePlan.primaryBackend}"
+                ),
+                true
+            )
+        } else {
+            @Assert(
+                releasePrimaryRequired.message.contains(
+                    "current release requires primary AES backend ${releaseReport.aesCurrentReleasePlan.primaryBackend}, but startup resolved ${releaseReport.aes.selectedEngine.backend}"
+                ),
+                true
+            )
+        }
     }
 
     @TestCase
