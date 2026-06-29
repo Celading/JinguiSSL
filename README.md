@@ -69,6 +69,8 @@
 jinguissl = { git = "https://gitcode.com/cinyu/jinguiSSL.git" }
 ```
 
+当前维护线的 `JinguiSSL-contract` 源码采用 `Apache-2.0`，但它依赖当前 `JinguiSSL-core` 源码线，而 Core 采用 `LGPL-3.0-only`。如果你分发包含 Core 的构建产物或组合包，需要同时核对 Core 的许可证要求和本仓库许可证。正式合规判断请以许可证原文和你的发布形态为准。
+
 ### 示例：先从 contract 入口拿稳定能力
 
 ```cangjie
@@ -142,4 +144,6 @@ JinguiSSL-contract/
 
 ## 许可证
 
-本项目采用 `Apache License 2.0`。详见 `LICENSE`。
+本仓库源码采用 `Apache License 2.0`。详见 `LICENSE`。
+
+依赖边界说明：当前维护线依赖 `JinguiSSL-core`，其源码线采用 `LGPL-3.0-only`。因此本仓库的 Apache 源码许可不取消 Core 依赖在组合分发、静态/动态链接或打包场景中的许可证义务。
