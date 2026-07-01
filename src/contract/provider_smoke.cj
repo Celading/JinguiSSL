@@ -1,6 +1,7 @@
 package jinguissl.contract
 
 import std.collection.ArrayList
+import jinguissl.live as livecontract
 
 private let PROVIDER_SMOKE_SUCCESS_HOSTNAME: String = "www." + "example.com"
 
@@ -177,6 +178,7 @@ public enum ContractProviderSmokeExecutionMode <: Equatable<ContractProviderSmok
     | VerifyPath
     | ProviderSelectionPath
     | MetadataOnly
+    | LiveAttachPath
 
     public operator func ==(right: ContractProviderSmokeExecutionMode): Bool {
         ordinalValue() == right.ordinalValue()
@@ -192,6 +194,7 @@ public enum ContractProviderSmokeExecutionMode <: Equatable<ContractProviderSmok
             case VerifyPath => 1
             case ProviderSelectionPath => 2
             case MetadataOnly => 3
+            case LiveAttachPath => 4
         }
     }
 
@@ -201,6 +204,7 @@ public enum ContractProviderSmokeExecutionMode <: Equatable<ContractProviderSmok
             case VerifyPath => "VERIFY_PATH"
             case ProviderSelectionPath => "PROVIDER_SELECTION_PATH"
             case MetadataOnly => "METADATA_ONLY"
+            case LiveAttachPath => "LIVE_ATTACH_PATH"
         }
     }
 }
@@ -401,6 +405,7 @@ public class ContractProviderSmokeSuiteReport {
     public let precheckPathCount: Int64
     public let verifyPathCount: Int64
     public let providerSelectionPathCount: Int64
+    public let liveAttachPathCount: Int64
     public let metadataOnlyCount: Int64
     public let recommendedOrder: Array<String>
     public let capability: ContractProviderCapabilityRecord
@@ -416,6 +421,7 @@ public class ContractProviderSmokeSuiteReport {
         precheckPathCount: Int64,
         verifyPathCount: Int64,
         providerSelectionPathCount: Int64,
+        liveAttachPathCount: Int64,
         metadataOnlyCount: Int64,
         recommendedOrder: Array<String>,
         capability: ContractProviderCapabilityRecord,
@@ -456,6 +462,7 @@ public class ContractProviderSmokeSuiteReport {
             precheckPathCount +
             verifyPathCount +
             providerSelectionPathCount +
+            liveAttachPathCount +
             metadataOnlyCount != totalFixtureCount
         ) {
             throw ContractException(
@@ -471,6 +478,7 @@ public class ContractProviderSmokeSuiteReport {
         this.precheckPathCount = precheckPathCount
         this.verifyPathCount = verifyPathCount
         this.providerSelectionPathCount = providerSelectionPathCount
+        this.liveAttachPathCount = liveAttachPathCount
         this.metadataOnlyCount = metadataOnlyCount
         this.recommendedOrder = recommendedOrder.clone()
         this.capability = capability
@@ -721,6 +729,7 @@ public class ContractProviderSmokeExecutableSuiteReport {
     public let verifyPathExecutedCount: Int64
     public let precheckPathExecutedCount: Int64
     public let providerSelectionPathExecutedCount: Int64
+    public let liveAttachPathExecutedCount: Int64
     public let metadataOnlySkippedCount: Int64
     public let warnings: Array<String>
 
@@ -735,6 +744,7 @@ public class ContractProviderSmokeExecutableSuiteReport {
         verifyPathExecutedCount: Int64,
         precheckPathExecutedCount: Int64,
         providerSelectionPathExecutedCount: Int64,
+        liveAttachPathExecutedCount: Int64,
         metadataOnlySkippedCount: Int64,
         warnings: Array<String>
     ) {
@@ -778,6 +788,7 @@ public class ContractProviderSmokeExecutableSuiteReport {
         this.verifyPathExecutedCount = verifyPathExecutedCount
         this.precheckPathExecutedCount = precheckPathExecutedCount
         this.providerSelectionPathExecutedCount = providerSelectionPathExecutedCount
+        this.liveAttachPathExecutedCount = liveAttachPathExecutedCount
         this.metadataOnlySkippedCount = metadataOnlySkippedCount
         this.warnings = warnings.clone()
     }
@@ -1010,22 +1021,25 @@ public func contractProviderSmokeFixtureCatalog(): Array<ContractProviderSmokeFi
         ContractProviderSmokeFixtureInfo(
             "jinguissl",
             "attach-stable-listener-unpublished",
-            ContractProviderSmokeFixtureCategory.HandshakeFail,
-            "server attach attempts that go beyond precheck/material preparation must currently fail closed because the stable listener attach contract is unpublished",
+            ContractProviderSmokeFixtureCategory.Success,
+            "stable accepted-transport TLS1.3 X25519 attach must execute through the published Contract live entrypoint",
             [
                 "scene: server",
-                "requested-path: stable-listener-attach",
-                "boundary: PRECHECK_ONLY"
+                "requested-path: stable-accepted-transport-attach",
+                "boundary: STABLE_ACCEPTED_TRANSPORT",
+                "testdata/x509/policy_leaf.pem",
+                "testdata/x509/policy_intermediate.pem",
+                "testdata/x509/policy_leaf_key_pkcs8.pem"
             ],
             [
-                "contractProviderServerAttachBoundary(...)"
+                "contractPlanHttpServerAttachRequest(...)",
+                "contractTls13BuildHttpClientHelloX25519(...)",
+                "contractAttachStableAcceptedTransportTls13X25519(...)",
+                "contractBuildHttpServerInitialHandshakeFacade(...)"
             ],
-            expectedPhase: Some(ContractProviderErrorPhase.ProviderRuntime),
-            expectedCode: Some(ContractErrorCode.Unsupported),
-            expectedFamily: Some(ContractProviderErrorFamily.Unsupported),
             notes: [
-                "documents attach failure as a planning/runtime contract issue rather than a fake successful attach",
-                "aligns with the public rule that server attach must stop in upper-layer glue such as lisi/stdx"
+                "legacy fixture id retained for compatibility; current truth is executable stable accepted-transport attach, not unpublished listener attach",
+                "this fixture proves an in-process Contract live attach path only and does not claim browser-grade listener ownership"
             ]
         )
     )
@@ -1183,6 +1197,7 @@ public func contractDescribeProviderSmokeSuiteRequest(
     var precheckPathCount: Int64 = 0
     var verifyPathCount: Int64 = 0
     var providerSelectionPathCount: Int64 = 0
+    var liveAttachPathCount: Int64 = 0
     var metadataOnlyCount: Int64 = 0
     for (fixtureId in fixtureIds) {
         let baseline = contractDescribeProviderSmokeBaseline(fixtureId)
@@ -1200,6 +1215,8 @@ public func contractDescribeProviderSmokeSuiteRequest(
                 verifyPathCount += 1
             case ContractProviderSmokeExecutionMode.ProviderSelectionPath =>
                 providerSelectionPathCount += 1
+            case ContractProviderSmokeExecutionMode.LiveAttachPath =>
+                liveAttachPathCount += 1
             case ContractProviderSmokeExecutionMode.MetadataOnly =>
                 metadataOnlyCount += 1
         }
@@ -1222,6 +1239,7 @@ public func contractDescribeProviderSmokeSuiteRequest(
         precheckPathCount,
         verifyPathCount,
         providerSelectionPathCount,
+        liveAttachPathCount,
         metadataOnlyCount,
         recommendedOrder.toArray(),
         capability,
@@ -1264,6 +1282,7 @@ public func contractRunProviderSmokeExecutableSuiteRequest(
     var verifyPathExecutedCount: Int64 = 0
     var precheckPathExecutedCount: Int64 = 0
     var providerSelectionPathExecutedCount: Int64 = 0
+    var liveAttachPathExecutedCount: Int64 = 0
     var metadataOnlySkippedCount: Int64 = 0
     for (fixtureId in fixtureIds) {
         let fixture = contractRequireProviderSmokeFixture(fixtureId)
@@ -1287,6 +1306,8 @@ public func contractRunProviderSmokeExecutableSuiteRequest(
                     precheckPathExecutedCount += 1
                 case ContractProviderSmokeExecutionMode.ProviderSelectionPath =>
                     providerSelectionPathExecutedCount += 1
+                case ContractProviderSmokeExecutionMode.LiveAttachPath =>
+                    liveAttachPathExecutedCount += 1
                 case ContractProviderSmokeExecutionMode.MetadataOnly => ()
             }
         } else if (result.executionMode == ContractProviderSmokeExecutionMode.MetadataOnly) {
@@ -1313,6 +1334,7 @@ public func contractRunProviderSmokeExecutableSuiteRequest(
         verifyPathExecutedCount,
         precheckPathExecutedCount,
         providerSelectionPathExecutedCount,
+        liveAttachPathExecutedCount,
         metadataOnlySkippedCount,
         warnings.toArray()
     )
@@ -1404,6 +1426,9 @@ private func contractProviderFallbackReason(error: ContractProviderErrorDescript
 private func contractProviderSmokeExecutionModeForFixture(
     fixture: ContractProviderSmokeFixtureInfo
 ): ContractProviderSmokeExecutionMode {
+    if (fixture.fixtureId == "attach-stable-listener-unpublished") {
+        return ContractProviderSmokeExecutionMode.LiveAttachPath
+    }
     match (fixture.category) {
         case ContractProviderSmokeFixtureCategory.PrecheckFail =>
             ContractProviderSmokeExecutionMode.PrecheckPath
@@ -1471,6 +1496,17 @@ private func contractRunProviderSmokeExecutableFixture(
             )
         case ContractProviderSmokeExecutionMode.ProviderSelectionPath =>
             return contractRunProviderSelectionSmokeFixture(fixture, executionMode)
+        case ContractProviderSmokeExecutionMode.LiveAttachPath =>
+            match (material) {
+                case Some(value) =>
+                    return contractRunStableAttachSmokeFixture(fixture, executionMode, value)
+                case None =>
+                    return contractProviderSmokeExecutableSkip(
+                        fixture,
+                        executionMode,
+                        "fixture ${fixture.fixtureId} requires executable PEM material"
+                    )
+            }
         case ContractProviderSmokeExecutionMode.PrecheckPath =>
             match (material) {
                 case Some(value) =>
@@ -1493,6 +1529,93 @@ private func contractRunProviderSmokeExecutableFixture(
                         "fixture ${fixture.fixtureId} requires executable PEM material"
                     )
             }
+    }
+}
+
+private func contractRunStableAttachSmokeFixture(
+    fixture: ContractProviderSmokeFixtureInfo,
+    executionMode: ContractProviderSmokeExecutionMode,
+    material: ContractProviderSmokeExecutableMaterial
+): ContractProviderSmokeExecutableResult {
+    if (fixture.fixtureId != "attach-stable-listener-unpublished") {
+        return contractProviderSmokeExecutableSkip(
+            fixture,
+            executionMode,
+            "fixture ${fixture.fixtureId} has no stable contract-local executable attach handler yet"
+        )
+    }
+    let executedEntrypoints = [
+        "contractPlanHttpServerAttachRequest(...)",
+        "contractTls13BuildHttpClientHelloX25519(...)",
+        "contractAttachStableAcceptedTransportTls13X25519(...)",
+        "contractBuildHttpServerInitialHandshakeFacade(...)"
+    ]
+    try {
+        let plan = livecontract.contractPlanHttpServerAttachRequest(
+            livecontract.ContractHttpServerLibraryStartupRequest(
+                livecontract.ContractHttpServerTlsConfigRequest(
+                    material.certificateChainPemBundle(),
+                    material.certificatePrivateKeyPem,
+                    alpnProtocols: ["h2", "http/1.1"],
+                    requireHttp2Alpn: true
+                ),
+                aesBackendHint: "shim"
+            )
+        )
+        if (!plan.stableAttachGate.readyNow) {
+            return contractProviderSmokeExecutableFail(
+                fixture,
+                executionMode,
+                "stable accepted-transport attach gate is not ready",
+                executedEntrypoints: ["contractPlanHttpServerAttachRequest(...)"]
+            )
+        }
+        let clientHello = livecontract.contractTls13BuildHttpClientHelloX25519(
+            material.successHostname,
+            alpnProtocols: ["h2", "http/1.1"],
+            clientPrivateKey: Some(contractProviderSmokeIncrementalBytes(32, start: 96))
+        )
+        let session = livecontract.contractAttachStableAcceptedTransportTls13X25519(
+            livecontract.ContractAcceptedTransportDescriptor(
+                "provider-smoke-stable-accepted-transport",
+                localEndpoint: "127.0.0.1:443",
+                remoteEndpoint: "127.0.0.1:55445"
+            ),
+            plan,
+            clientHello.encodedClientHello,
+            contractProviderSmokeIncrementalBytes(32, start: 128)
+        )
+        let facade = livecontract.contractBuildHttpServerInitialHandshakeFacade(session)
+        if (
+            session.status.toString() != "READY" ||
+            !session.secureSessionReady ||
+            !session.result.secureSessionReady ||
+            session.result.attachSurface != "stable-accepted-transport-session" ||
+            session.result.negotiatedAlpn != "h2" ||
+            session.initialHandshake.recordCount <= Int64(0) ||
+            facade.recordCount <= Int64(0)
+        ) {
+            return contractProviderSmokeExecutableFail(
+                fixture,
+                executionMode,
+                "stable accepted-transport attach fixture returned an incomplete ready session",
+                executedEntrypoints: executedEntrypoints
+            )
+        }
+        contractProviderSmokeExecutablePass(
+            fixture,
+            executionMode,
+            "stable accepted-transport attach fixture executed live attach and initial-handshake facade paths",
+            executedEntrypoints: executedEntrypoints
+        )
+    } catch (e: livecontract.ContractException) {
+        contractProviderSmokeExecutableFail(
+            fixture,
+            executionMode,
+            "stable accepted-transport attach fixture failed unexpectedly: ${e.message}",
+            executedEntrypoints: executedEntrypoints,
+            actualCode: Some(contractProviderSmokeMapLiveContractErrorCode(e.code))
+        )
     }
 }
 
@@ -1825,6 +1948,7 @@ private func contractProviderSmokeWarnings(
             warnings.add("this smoke baseline is modeled through provider error normalization metadata rather than a live network handshake")
         case ContractProviderSmokeExecutionMode.ProviderSelectionPath =>
             warnings.add("provider-unavailable is an expected selection-path baseline and should not be counted as a functional regression by itself")
+        case ContractProviderSmokeExecutionMode.LiveAttachPath => ()
         case ContractProviderSmokeExecutionMode.VerifyPath =>
             if (!capability.supportsX509Verify) {
                 warnings.add("provider does not currently advertise X.509 verify support for verify-path smoke")
@@ -1839,6 +1963,30 @@ private func contractProviderSmokeWarnings(
         warnings.add("this baseline is descriptor-driven and should be exercised through contract-level error normalization helpers")
     }
     warnings.toArray()
+}
+
+private func contractProviderSmokeIncrementalBytes(size: Int64, start!: Int64 = 0): Array<Byte> {
+    let out = Array<Byte>(size, repeat: 0)
+    var i: Int64 = 0
+    while (i < size) {
+        out[i] = UInt8((start + i) & 0xff)
+        i += 1
+    }
+    out
+}
+
+private func contractProviderSmokeMapLiveContractErrorCode(
+    code: livecontract.ContractErrorCode
+): ContractErrorCode {
+    match (code.toString()) {
+        case "BAD_INPUT" => ContractErrorCode.BadInput
+        case "KEY_NOT_FOUND" => ContractErrorCode.KeyNotFound
+        case "VERIFY_FAILED" => ContractErrorCode.VerifyFailed
+        case "CRYPTO_UNAVAILABLE" => ContractErrorCode.CryptoUnavailable
+        case "COMPLIANCE_REJECTED" => ContractErrorCode.ComplianceRejected
+        case "UNSUPPORTED" => ContractErrorCode.Unsupported
+        case _ => ContractErrorCode.InternalError
+    }
 }
 
 private func contractProviderSmokeSuiteFixtureIds(
