@@ -132,8 +132,7 @@ check_dependency_graph() {
 
 check_toolchain_surface() {
   if [ "${mode}" = "hosted-graph" ]; then
-    command -v cjpm >/dev/null 2>&1 || warn "cjpm is not available before workflow toolchain install"
-    command -v cjc >/dev/null 2>&1 || warn "cjc is not available before workflow toolchain install"
+    note "toolchain availability is verified after workflow SDK install"
   fi
 }
 
