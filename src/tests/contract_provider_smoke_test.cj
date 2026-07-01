@@ -81,17 +81,15 @@ public class ContractProviderSmokeTestSuite {
             )
         )
         @Assert(suite.totalFixtureCount == Int64(3), true)
-        @Assert(suite.successFixtureCount == Int64(1), true)
-        @Assert(suite.failureFixtureCount == Int64(2), true)
+        @Assert(suite.successFixtureCount == Int64(2), true)
+        @Assert(suite.failureFixtureCount == Int64(1), true)
         @Assert(suite.verifyPathCount == Int64(1), true)
         @Assert(suite.providerSelectionPathCount == Int64(1), true)
-        @Assert(suite.metadataOnlyCount == Int64(1), true)
-        @Assert(
-            suite.warnings.contains(
-                "metadata-only smoke baselines should be asserted through contract descriptors instead of being counted as live handshake regressions"
-            ),
-            true
-        )
+        @Assert(suite.liveAttachPathCount == Int64(1), true)
+        @Assert(suite.metadataOnlyCount == Int64(0), true)
+        let attach = contractDescribeProviderSmokeBaseline("attach-stable-listener-unpublished")
+        @Assert(attach.expectedSuccess, true)
+        @Assert(attach.executionMode.toString(), "LIVE_ATTACH_PATH")
     }
 
     @TestCase
@@ -135,15 +133,14 @@ public class ContractProviderSmokeTestSuite {
             )
         )
         @Assert(report.totalFixtureCount, 6)
-        @Assert(report.executedFixtureCount, 5)
-        @Assert(report.skippedFixtureCount, 1)
+        @Assert(report.executedFixtureCount, 6)
+        @Assert(report.skippedFixtureCount, 0)
         @Assert(report.verifyPathExecutedCount, 3)
         @Assert(report.precheckPathExecutedCount, 1)
         @Assert(report.providerSelectionPathExecutedCount, 1)
-        @Assert(report.metadataOnlySkippedCount, 1)
-        @Assert(report.warnings.contains(
-            "fixture attach-stable-listener-unpublished is metadata-only; no live handshake or attach execution is claimed"
-        ), true)
+        @Assert(report.liveAttachPathExecutedCount, 1)
+        @Assert(report.metadataOnlySkippedCount, 0)
+        @Assert(report.warnings.size, 0)
 
         let success = requireExecutableResult(report, "success-x509-policy-chain")
         if (success.status.toString() != "PASSED") {
@@ -164,10 +161,11 @@ public class ContractProviderSmokeTestSuite {
         @Assert(provider.status.toString(), "PASSED")
 
         let attach = requireExecutableResult(report, "attach-stable-listener-unpublished")
-        @Assert(attach.status.toString(), "SKIPPED")
-        @Assert(attach.executedEntrypoints.size, 0)
+        @Assert(attach.status.toString(), "PASSED")
+        @Assert(attach.executionMode.toString(), "LIVE_ATTACH_PATH")
+        @Assert(attach.executedEntrypoints.size, 4)
 
-        @Assert(report.passedFixtureCount, 5)
+        @Assert(report.passedFixtureCount, 6)
         @Assert(report.failedFixtureCount, 0)
     }
 
