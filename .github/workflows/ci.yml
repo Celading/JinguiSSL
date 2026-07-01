@@ -84,12 +84,35 @@ jobs:
           cjc --version
           cjpm --version
 
+      - name: Detect hosted build support
+        id: hosted-build
+        run: |
+          . "$CANGJIE_HOME/envsetup.sh"
+          enabled=true
+          if grep -q 'CANGJIE_STDX_PATH' cjpm.toml; then
+            if [ -z "${CANGJIE_STDX_PATH:-}" ]; then
+              echo "::warning::CANGJIE_STDX_PATH is not set; hosted build/test is skipped for this dynamic stdx package"
+              enabled=false
+            elif [ ! -d "$CANGJIE_STDX_PATH" ]; then
+              echo "::warning::CANGJIE_STDX_PATH points to a missing path; hosted build/test is skipped for this dynamic stdx package"
+              enabled=false
+            fi
+          fi
+          echo "enabled=${enabled}" >> "$GITHUB_OUTPUT"
+
       - name: Build
+        if: ${{ steps.hosted-build.outputs.enabled == 'true' }}
         run: |
           . "$CANGJIE_HOME/envsetup.sh"
           cjpm build
 
       - name: Test
+        if: ${{ steps.hosted-build.outputs.enabled == 'true' }}
         run: |
           . "$CANGJIE_HOME/envsetup.sh"
           cjpm test
+
+      - name: Record hosted build gap
+        if: ${{ steps.hosted-build.outputs.enabled != 'true' }}
+        run: |
+          echo "Trusted build/test skipped because hosted dynamic stdx material is not available." >> "$GITHUB_STEP_SUMMARY"
