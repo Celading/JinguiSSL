@@ -65,7 +65,7 @@ public class ContractHttpServerAcceptedTransportSessionTestSuite {
         @Assert(session.result.requestedServerName, serverName)
         @Assert(session.result.acknowledgedServerName, true)
         @Assert(session.result.tlsVersion.toString(), "TLS1.3")
-        @Assert(session.result.cipherSuite, "TLS_AES_128_GCM_SHA256")
+        @Assert(session.result.cipherSuite, "TLS_AES_256_GCM_SHA384")
         @Assert(session.result.attachSurface, "accepted-transport-session")
         @Assert(session.recordChannel.version.toString(), "TLS1.3")
 
@@ -77,7 +77,7 @@ public class ContractHttpServerAcceptedTransportSessionTestSuite {
         @Assert(closed.result.negotiatedAlpn, "h2")
         @Assert(closed.result.requestedServerName, serverName)
         @Assert(closed.result.tlsVersion.toString(), "TLS1.3")
-        @Assert(closed.result.cipherSuite, "TLS_AES_128_GCM_SHA256")
+        @Assert(closed.result.cipherSuite, "TLS_AES_256_GCM_SHA384")
     }
 
     @TestCase
