@@ -138,6 +138,7 @@ import jinguissl_core.crypto.tls.{
     tls13CipherSuiteIvLen,
     tls13CipherSuiteKeyLen,
     TLS13_CIPHER_SUITE_AES_128_GCM_SHA256,
+    TLS13_CIPHER_SUITE_AES_256_GCM_SHA384,
     TLS13_CIPHER_SUITE_CHACHA20_POLY1305_SHA256,
     tls13DecodeKeyUpdateHandshake,
     tls13ExtractClientPskIdentity,
@@ -8703,8 +8704,8 @@ public class ContractTls13HttpServerFlight {
         ) {
             throw ContractException(ContractErrorCode.BadInput, "TLS1.3 HTTP server flight messages must not be empty")
         }
-        if (transcriptHash.size != 32) {
-            throw ContractException(ContractErrorCode.BadInput, "TLS1.3 transcript hash must be SHA-256 sized")
+        if (transcriptHash.size != 32 && transcriptHash.size != 48) {
+            throw ContractException(ContractErrorCode.BadInput, "TLS1.3 transcript hash must be SHA-256 or SHA-384 sized")
         }
 
         this.serverHello = serverHello.clone()
@@ -10638,237 +10639,6 @@ public func contractBuildHttpServerAttachResultFromTls13Flight(
     )
 }
 
-public func contractBuildHttpServerInitialHandshakeFacade(
-    session: ContractHttpServerAcceptedTransportSession
-): ContractHttpServerInitialHandshakeFacade {
-    session.initialHandshake
-}
-
-private func contractBuildHttpServerInitialHandshakeFacadeFromContext(
-    flight: ContractTls13HttpServerFlight,
-    secrets: Tls13HandshakeSecrets,
-    binding: ContractTls13CipherBinding
-): ContractHttpServerInitialHandshakeFacade {
-    let (clientHandshakeKey, clientHandshakeIv) = contractTls13DeriveApplicationTrafficKeyIv(
-        secrets.clientHsTrafficSecret,
-        keyLen: binding.keyLen,
-        ivLen: binding.ivLen
-    )
-    let (serverHandshakeKey, serverHandshakeIv) = contractTls13DeriveApplicationTrafficKeyIv(
-        secrets.serverHsTrafficSecret,
-        keyLen: binding.keyLen,
-        ivLen: binding.ivLen
-    )
-    let handshakeKeyMaterial = ContractTls13ApplicationKeyMaterial(
-        clientHandshakeKey,
-        clientHandshakeIv,
-        serverHandshakeKey,
-        serverHandshakeIv
-    )
-    let handshakeChannel = contractTls13CreateServerRecordChannel(
-        handshakeKeyMaterial,
-        algorithm: binding.algorithm
-    )
-    let records = ArrayList<Array<Byte>>()
-    records.add(
-        contractTlsEncodePlaintextRecord(
-            ContractTlsVersion.Tls13,
-            ContractTlsRecordContentType.Handshake,
-            flight.serverHello
-        )
-    )
-    records.add(handshakeChannel.seal(ContractTlsRecordContentType.Handshake, flight.encryptedExtensions))
-    records.add(handshakeChannel.seal(ContractTlsRecordContentType.Handshake, flight.certificateHandshake))
-    records.add(handshakeChannel.seal(ContractTlsRecordContentType.Handshake, flight.certificateVerifyHandshake))
-    records.add(handshakeChannel.seal(ContractTlsRecordContentType.Handshake, flight.finishedHandshake))
-    ContractHttpServerInitialHandshakeFacade(flight, records.toArray())
-}
-
-public func contractAttachAcceptedTransportTls13X25519Request(
-    request: ContractHttpServerAcceptedTransportTls13X25519Request
-): ContractHttpServerAcceptedTransportSession {
-    contractAttachAcceptedTransportTls13X25519(
-        request.transport,
-        request.plan,
-        request.encodedClientHello,
-        request.serverKeyExchangePrivate,
-        policy: request.policy
-    )
-}
-
-private func contractWithStableAcceptedTransportSurface(
-    session: ContractHttpServerAcceptedTransportSession
-): ContractHttpServerAcceptedTransportSession {
-    if (!session.secureSessionReady) {
-        throw ContractException(
-            ContractErrorCode.BadInput,
-            "stable accepted transport publication requires a ready secure session"
-        )
-    }
-    ContractHttpServerAcceptedTransportSession(
-        session.transport,
-        ContractAcceptedTransportSessionStatus.Ready,
-        ContractHttpServerAttachResult(
-            session.result.serverFlight,
-            tlsVersion: session.result.tlsVersion,
-            cipherSuite: session.result.cipherSuite,
-            negotiatedAlpn: session.result.negotiatedAlpn,
-            requestedServerName: session.result.requestedServerName,
-            acknowledgedServerName: session.result.acknowledgedServerName,
-            secureSessionReady: true,
-            attachSurface: "stable-accepted-transport-session"
-        ),
-        session.initialHandshake,
-        session.keyMaterial,
-        session.recordChannel
-    )
-}
-
-public func contractAttachStableAcceptedTransportTls13X25519Request(
-    request: ContractHttpServerAcceptedTransportTls13X25519Request
-): ContractHttpServerAcceptedTransportSession {
-    contractAttachStableAcceptedTransportTls13X25519(
-        request.transport,
-        request.plan,
-        request.encodedClientHello,
-        request.serverKeyExchangePrivate,
-        policy: request.policy
-    )
-}
-
-public func contractAttachStableAcceptedTransportTls13X25519(
-    transport: ContractAcceptedTransportDescriptor,
-    plan: ContractHttpServerAttachPlan,
-    encodedClientHello: Array<Byte>,
-    serverKeyExchangePrivate: Array<Byte>,
-    policy!: ContractTlsHttpNegotiationPolicy = ContractTlsHttpNegotiationPolicy()
-): ContractHttpServerAcceptedTransportSession {
-    if (!plan.stableAttachGate.readyNow) {
-        throw ContractException(
-            ContractErrorCode.Unsupported,
-            "stable accepted transport attach requires a ready HttpServerStableAttach gate"
-        )
-    }
-    contractWithStableAcceptedTransportSurface(
-        contractAttachAcceptedTransportTls13X25519(
-            transport,
-            plan,
-            encodedClientHello,
-            serverKeyExchangePrivate,
-            policy: policy
-        )
-    )
-}
-
-public func contractAttachAcceptedTransportTls13X25519(
-    transport: ContractAcceptedTransportDescriptor,
-    plan: ContractHttpServerAttachPlan,
-    encodedClientHello: Array<Byte>,
-    serverKeyExchangePrivate: Array<Byte>,
-    policy!: ContractTlsHttpNegotiationPolicy = ContractTlsHttpNegotiationPolicy()
-): ContractHttpServerAcceptedTransportSession {
-    try {
-        let material = plan.startup.material
-        let certChain = x509ParsePemChain(material.certificateChainPemBundle())
-        if (certChain.size == 0) {
-            throw ContractException(ContractErrorCode.BadInput, "accepted transport certificate chain must not be empty")
-        }
-        let certChainDer = contractDerChainFromCertificates(certChain)
-        let certificatePrivateKeyRsa: ?RsaPrivateKey = contractTryParseRsaPrivateKeyPkcs8Pem(material.privateKeyPem)
-        let certificatePrivateKeyEcdsa: ?EcPrivateKey = if (let Some(_value) <- certificatePrivateKeyRsa) {
-            None
-        } else {
-            contractTryParseEcPrivateKeyPkcs8Pem(material.privateKeyPem)
-        }
-        if (
-            !contractIsSomeRsaPrivateKey(certificatePrivateKeyRsa) &&
-            !contractIsSomeEcPrivateKey(certificatePrivateKeyEcdsa)
-        ) {
-            throw ContractException(
-                ContractErrorCode.BadInput,
-                "accepted transport certificate private key must be PKCS8 RSA or EC"
-            )
-        }
-
-        let serverKeyShare = x25519PublicFromPrivate(serverKeyExchangePrivate)
-        let context = tls13BuildHttpServerHandshakeContextX25519(
-            encodedClientHello,
-            serverKeyExchangePrivate,
-            serverKeyShare,
-            certChainDer,
-            certificatePrivateKeyEcdsa: certificatePrivateKeyEcdsa,
-            certificatePrivateKeyRsa: certificatePrivateKeyRsa,
-            policy: contractToTlsHttpNegotiationPolicy(policy)
-        )
-        let flight = contractFromTls13ServerHandshakeFlight(context.flight)
-        let binding = contractTls13ResolveCipherBindingFromServerFlight(flight)
-        let keyMaterial = ContractTls13ApplicationKeyMaterial(
-            context.secrets.clientWriteKey,
-            context.secrets.clientWriteIv,
-            context.secrets.serverWriteKey,
-            context.secrets.serverWriteIv
-        )
-        let serverChannel = contractTls13CreateServerRecordChannel(
-            keyMaterial,
-            algorithm: binding.algorithm
-        )
-        let initialHandshake = contractBuildHttpServerInitialHandshakeFacadeFromContext(
-            flight,
-            context.secrets,
-            binding
-        )
-        let result = ContractHttpServerAttachResult(
-            flight,
-            tlsVersion: ContractTlsVersion.Tls13,
-            cipherSuite: binding.cipherSuiteName,
-            negotiatedAlpn: flight.selectedAlpn,
-            requestedServerName: flight.requestedServerName,
-            acknowledgedServerName: flight.acknowledgedServerName,
-            secureSessionReady: true,
-            attachSurface: "accepted-transport-session"
-        )
-        ContractHttpServerAcceptedTransportSession(
-            transport,
-            ContractAcceptedTransportSessionStatus.Ready,
-            result,
-            initialHandshake,
-            keyMaterial,
-            serverChannel
-        )
-    } catch (e: ContractException) {
-        throw e
-    } catch (e: CryptoException) {
-        throw ContractException(
-            mapCryptoErrorForOperation(e, "tls"),
-            "accepted transport TLS1.3 X25519 attach failed: ${e.message}"
-        )
-    }
-}
-
-public func contractCloseAcceptedTransportSession(
-    session: ContractHttpServerAcceptedTransportSession,
-    reason!: String = "close_notify"
-): ContractHttpServerAcceptedTransportSession {
-    ContractHttpServerAcceptedTransportSession(
-        session.transport,
-        ContractAcceptedTransportSessionStatus.Closed,
-        ContractHttpServerAttachResult(
-            session.result.serverFlight,
-            tlsVersion: session.result.tlsVersion,
-            cipherSuite: session.result.cipherSuite,
-            negotiatedAlpn: session.result.negotiatedAlpn,
-            requestedServerName: session.result.requestedServerName,
-            acknowledgedServerName: session.result.acknowledgedServerName,
-            secureSessionReady: false,
-            attachSurface: session.result.attachSurface
-        ),
-        session.initialHandshake,
-        session.keyMaterial,
-        session.recordChannel,
-        closeReason: reason
-    )
-}
-
 public func contractTls13DerivePskX25519SecretsForCipherSuite(
     psk: Array<Byte>,
     clientPrivateKey: Array<Byte>,
@@ -12321,10 +12091,10 @@ public class ContractTls13HttpClientVerifiedSession {
                 "TLS1.3 verified session traffic/master secrets must not be empty"
             )
         }
-        if (transcriptHash.size != 32) {
+        if (transcriptHash.size != 32 && transcriptHash.size != 48) {
             throw ContractException(
                 ContractErrorCode.BadInput,
-                "TLS1.3 verified session transcript hash must be SHA-256 sized"
+                "TLS1.3 verified session transcript hash must be SHA-256 or SHA-384 sized"
             )
         }
         this.result = result
@@ -17535,6 +17305,9 @@ private func contractToTlsHttpNegotiationPolicy(
 private func contractTls13CipherSuiteName(cipherSuite: Int64): String {
     if (cipherSuite == TLS13_CIPHER_SUITE_AES_128_GCM_SHA256) {
         return "TLS_AES_128_GCM_SHA256"
+    }
+    if (cipherSuite == TLS13_CIPHER_SUITE_AES_256_GCM_SHA384) {
+        return "TLS_AES_256_GCM_SHA384"
     }
     if (cipherSuite == TLS13_CIPHER_SUITE_CHACHA20_POLY1305_SHA256) {
         return "TLS_CHACHA20_POLY1305_SHA256"
