@@ -9,7 +9,7 @@
 <span style="font-weight:100;font-size:24px">面向仓颉应用的密码学、证书、TLS 与 SSH 契约层</span>
 <p align="center">
   <strong>先接稳定 facade，再按需下钻到底层实现</strong><br/>
-  <sub>Digest · ChaCha20-Poly1305 · X.509 · TLS startup material · SSH startup bundle</sub>
+  <sub>Digest · ChaCha20-Poly1305 · X25519 · X.509 · TLS startup material · SSH startup bundle</sub>
 </p>
 </div>
 
@@ -53,6 +53,7 @@
 
 - Digest / HMAC / HKDF contract：`SHA-256`、`SHA-384`、`SHA-512`、`HMAC`、`HKDF`
 - ChaCha20 / Poly1305 contract：流加密、AEAD、RFC 向量测试覆盖
+- X25519 contract：key pair、public key derivation、key agreement request/outcome 封装
 - X.509 / PEM contract：证书链验证、pin 计算、客户端信任材料准备
 - HTTP/TLS startup material：服务端 / 客户端 TLS 输入校验与启动材料整理
 - SSH startup bundle：主机验证策略、握手输入整理、库级启动请求封装
@@ -90,7 +91,7 @@ main() {
 下面这些情况，通常说明你应该看 `JinguiSSL-core` 或 `JinguiSSL-bridge`：
 
 - 你需要直接控制 `TLS 1.2 / TLS 1.3` 握手与 record 层
-- 你要直接使用 `RSA / ECC / Ed25519 / X25519 / AES / ChaCha20` 底层原语
+- 你要直接使用 `RSA / ECC / Ed25519 / AES / ChaCha20` 底层原语，或 X25519 scalar multiplication 内部细节
 - 你需要动态库桥接、FFI 包装、运行时装配或上层服务桥接
 
 ## 常见使用面
