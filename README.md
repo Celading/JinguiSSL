@@ -9,7 +9,7 @@
 <span style="font-weight:100;font-size:24px">面向仓颉应用的密码学、证书、TLS 与 SSH 契约层</span>
 <p align="center">
   <strong>先接稳定 facade，再按需下钻到底层实现</strong><br/>
-  <sub>Digest · ChaCha20-Poly1305 · X.509 · TLS startup material · SSH startup bundle</sub>
+  <sub>Digest · ChaCha20-Poly1305 · X25519 · X.509 · TLS startup material · SSH startup bundle</sub>
 </p>
 </div>
 
@@ -53,10 +53,17 @@
 
 - Digest / HMAC / HKDF contract：`SHA-256`、`SHA-384`、`SHA-512`、`HMAC`、`HKDF`
 - ChaCha20 / Poly1305 contract：流加密、AEAD、RFC 向量测试覆盖
+- X25519 contract：key pair、public key derivation、key agreement request/outcome 封装
 - X.509 / PEM contract：证书链验证、pin 计算、客户端信任材料准备
 - HTTP/TLS startup material：服务端 / 客户端 TLS 输入校验与启动材料整理
 - SSH startup bundle：主机验证策略、握手输入整理、库级启动请求封装
 - 统一错误口径：`ContractErrorCode`、`ContractException`、Ignite 风格错误映射
+
+## 生产级状态速记
+
+`JinguiSSL-contract` 是当前最推荐的应用接入入口，但它不是对所有密码与协议能力的生产级认证。Digest / HMAC / HKDF、ChaCha20-Poly1305、X25519、证书材料准备、HTTP/TLS 与 SSH startup 表面已有本地测试和稳定 facade；`live.cj` 仍然较厚，TLS/SSH live interop、浏览器级 HTTPS、完整 thin facade、法律认证、安全认证和底层私钥运算恒定时间保证都不从 Contract README 中宣称。
+
+Contract 的安全边界继承 `JinguiSSL-core`：如果 Core 某个私钥路径未完成恒定时间证明，Contract facade 也不能把它升级为已认证的生产级密码后端。
 
 ## 快速开始
 
@@ -96,7 +103,7 @@ main() {
 下面这些情况，通常说明你应该看 `JinguiSSL-core` 或 `JinguiSSL-bridge`：
 
 - 你需要直接控制 `TLS 1.2 / TLS 1.3` 握手与 record 层
-- 你要直接使用 `RSA / ECC / Ed25519 / X25519 / AES / ChaCha20` 底层原语
+- 你要直接使用 `RSA / ECC / Ed25519 / AES / ChaCha20` 底层原语，或 X25519 scalar multiplication 内部细节
 - 你需要动态库桥接、FFI 包装、运行时装配或上层服务桥接
 
 ## 常见使用面
