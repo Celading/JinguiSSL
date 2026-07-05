@@ -59,6 +59,12 @@
 - SSH startup bundle：主机验证策略、握手输入整理、库级启动请求封装
 - 统一错误口径：`ContractErrorCode`、`ContractException`、Ignite 风格错误映射
 
+## 生产级状态速记
+
+`JinguiSSL-contract` 是当前最推荐的应用接入入口，但它不是对所有密码与协议能力的生产级认证。Digest / HMAC / HKDF、ChaCha20-Poly1305、X25519、证书材料准备、HTTP/TLS 与 SSH startup 表面已有本地测试和稳定 facade；`live.cj` 仍然较厚，TLS/SSH live interop、浏览器级 HTTPS、完整 thin facade、法律认证、安全认证和底层私钥运算恒定时间保证都不从 Contract README 中宣称。
+
+Contract 的安全边界继承 `JinguiSSL-core`：如果 Core 某个私钥路径未完成恒定时间证明，Contract facade 也不能把它升级为已认证的生产级密码后端。
+
 ## 快速开始
 
 ### 依赖
