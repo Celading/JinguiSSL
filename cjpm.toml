@@ -10,4 +10,4 @@
   include = ["src"]
 
 [dependencies]
-  jinguissl_core = { git = "https://gitcode.com/changeden/JinguiCore.git", branch="optz", output-type = "static" }
+  jinguissl_core = { git = "https://gitcode.com/changeden/JinguiCore.git", branch="main", output-type = "static" }
