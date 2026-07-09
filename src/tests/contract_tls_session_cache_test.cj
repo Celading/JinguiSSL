@@ -28,3 +28,37 @@ public class ContractTlsSessionCacheTestSuite {
     }
 }
 
+
+@Test
+public class ContractSupplementarySessionCacheTestSuite {
+    @TestCase
+    public func testContractTlsSessionCacheClear(): Unit {
+        let cache = ContractTlsSessionCache(maxEntries: 10, defaultTtlSeconds: 60)
+        @Assert(cache.size, 0)
+        let before = cache.stats()
+        @Assert(before.size, 0)
+        cache.clear()
+        let after = cache.stats()
+        @Assert(after.size, 0)
+    }
+
+    @TestCase
+    public func testContractTlsSessionCacheRejectsNegativeTtl(): Unit {
+        try {
+            _ = ContractTlsSessionCache(maxEntries: 5, defaultTtlSeconds: -1)
+            @Fail("negative TTL should be rejected")
+        } catch (e: ContractException) {
+            @Assert(e.code.toString(), "BAD_INPUT")
+        }
+    }
+
+    @TestCase
+    public func testContractTlsSessionCacheRejectsZeroMaxEntries(): Unit {
+        try {
+            _ = ContractTlsSessionCache(maxEntries: 0, defaultTtlSeconds: 60)
+            @Fail("zero maxEntries should be rejected")
+        } catch (e: ContractException) {
+            @Assert(e.code.toString(), "BAD_INPUT")
+        }
+    }
+}

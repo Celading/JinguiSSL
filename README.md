@@ -154,3 +154,51 @@ JinguiSSL-contract/
 本仓库源码采用 `Apache License 2.0`。详见 `LICENSE`。
 
 依赖边界说明：当前维护线依赖 `JinguiSSL-core`，其源码线采用 `LGPL-3.0-only`。因此本仓库的 Apache 源码许可不取消 Core 依赖在组合分发、静态/动态链接或打包场景中的许可证义务。
+
+## 使用手册与示例
+
+本仓库包含完整的 [使用手册](docs/) 和 [开发示例](sample/)。
+
+### 文档目录 `docs/`
+
+| 文档 | 说明 |
+|------|------|
+| [overview.md](docs/overview.md) | 项目概览与能力说明 |
+| [getting-started.md](docs/getting-started.md) | 快速开始指南 |
+| [digest.md](docs/digest.md) | Digest / HMAC / HKDF API 参考 |
+| [chacha20-poly1305.md](docs/chacha20-poly1305.md) | ChaCha20 / Poly1305 API 参考 |
+| [x25519.md](docs/x25519.md) | X25519 密钥协商 API 参考 |
+| [x509-and-http-tls.md](docs/x509-and-http-tls.md) | X.509 证书与 HTTP/TLS API 参考 |
+| [aes-readiness.md](docs/aes-readiness.md) | AES 后端探测与引擎选择 API 参考 |
+| [ssh.md](docs/ssh.md) | SSH 启动捆绑包 API 参考 |
+| [provider-gate.md](docs/provider-gate.md) | 提供商门禁 API 参考 |
+| [quic.md](docs/quic.md) | QUIC API 参考 |
+| [tls-session-cache.md](docs/tls-session-cache.md) | TLS 会话缓存 API 参考 |
+| [error-handling.md](docs/error-handling.md) | 错误处理指南 |
+
+### 示例目录 `sample/`
+
+每个子目录包含一个完整的使用示例：
+
+```text
+sample/
+├── README.md
+├── basic/              基础用法（facade info 获取）
+├── digest/             Digest / HMAC / HKDF
+├── chacha20/           ChaCha20-Poly1305 流加密与 AEAD
+├── x25519/             X25519 密钥协商
+├── x509/               证书链验证与 TLS 启动材料
+├── aes/                AES 后端探测与引擎选择
+├── http_tls/           HTTP/TLS 配置验证与启动材料
+├── ssh/                SSH KEX 启动捆绑包
+├── quic/               QUIC 初始密钥派生与 Retry 完整性
+└── tls_session_cache/  TLS 会话缓存
+```
+
+### 测试状态
+
+当前测试覆盖：**138 项**（较基线增加 25 项）
+
+```bash
+cjpm test   # 运行所有测试
+```

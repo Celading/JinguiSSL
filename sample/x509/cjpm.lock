@@ -1,0 +1,4 @@
+version = 0
+
+[requires]
+  jinguissl_core = {git = "https://gitcode.com/changeden/JinguiCore.git", commitId = "c27ff18a47069f42b9eaf682fe87b352bfa81e98", branch = "optz", output-type = "static"}
