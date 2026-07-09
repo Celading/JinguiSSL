@@ -145,3 +145,29 @@ private func hexNibble(ch: Byte): UInt8 {
 
     throw Exception("invalid hex char")
 }
+
+@Test
+public class ContractSupplementaryChacha20TestSuite {
+    @TestCase
+    public func testContractChacha20AlgorithmName(): Unit {
+        @Assert(contractChacha20Poly1305AlgorithmName(), "CHACHA20-POLY1305")
+    }
+
+    @TestCase
+    public func testContractPoly1305EmptyMessage(): Unit {
+        let key = Array<Byte>(32, repeat: 0x00)
+        let tag = contractPoly1305Mac(key, [])
+        @Assert(tag.size, 16)
+    }
+
+    @TestCase
+    public func testContractChacha20Poly1305WithAad(): Unit {
+        let key = Array<Byte>(32, repeat: 0x10)
+        let nonce = Array<Byte>(12, repeat: 0x20)
+        let plaintext = "data".toArray()
+        let aad = "aad-data".toArray()
+        let (ciphertext, tag) = contractChacha20Poly1305Encrypt(key, nonce, plaintext, aad: aad)
+        let opened = contractChacha20Poly1305Decrypt(key, nonce, ciphertext, tag, aad: aad)
+        @Assert(opened, plaintext)
+    }
+}
