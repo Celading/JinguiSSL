@@ -143,3 +143,23 @@ private func hexNibble(ch: Byte): UInt8 {
     }
     throw Exception("invalid hex char")
 }
+
+@Test
+public class ContractSupplementaryX25519TestSuite {
+    @TestCase
+    public func testContractX25519KeyPairRejectsBadLength(): Unit {
+        try {
+            _ = ContractX25519KeyPair([0x01, 0x02], Array<Byte>(32, repeat: 0x00))
+            @Fail("short private key should be rejected")
+        } catch (e: ContractException) {
+            @Assert(e.code.toString(), "BAD_INPUT")
+        }
+    }
+
+    @TestCase
+    public func testContractX25519Constants(): Unit {
+        @Assert(CONTRACT_X25519_KEY_LEN, 32)
+        @Assert(CONTRACT_X25519_SHARED_SECRET_LEN, 32)
+        @Assert(CONTRACT_X25519_ALGORITHM, "X25519")
+    }
+}
