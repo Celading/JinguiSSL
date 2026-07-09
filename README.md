@@ -175,30 +175,38 @@ JinguiSSL-contract/
 | [quic.md](docs/quic.md) | QUIC API 参考 |
 | [tls-session-cache.md](docs/tls-session-cache.md) | TLS 会话缓存 API 参考 |
 | [error-handling.md](docs/error-handling.md) | 错误处理指南 |
+| [ecc-ed25519-rsa.md](docs/ecc-ed25519-rsa.md) | ECC / Ed25519 / RSA 能力包 |
+| [china-crypto.md](docs/china-crypto.md) | 国密 SM3/SM4 |
+| [kem.md](docs/kem.md) | KEM 密钥封装机制（PQ 储备） |
+| [usage-guide.md](docs/usage-guide.md) | 完整使用手册 |
 
 ### 示例目录 `sample/`
 
 每个子目录包含一个完整的使用示例：
-
-```text
+```
 sample/
 ├── README.md
-├── basic/              基础用法（facade info 获取）
-├── digest/             Digest / HMAC / HKDF
+├── basic/              基础用法（facade 元数据）
+├── digest/             SHA-256/384/512 摘要、HMAC、HKDF
 ├── chacha20/           ChaCha20-Poly1305 流加密与 AEAD
 ├── x25519/             X25519 密钥协商
-├── x509/               证书链验证与 TLS 启动材料
-├── aes/                AES 后端探测与引擎选择
-├── http_tls/           HTTP/TLS 配置验证与启动材料
-├── ssh/                SSH KEX 启动捆绑包
-├── quic/               QUIC 初始密钥派生与 Retry 完整性
-└── tls_session_cache/  TLS 会话缓存
+├── x509/               证书链验证与 TLS 信任材料
+├── aes/                AES 硬件探测与引擎解析
+├── sm/                 国密 SM3/SM4 能力探测
+├── ecc/                ECC 椭圆曲线能力探测
+├── ed25519/            Ed25519 签名能力探测
+├── rsa/                RSA 能力探测
+├── kem/                KEM 密钥封装机制探测（PQ 储备）
+├── hmac-hkdf/          HMAC 消息认证码与 HKDF 密钥派生
+├── http_tls/           HTTP/TLS 启动材料验证与整理
+├── ssh/                SSH KEX 启动捆绑包与主机验证
+├── quic/               QUIC 初始密钥派生与 Header Protection
+├── provider-gate/      提供商门禁（错误描述、降级决策）
+├── tls-session-cache/  TLS 会话缓存（LRU）
+├── tls-client/         TLS 客户端 session attach
+└── tls-server/         TLS 服务端 session attach
 ```
 
 ### 测试状态
 
-当前测试覆盖：**138 项**（较基线增加 25 项）
-
-```bash
-cjpm test   # 运行所有测试
-```
+当前测试覆盖：**193 项**
