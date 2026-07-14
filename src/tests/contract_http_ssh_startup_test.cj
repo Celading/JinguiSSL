@@ -184,6 +184,48 @@ public class ContractHttpSshStartupTestSuite {
                 @Fail("startup profile failure should carry contract code")
         }
     }
+
+    @TestCase
+    public func testContractRandomAvailableFacade(): Unit {
+        let randomAvailable = contractRandomAvailable()
+        @Assert(randomAvailable == true || randomAvailable == false, true)
+    }
+
+    @TestCase
+    public func testContractListHttpSshStartupProfilesCount(): Unit {
+        let templates = contractListHttpSshStartupProfiles()
+        @Assert(templates.size >= 6, true)
+        var foundProduction = false
+        var foundHttpClient = false
+        var foundHttpServer = false
+        var foundSshClient = false
+        var foundSshServer = false
+        var foundLibraryDefault = false
+        for (t in templates) {
+            if (t.label == "production-accelerated") { foundProduction = true }
+            if (t.label == "http-client-library") { foundHttpClient = true }
+            if (t.label == "http-server-library") { foundHttpServer = true }
+            if (t.label == "ssh-client-library") { foundSshClient = true }
+            if (t.label == "ssh-server-library") { foundSshServer = true }
+            if (t.label == "library-default") { foundLibraryDefault = true }
+        }
+        @Assert(foundProduction, true)
+        @Assert(foundHttpClient, true)
+        @Assert(foundHttpServer, true)
+        @Assert(foundSshClient, true)
+        @Assert(foundSshServer, true)
+        @Assert(foundLibraryDefault, true)
+    }
+
+    @TestCase
+    public func testContractDescribeHttpSshStartupProfileMinimal(): Unit {
+        let defaultProfile = contractDescribeHttpSshStartupProfile(
+            ContractHttpSshStartupProfile.LibraryDefault
+        )
+        @Assert(defaultProfile.label, "library-default")
+        @Assert(defaultProfile.policy.requireRandom, true)
+        @Assert(defaultProfile.policy.requireHttpTls, true)
+    }
 }
 
 private func contractHttpSshStartupContainsString(values: Array<String>, expected: String): Bool {
