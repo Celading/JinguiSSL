@@ -209,4 +209,38 @@ sample/
 
 ### 测试状态
 
-当前测试覆盖：**193 项**
+当前测试覆盖：**244 项**
+
+### 基准测试
+
+`JinguiSSL-contract` 基准测试位于 `benchmark/` 目录，使用独立项目结构运行。
+运行方式：
+
+```bash
+cd benchmark && cjpm build && cjpm run
+```
+
+| 操作 | 吞吐量 |
+|:--|:--|
+| SHA-256 (1 KiB) | ~3616 MiB/s |
+| SHA-256 (64 KiB) | ~3881 MiB/s |
+| SHA-384 (1 KiB) | ~4650 MiB/s |
+| SHA-512 (1 KiB) | ~4438 MiB/s |
+| SHA-384 (64 KiB) | ~4964 MiB/s |
+| SHA-512 (64 KiB) | ~5028 MiB/s |
+| HMAC-SHA256 (1 KiB) | ~2639 MiB/s |
+| HMAC-SHA384 (1 KiB) | ~2271 MiB/s |
+| HMAC-SHA512 (1 KiB) | ~2790 MiB/s |
+| HKDF-SHA256 (32B out) | ~2271 MiB/s |
+| HKDF-SHA256 (64B out) | ~1683 MiB/s |
+| ChaCha20-Poly1305 Encrypt (1 KiB) | ~1337 MiB/s |
+| ChaCha20-Poly1305 Decrypt (1 KiB) | ~1337 MiB/s |
+| ChaCha20 Block (64B) | ~2034 MiB/s |
+| Poly1305 MAC (1 KiB) | ~5744 MiB/s |
+| SHA-256 (512 KiB) | ~3620 MiB/s |
+| X25519 Key Pair Gen | ~59 ops/s |
+| X25519 Key Agreement | ~27 ops/s |
+
+平台: x86_64-unknown-linux-gnu · Cangjie 1.0.5
+
+当前测试覆盖：**244 项**

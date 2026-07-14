@@ -30,6 +30,18 @@ cjpm build
 cjpm test
 ```
 
+## 基准测试
+
+`JinguiSSL-contract` 包含 `benchmark/` 目录用于性能基准测试。
+
+```bash
+cd benchmark && cjpm build && cjpm run
+```
+
+测试涵盖 SHA-256/384/512 摘要、HMAC-SHA256、HKDF-SHA256、
+ChaCha20-Poly1305 加解密、X25519 密钥对生成与密钥协商等操作。
+详细结果见 [README](../README.md#基准测试)。
+
 ## 许可证
 
 Apache 2.0。依赖的 `JinguiSSL-core` 采用 LGPL-3.0-only。
