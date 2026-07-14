@@ -162,4 +162,31 @@ public class ContractSupplementaryX25519TestSuite {
         @Assert(CONTRACT_X25519_SHARED_SECRET_LEN, 32)
         @Assert(CONTRACT_X25519_ALGORITHM, "X25519")
     }
+
+    @TestCase
+    public func testContractX25519KeyAgreementEdgeCases(): Unit {
+        // Multiple key agreements with different peers
+        let aliceKey = contractX25519GenerateKeyPair()
+        let bobKey = contractX25519GenerateKeyPair()
+
+        let aliceToBob = contractTryX25519DeriveKeyAgreement(
+            aliceKey.privateKey, bobKey.publicKey
+        )
+        @Assert(aliceToBob.ok, true)
+        match (aliceToBob.result) {
+            case Some(secret) => @Assert(secret.sharedSecret.size == 32, true)
+            case None => @Fail("alice-to-bob key agreement should succeed")
+        }
+
+        let bobToAlice = contractTryX25519DeriveKeyAgreement(
+            bobKey.privateKey, aliceKey.publicKey
+        )
+        @Assert(bobToAlice.ok, true)
+        match (bobToAlice.result) {
+            case Some(secret) => @Assert(secret.sharedSecret.size == 32, true)
+            case None => @Fail("bob-to-alice key agreement should succeed")
+        }
+
+        // Both sides produce 32-byte shared secrets (verified above)
+    }
 }
