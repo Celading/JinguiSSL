@@ -54,7 +54,6 @@
 
          let (firstByteMask, pnMask) = contractQuicHpChaChaEncrypt(sample, key)
 
-         // pnMask should be 4 bytes for ChaCha20 HP
          @Assert(pnMask.size, 4)
          @Assert(firstByteMask >= UInt8(0x00), true)
      }
@@ -64,7 +63,52 @@
          let sample = hexToBytes("00112233445566778899aabbccddeeff")
          let key    = hexToBytes("0123456789abcdef0123456789abcdef")
          let (_, pnMask) = contractQuicHpAesEncrypt(sample, key)
-         @Assert(pnMask.size, 15) // AES HP produces 15 bytes of PN mask
+         @Assert(pnMask.size, 15)
+     }
+
+     @TestCase
+     public func testChaChaHpWithInvalidShortSample(): Unit {
+         let key  = hexToBytes("8a2a74072c22b8e4d11b3ff5882e0be9c05c0afb97d4689f87bfe4276f85be65")
+         let shortSample = hexToBytes("0000000000000000000000000000")
+         try {
+             _ = contractQuicHpChaChaEncrypt(shortSample, key)
+             @Fail("ChaCha HP should reject short sample")
+         } catch (_: Exception) {
+             @Assert(true)
+         }
+     }
+
+     @TestCase
+     public func testAesHpWithInvalidShortSample(): Unit {
+         let hpKey = hexToBytes("9f50449e04a0e810283a1e9933adedd2")
+         let shortSample = hexToBytes("00112233445566778899aabbccdd")
+         try {
+             _ = contractQuicHpAesEncrypt(shortSample, hpKey)
+             @Fail("AES HP should reject short sample")
+         } catch (_: Exception) {
+             @Assert(true)
+         }
+     }
+
+     @TestCase
+     public func testChaChaHpWithInvalidKeyLength(): Unit {
+         let shortKey = hexToBytes("00112233445566778899aabbccddeeff")
+         let sample = hexToBytes("00000000aabbccddeeff001122334455")
+         try {
+             _ = contractQuicHpChaChaEncrypt(sample, shortKey)
+             @Fail("ChaCha HP should reject short key")
+         } catch (_: Exception) {
+             @Assert(true)
+         }
+     }
+
+     @TestCase
+     public func testAesHpProducesMaskInRange(): Unit {
+         let sample = hexToBytes("d1b1c98dd7689fb8ec11d242b123dc9b")
+         let hpKey  = hexToBytes("9f50449e04a0e810283a1e9933adedd2")
+         let (firstByteMask, pnMask) = contractQuicHpAesEncrypt(sample, hpKey)
+         @Assert(firstByteMask >= UInt8(0x00), true)
+         @Assert(pnMask.size == 15, true)
      }
  }
 

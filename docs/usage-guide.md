@@ -181,6 +181,11 @@ cjpm test
 # 运行示例（详见 sample/ 目录）
 cd sample/<scenario>
 cjpm run
+
+# 基准测试
+cd benchmark
+cjpm build
+cjpm run
 ```
 
 ## 8. 常见问题
