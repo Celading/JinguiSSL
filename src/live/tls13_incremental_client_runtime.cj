@@ -279,8 +279,7 @@ private func contractTls13ValidateCollectedServerFlightRecords(
     }
     var i: Int64 = 1
     while (i < 5) {
-        if (recordResult.records[i].version != ContractTlsVersion.Tls13 ||
-            recordResult.records[i].contentType != ContractTlsRecordContentType.ApplicationData) {
+        if (!contractTls13IncrementalIsProtectedEnvelope(recordResult.records[i])) {
             return Some(ContractTls13IncrementalClientRuntimeOutcome(
                 false,
                 ContractTls13IncrementalHandshakeStatus.VerificationFailed,
@@ -293,6 +292,13 @@ private func contractTls13ValidateCollectedServerFlightRecords(
         i += 1
     }
     None
+}
+
+private func contractTls13IncrementalIsProtectedEnvelope(record: ContractTls13IncrementalRecordFrame): Bool {
+    (
+        record.version == ContractTlsVersion.Tls13 ||
+        record.version == ContractTlsVersion.Tls12
+    ) && record.contentType == ContractTlsRecordContentType.ApplicationData
 }
 
 private func contractTls13IncrementalClientRuntimeFailureFromCollector(
