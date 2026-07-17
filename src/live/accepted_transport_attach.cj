@@ -18,6 +18,22 @@ import jinguissl_core.crypto.x509.{
     x509ParseRsaPrivateKeyPkcs8Pem
 }
 
+class ContractAcceptedTransportTls13X25519Context {
+    public let session: ContractHttpServerAcceptedTransportSession
+    public let secrets: Tls13HandshakeSecrets
+    public let binding: ContractTls13CipherBinding
+
+    public init(
+        session: ContractHttpServerAcceptedTransportSession,
+        secrets: Tls13HandshakeSecrets,
+        binding: ContractTls13CipherBinding
+    ) {
+        this.session = session
+        this.secrets = secrets
+        this.binding = binding
+    }
+}
+
 public func contractBuildHttpServerInitialHandshakeFacade(
     session: ContractHttpServerAcceptedTransportSession
 ): ContractHttpServerInitialHandshakeFacade {
@@ -147,6 +163,22 @@ public func contractAttachAcceptedTransportTls13X25519(
     serverKeyExchangePrivate: Array<Byte>,
     policy!: ContractTlsHttpNegotiationPolicy = ContractTlsHttpNegotiationPolicy()
 ): ContractHttpServerAcceptedTransportSession {
+    contractBuildAcceptedTransportTls13X25519Context(
+        transport,
+        plan,
+        encodedClientHello,
+        serverKeyExchangePrivate,
+        policy: policy
+    ).session
+}
+
+func contractBuildAcceptedTransportTls13X25519Context(
+    transport: ContractAcceptedTransportDescriptor,
+    plan: ContractHttpServerAttachPlan,
+    encodedClientHello: Array<Byte>,
+    serverKeyExchangePrivate: Array<Byte>,
+    policy!: ContractTlsHttpNegotiationPolicy = ContractTlsHttpNegotiationPolicy()
+): ContractAcceptedTransportTls13X25519Context {
     try {
         let material = plan.startup.material
         let certChain = x509ParsePemChain(material.certificateChainPemBundle())
@@ -207,13 +239,18 @@ public func contractAttachAcceptedTransportTls13X25519(
             secureSessionReady: true,
             attachSurface: "accepted-transport-session"
         )
-        ContractHttpServerAcceptedTransportSession(
+        let session = ContractHttpServerAcceptedTransportSession(
             transport,
             ContractAcceptedTransportSessionStatus.Ready,
             result,
             initialHandshake,
             keyMaterial,
             serverChannel
+        )
+        ContractAcceptedTransportTls13X25519Context(
+            session,
+            context.secrets,
+            binding
         )
     } catch (e: ContractException) {
         throw e
