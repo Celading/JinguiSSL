@@ -5,9 +5,9 @@ mode="${1:-public}"
 root="${2:-.}"
 
 case "${mode}" in
-  public|hosted-graph) ;;
+  public|hosted-graph|dependency-lock) ;;
   *)
-    echo "usage: $0 [public|hosted-graph] [repo-root]" >&2
+    echo "usage: $0 [public|hosted-graph|dependency-lock] [repo-root]" >&2
     exit 2
     ;;
 esac
@@ -37,6 +37,7 @@ scan_text() {
     --exclude-dir=.git \
     --exclude-dir=target \
     --exclude-dir=.cjpm \
+    --exclude=.git \
     --exclude='jinguissl_ci_audit.sh'
 }
 
@@ -130,6 +131,36 @@ check_dependency_graph() {
   fi
 }
 
+check_dependency_lock() {
+  if [ "${mode}" != "dependency-lock" ] || [ ! -f cjpm.toml ]; then
+    return
+  fi
+
+  local dependency_url
+  local lock_line
+  local found=0
+  while IFS= read -r dependency_url; do
+    [ -n "${dependency_url}" ] || continue
+    found=1
+    if [ ! -f cjpm.lock ]; then
+      fail "git dependency ${dependency_url} has no cjpm.lock"
+      continue
+    fi
+    lock_line="$(grep -F "git = \"${dependency_url}\"" cjpm.lock | head -n 1 || true)"
+    if [ -z "${lock_line}" ]; then
+      fail "cjpm.lock does not match git dependency ${dependency_url}"
+      continue
+    fi
+    if ! printf '%s\n' "${lock_line}" | grep -Eq ', commitId = "[0-9a-fA-F]{40}"'; then
+      fail "cjpm.lock has no full commitId for git dependency ${dependency_url}"
+    fi
+  done < <(sed -nE 's/.*git[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' cjpm.toml)
+
+  if [ "${found}" -eq 0 ]; then
+    note "no hosted git dependency requires a lock check"
+  fi
+}
+
 check_toolchain_surface() {
   if [ "${mode}" = "hosted-graph" ]; then
     note "toolchain availability is verified after workflow SDK install"
@@ -144,6 +175,7 @@ check_governance_residue
 check_target_artifacts
 check_old_import_roots
 check_dependency_graph
+check_dependency_lock
 check_toolchain_surface
 
 if [ "${failures}" -ne 0 ]; then
