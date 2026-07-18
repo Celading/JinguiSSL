@@ -165,6 +165,12 @@ public class ContractTls13IncrementalServerReadyRuntime {
             session.secureSessionReady
         }
     }
+
+    public prop selectedAlpn: String {
+        get() {
+            negotiatedAlpn
+        }
+    }
 }
 
 public class ContractTls13IncrementalServerFinishedOutcome {
