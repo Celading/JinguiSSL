@@ -350,4 +350,90 @@ public class ContractTls13IncrementalServerRuntimeTestSuite {
         @Assert(malformed.status.toString(), "MALFORMED")
         @Assert(malformed.alertOutput.size > 0, true)
     }
+
+    @TestCase
+    public func testConsumerCompatibilityStartFinishCompletesH2Handshake(): Unit {
+        let fixture = c187BuildFixture("h2")
+        let startOutcome = contractTryTls13StartIncrementalHttpServerHandshake(
+            ContractTls13IncrementalServerStartRequest(
+                fixture.transport,
+                fixture.plan,
+                fixture.serverPrivateKey,
+                policy: fixture.policy,
+                incomingBytes: c187ClientHelloWire(fixture)
+            )
+        )
+        @Assert(startOutcome.ok, true)
+        @Assert(startOutcome.status.toString(), "RECORDS_READY")
+        let start = match (startOutcome.result) {
+            case Some(value) => value
+            case None => throw ContractException(ContractErrorCode.InternalError, "C192 start result missing")
+        }
+        @Assert(start.continuation.selectedAlpn, "h2")
+        @Assert(start.records.size, Int64(5))
+
+        let client = contractTls13OpenHttpClientRuntimeFromWireDerivedServerFlight(
+            fixture.clientHello,
+            fixture.trust,
+            contractTls13CollectIncrementalHandshakeRecords([], c187Concat(start.records))
+        )
+        let applicationRecord = client.runtime.channelSet.clientChannel.sealApplicationData(
+            "compat-request".toArray()
+        )
+        let finishOutcome = contractTryTls13FinishIncrementalHttpServerHandshake(
+            ContractTls13IncrementalServerFinishRequest(
+                start.continuation,
+                start.continuation.pendingBytes,
+                c187Concat([client.clientFinished.encodedRecord, applicationRecord])
+            )
+        )
+        @Assert(finishOutcome.ok, true)
+        @Assert(finishOutcome.status.toString(), "COMPLETED")
+        let runtime = match (finishOutcome.runtime) {
+            case Some(value) => value
+            case None => throw ContractException(ContractErrorCode.InternalError, "C192 runtime missing")
+        }
+        @Assert(runtime.secureSessionReady, true)
+        @Assert(runtime.selectedAlpn, "h2")
+        @Assert(finishOutcome.pendingBytes, applicationRecord)
+    }
+
+    @TestCase
+    public func testConsumerCompatibilityMapsBadFinishedToProtectedAlert(): Unit {
+        let fixture = c187BuildFixture("http/1.1")
+        let startOutcome = contractTryTls13StartIncrementalHttpServerHandshake(
+            ContractTls13IncrementalServerStartRequest(
+                fixture.transport,
+                fixture.plan,
+                fixture.serverPrivateKey,
+                policy: fixture.policy,
+                incomingBytes: contractTlsEncodePlaintextRecord(
+                    ContractTlsVersion.Tls13,
+                    ContractTlsRecordContentType.Handshake,
+                    fixture.clientHello.encodedClientHello
+                )
+            )
+        )
+        let start = match (startOutcome.result) {
+            case Some(value) => value
+            case None => throw ContractException(ContractErrorCode.InternalError, "C192 start result missing")
+        }
+        let client = contractTls13OpenHttpClientRuntimeFromWireDerivedServerFlight(
+            fixture.clientHello,
+            fixture.trust,
+            contractTls13CollectIncrementalHandshakeRecords([], c187Concat(start.records))
+        )
+        let finishOutcome = contractTryTls13FinishIncrementalHttpServerHandshake(
+            ContractTls13IncrementalServerFinishRequest(
+                start.continuation,
+                start.continuation.pendingBytes,
+                c187TamperLastByte(client.clientFinished.encodedRecord)
+            )
+        )
+        @Assert(finishOutcome.ok, false)
+        @Assert(finishOutcome.status.toString(), "VERIFICATION_FAILED")
+        @Assert(finishOutcome.alertBytes.size > 0, true)
+        @Assert(finishOutcome.alertBytes[0], UInt8(23))
+        @Assert(finishOutcome.igniteCode.isSome(), true)
+    }
 }
