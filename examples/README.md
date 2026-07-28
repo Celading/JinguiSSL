@@ -25,13 +25,14 @@
 | [ed25519](ed25519/) | Ed25519 签名探测 | Ed25519 签名能力与密钥尺寸探测 |
 | [kem](kem/) | KEM 密钥封装 | 密钥封装机制 (PQ 储备) 探测 |
 | [rsa](rsa/) | RSA 能力探测 | RSA 密钥尺寸、签名方案、哈希算法探测 |
+| [contract-application-smoke](contract-application-smoke/) | 应用级集成冒烟 | 独立应用消费 JinguiSSL contract facade 冒烟验证 |
 
 ## 编译与运行
 
 每个示例都是独立的 cjpm 项目：
 
 ```bash
-cd sample/<场景名称>
+cd examples/<场景名称>
 cjpm build
 cjpm run
 ```

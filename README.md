@@ -134,11 +134,17 @@ cjpm test
 JinguiSSL-contract/
 ├── src/
 │   ├── package.cj
-│   ├── contract/   # 对外 facade 与 contract
-│   ├── live/       # 面向 live 组合的共享实现
-│   ├── runtime/    # runtime 兼容与启动表面
-│   └── tests/      # contract 级测试
+│   ├── contract/       # 对外 facade 与 contract
+│   ├── live/           # 面向 live 组合的共享实现
+│   ├── runtime/        # runtime 兼容与启动表面
+│   └── tests/          # contract 级测试
+├── examples/           # 完整使用示例
+├── benchmark/          # 基准测试
 ├── testdata/           # 向量、证书与测试素材
+├── docs/               # 使用手册
+├── scripts/            # 工具脚本
+├── .github/
+│   └── workflows/      # CI 配置
 ├── cjpm.toml
 └── README.md
 ```
@@ -157,7 +163,7 @@ JinguiSSL-contract/
 
 ## 使用手册与示例
 
-本仓库包含完整的 [使用手册](docs/) 和 [开发示例](sample/)。
+本仓库包含完整的 [使用手册](docs/) 和 [开发示例](examples/)。
 
 ### 文档目录 `docs/`
 
@@ -180,31 +186,32 @@ JinguiSSL-contract/
 | [kem.md](docs/kem.md) | KEM 密钥封装机制（PQ 储备） |
 | [usage-guide.md](docs/usage-guide.md) | 完整使用手册 |
 
-### 示例目录 `sample/`
+### 示例目录 `examples/`
 
 每个子目录包含一个完整的使用示例：
 ```
-sample/
+examples/
 ├── README.md
-├── basic/              基础用法（facade 元数据）
-├── digest/             SHA-256/384/512 摘要、HMAC、HKDF
-├── chacha20/           ChaCha20-Poly1305 流加密与 AEAD
-├── x25519/             X25519 密钥协商
-├── x509/               证书链验证与 TLS 信任材料
-├── aes/                AES 硬件探测与引擎解析
-├── sm/                 国密 SM3/SM4 能力探测
-├── ecc/                ECC 椭圆曲线能力探测
-├── ed25519/            Ed25519 签名能力探测
-├── rsa/                RSA 能力探测
-├── kem/                KEM 密钥封装机制探测（PQ 储备）
-├── hmac-hkdf/          HMAC 消息认证码与 HKDF 密钥派生
-├── http_tls/           HTTP/TLS 启动材料验证与整理
-├── ssh/                SSH KEX 启动捆绑包与主机验证
-├── quic/               QUIC 初始密钥派生与 Header Protection
-├── provider-gate/      提供商门禁（错误描述、降级决策）
-├── tls-session-cache/  TLS 会话缓存（LRU）
-├── tls-client/         TLS 客户端 session attach
-└── tls-server/         TLS 服务端 session attach
+├── basic/                   基础用法（facade 元数据）
+├── digest/                  SHA-256/384/512 摘要、HMAC、HKDF
+├── chacha20/                ChaCha20-Poly1305 流加密与 AEAD
+├── x25519/                  X25519 密钥协商
+├── x509/                    证书链验证与 TLS 信任材料
+├── aes/                     AES 硬件探测与引擎解析
+├── sm/                      国密 SM3/SM4 能力探测
+├── ecc/                     ECC 椭圆曲线能力探测
+├── ed25519/                 Ed25519 签名能力探测
+├── rsa/                     RSA 能力探测
+├── kem/                     KEM 密钥封装机制探测（PQ 储备）
+├── hmac-hkdf/               HMAC 消息认证码与 HKDF 密钥派生
+├── http_tls/                HTTP/TLS 启动材料验证与整理
+├── ssh/                     SSH KEX 启动捆绑包与主机验证
+├── quic/                    QUIC 初始密钥派生与 Header Protection
+├── provider-gate/           提供商门禁（错误描述、降级决策）
+├── tls-session-cache/       TLS 会话缓存（LRU）
+├── tls-client/              TLS 客户端 session attach
+├── tls-server/              TLS 服务端 session attach
+└── contract-application-smoke/  应用级集成冒烟
 ```
 
 ### 测试状态
