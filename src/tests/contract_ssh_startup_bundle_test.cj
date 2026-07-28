@@ -169,6 +169,108 @@ public class ContractSshStartupBundleTestSuite {
                 @Fail("SSH client startup invalid profile outcome should carry contract code")
         }
     }
+
+    @TestCase
+    public func testContractTrySshServerEcdsaAndEd25519Outcomes(): Unit {
+        let clientPrivate = hexToBytes("77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a")
+        let serverPrivate = hexToBytes("5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb")
+        let transcript = ContractSshKexExchangeTranscript(
+            "SSH-2.0-contract-startup-client\r\n".toArray(),
+            "SSH-2.0-contract-startup-server\r\n".toArray(),
+            sshEncodeKexInit(sshBuildDefaultKexInit(cookie: incrementalBytes(16, start: 1820))),
+            sshEncodeKexInit(sshBuildDefaultKexInit(cookie: incrementalBytes(16, start: 1860)))
+        )
+        let (encodedInit, _) = sshBuildKexEcdhInitX25519(clientPrivate)
+        let negotiated = ContractSshNegotiatedAlgorithms(
+            "curve25519-sha256",
+            "ecdsa-sha2-nistp256",
+            "aes128-ctr",
+            "aes128-ctr",
+            "hmac-sha2-256",
+            "hmac-sha2-256",
+            compressionAlgorithmClientToServer: "none",
+            compressionAlgorithmServerToClient: "none"
+        )
+
+        // Test Try variant for ECDSA SSH startup
+        let ecdsaTry = contractTryPrepareSshServerLibraryStartupX25519EcdsaPkcs8Request(
+            ContractSshServerLibraryStartupX25519EcdsaPkcs8Request(
+                transcript,
+                serverPrivate,
+                encodedInit,
+                readText("testdata/x509/policy_leaf_key_pkcs8.pem"),
+                negotiated,
+                sshEncodeNewKeys(),
+                sshEncodeNewKeys(),
+                profile: ContractHttpSshStartupProfile.SshServerLibrary,
+                aesBackendHint: "shim"
+            )
+        )
+        @Assert(ecdsaTry.ok, true)
+        match (ecdsaTry.result) {
+            case Some(bundle) =>
+                @Assert(bundle.handshake.hostKeyAlgorithm, "ecdsa-sha2-nistp256")
+            case None =>
+                @Fail("ECDSA SSH startup Try should return a bundle on success")
+        }
+
+        // Test Try variant for Ed25519 SSH startup
+        let ed25519Negotiated = ContractSshNegotiatedAlgorithms(
+            "curve25519-sha256",
+            "ssh-ed25519",
+            "aes128-ctr",
+            "aes128-ctr",
+            "hmac-sha2-256",
+            "hmac-sha2-256",
+            compressionAlgorithmClientToServer: "none",
+            compressionAlgorithmServerToClient: "none"
+        )
+        let ed25519Try = contractTryPrepareSshServerLibraryStartupX25519Ed25519SeedRequest(
+            ContractSshServerLibraryStartupX25519Ed25519SeedRequest(
+                transcript,
+                serverPrivate,
+                encodedInit,
+                hexToBytes("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"),
+                ed25519Negotiated,
+                sshEncodeNewKeys(),
+                sshEncodeNewKeys(),
+                profile: ContractHttpSshStartupProfile.SshServerLibrary,
+                aesBackendHint: "shim"
+            )
+        )
+        @Assert(ed25519Try.ok, true)
+        match (ed25519Try.result) {
+            case Some(bundle) =>
+                @Assert(bundle.handshake.hostKeyAlgorithm, "ssh-ed25519")
+            case None =>
+                @Fail("Ed25519 SSH startup Try should return a bundle on success")
+        }
+
+        // Test Try with invalid profile (ProductionAccelerated for SSH)
+        let invalidProfileTry = contractTryPrepareSshServerLibraryStartupX25519RsaPkcs8Request(
+            ContractSshServerLibraryStartupX25519RsaPkcs8Request(
+                transcript,
+                serverPrivate,
+                encodedInit,
+                readText("testdata/x509/rsa_2048_pkcs8.pem"),
+                ContractSshNegotiatedAlgorithms(
+                    "curve25519-sha256",
+                    "rsa-sha2-256",
+                    "aes128-ctr",
+                    "aes128-ctr",
+                    "hmac-sha2-256",
+                    "hmac-sha2-256",
+                    compressionAlgorithmClientToServer: "none",
+                    compressionAlgorithmServerToClient: "none"
+                ),
+                sshEncodeNewKeys(),
+                sshEncodeNewKeys(),
+                profile: ContractHttpSshStartupProfile.ProductionAccelerated,
+                aesBackendHint: "shim"
+            )
+        )
+        @Assert(invalidProfileTry.ok, false)
+    }
 }
 
 private func readText(path: String): String {

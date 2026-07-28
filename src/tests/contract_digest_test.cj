@@ -114,3 +114,39 @@ public class ContractDigestTestSuite {
         @Assert(result.size, 0)
     }
 }
+
+@Test
+public class ContractSupplementaryDigestTestSuite {
+    @TestCase
+    public func testContractMd5Empty(): Unit {
+        let empty: Array<Byte> = []
+        @Assert(contractBytesToHexLower(contractMd5(empty)), "d41d8cd98f00b204e9800998ecf8427e")
+    }
+
+    @TestCase
+    public func testContractSha1Empty(): Unit {
+        let empty: Array<Byte> = []
+        @Assert(contractBytesToHexLower(contractSha1(empty)), "da39a3ee5e6b4b0d3255bfef95601890afd80709")
+    }
+
+    @TestCase
+    public func testContractHmacSha384(): Unit {
+        let key: Array<Byte> = [0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b,
+                                 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b,
+                                 0x0b, 0x0b, 0x0b, 0x0b]
+        let data: Array<Byte> = [0x48, 0x69, 0x20, 0x54, 0x68, 0x65, 0x72, 0x65]
+        let hmac384 = contractHmac(HashAlgorithm.SHA384, key, data)
+        @Assert(hmac384.size, 48)
+        let hmac512 = contractHmac(HashAlgorithm.SHA512, key, data)
+        @Assert(hmac512.size, 64)
+    }
+
+    @TestCase
+    public func testContractHkdfSha384(): Unit {
+        let ikm = Array<Byte>(22, repeat: 0x0b)
+        let salt = Array<Byte>(13, repeat: 0x00)
+        let info = Array<Byte>(10, repeat: 0xf0)
+        let okm = contractHkdf(HashAlgorithm.SHA384, ikm, info, 48, salt: salt)
+        @Assert(okm.size, 48)
+    }
+}
