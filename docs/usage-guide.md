@@ -45,7 +45,7 @@ JinguiSSL 是面向仓颉（Cangjie）应用的密码学、证书、TLS 与 SSH 
 
 ```toml
 [dependencies]
-jinguissl = { git = "https://gitcode.com/changeden/JinguiSSL-contract.git" }
+jinguissl = { git = "https://gitcode.com/cinyu/jinguiSSL.git" }
 ```
 
 ### import 方式
