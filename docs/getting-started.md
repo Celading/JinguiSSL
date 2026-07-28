@@ -6,7 +6,7 @@
 
 ```toml
 [dependencies]
-jinguissl = { git = "https://gitcode.com/changeden/JinguiSSL-contract.git" }
+jinguissl = { git = "https://gitcode.com/cinyu/jinguiSSL.git" }
 ```
 
 ## 常用 import
