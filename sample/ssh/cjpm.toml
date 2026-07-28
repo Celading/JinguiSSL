@@ -7,4 +7,4 @@
 
 [dependencies]
   jinguissl = { path = "../.." }
-  jinguissl_core = { git = "https://gitcode.com/changeden/JinguiCore.git", branch="optz", output-type = "static" }
+  jinguissl_core = { git = "https://gitcode.com/CjKu/JinguiCore.git", branch="optz", output-type = "static" }
