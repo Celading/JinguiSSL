@@ -21,7 +21,7 @@
 - TLS / X.509 / SSH 的启动材料希望有统一入口
 - 上层框架需要稳定一些的错误模型、返回形状与输入约束
 
-`JinguiSSL-contract` 就是为这个场景准备的。  
+`JinguiSSL-contract` 就是为这个场景准备的。
 它把常用的密码学、证书、TLS 与 SSH 接口压成更适合应用层消费的 facade，让业务代码优先依赖稳定 contract，而不是直接散落地深 import 各种底层实现。
 
 ## 仓库定位
@@ -209,38 +209,16 @@ sample/
 
 ### 测试状态
 
-当前测试覆盖：**244 项**
+当前测试覆盖：**273 项**
 
 ### 基准测试
 
-`JinguiSSL-contract` 基准测试位于 `benchmark/` 目录，使用独立项目结构运行。
+以下数据来自非正式环境单轮采样，仅供大致量级参考，不作为性能承诺。实际吞吐与运行环境、工具链版本、负载等因素强相关。
+
 运行方式：
 
 ```bash
 cd benchmark && cjpm build && cjpm run
 ```
 
-| 操作 | 吞吐量 |
-|:--|:--|
-| SHA-256 (1 KiB) | ~3616 MiB/s |
-| SHA-256 (64 KiB) | ~3881 MiB/s |
-| SHA-384 (1 KiB) | ~4650 MiB/s |
-| SHA-512 (1 KiB) | ~4438 MiB/s |
-| SHA-384 (64 KiB) | ~4964 MiB/s |
-| SHA-512 (64 KiB) | ~5028 MiB/s |
-| HMAC-SHA256 (1 KiB) | ~2639 MiB/s |
-| HMAC-SHA384 (1 KiB) | ~2271 MiB/s |
-| HMAC-SHA512 (1 KiB) | ~2790 MiB/s |
-| HKDF-SHA256 (32B out) | ~2271 MiB/s |
-| HKDF-SHA256 (64B out) | ~1683 MiB/s |
-| ChaCha20-Poly1305 Encrypt (1 KiB) | ~1337 MiB/s |
-| ChaCha20-Poly1305 Decrypt (1 KiB) | ~1337 MiB/s |
-| ChaCha20 Block (64B) | ~2034 MiB/s |
-| Poly1305 MAC (1 KiB) | ~5744 MiB/s |
-| SHA-256 (512 KiB) | ~3620 MiB/s |
-| X25519 Key Pair Gen | ~59 ops/s |
-| X25519 Key Agreement | ~27 ops/s |
-
-平台: x86_64-unknown-linux-gnu · Cangjie 1.0.5
-
-当前测试覆盖：**244 项**
+<sub>* 测试环境: x86_64-unknown-linux-gnu · Cangjie 1.0.5 · 未经当前环境复测 · 仅供参考</sub>
