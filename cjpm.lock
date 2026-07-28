@@ -1,4 +1,4 @@
 version = 0
 
 [requires]
-  jinguissl_core = {git = "https://gitcode.com/changeden/JinguiCore.git", commitId = "71ab12dbbd262ea052065b1b4a8c2cbb8ac86d8a", branch = "optz", output-type = "static"}
+  jinguissl_core = {git = "https://gitcode.com/CjKu/JinguiCore.git", commitId = "772a989748df4f77c800b89b6a9e15ffcaecd039", branch = "main", output-type = "static"}
