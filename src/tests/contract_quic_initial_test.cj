@@ -92,6 +92,16 @@
          let (key, _, _) = contractQuicInitialKeyDerive([], false)
          @Assert(key.size, 16)
      }
+
+     @TestCase
+     public func testInitialSecretLengthIsContractOwned(): Unit {
+         try {
+             _ = contractQuicInitialKeyIv(Array<Byte>(31, repeat: 0), false)
+             @Fail("QUIC initial traffic secret must be 32 bytes")
+         } catch (e: ContractException) {
+             @Assert(e.code, ContractErrorCode.BadInput)
+         }
+     }
  }
 
  private func hexToBytes(hex: String): Array<Byte> {

@@ -39,6 +39,23 @@ public class ContractTlsPskTestSuite {
     }
 
     @TestCase
+    public func testContractPskDtosCloneArrayInputs(): Unit {
+        let identity: Array<Byte> = [0x01, 0x02]
+        let nonce: Array<Byte> = [0x03, 0x04]
+        let ticket: Array<Byte> = [0x05, 0x06]
+        let entry = ContractTls13PskIdentityEntry(identity, 7)
+        let message = ContractTls13NewSessionTicketMessage(8, 9, nonce, ticket)
+
+        identity[0] = 0xff
+        nonce[0] = 0xff
+        ticket[0] = 0xff
+
+        @Assert(entry.identity[0], UInt8(0x01))
+        @Assert(message.ticketNonce[0], UInt8(0x03))
+        @Assert(message.ticket[0], UInt8(0x05))
+    }
+
+    @TestCase
     public func testContractTls13BuildClientHelloPskWithBinderEmptyInput(): Unit {
         try {
             _ = contractTls13BuildClientHelloPskWithBinder([], [])

@@ -73,8 +73,8 @@
          try {
              _ = contractQuicHpChaChaEncrypt(shortSample, key)
              @Fail("ChaCha HP should reject short sample")
-         } catch (_: Exception) {
-             @Assert(true)
+         } catch (e: ContractException) {
+             @Assert(e.code, ContractErrorCode.BadInput)
          }
      }
 
@@ -85,8 +85,8 @@
          try {
              _ = contractQuicHpAesEncrypt(shortSample, hpKey)
              @Fail("AES HP should reject short sample")
-         } catch (_: Exception) {
-             @Assert(true)
+         } catch (e: ContractException) {
+             @Assert(e.code, ContractErrorCode.BadInput)
          }
      }
 
@@ -97,9 +97,23 @@
          try {
              _ = contractQuicHpChaChaEncrypt(sample, shortKey)
              @Fail("ChaCha HP should reject short key")
-         } catch (_: Exception) {
-             @Assert(true)
+         } catch (e: ContractException) {
+             @Assert(e.code, ContractErrorCode.BadInput)
          }
+     }
+
+     @TestCase
+     public func testAesHpRejectsAes192KeyAndAcceptsAes256Key(): Unit {
+         let sample = hexToBytes("00112233445566778899aabbccddeeff")
+         try {
+             _ = contractQuicHpAesEncrypt(sample, Array<Byte>(24, repeat: 0))
+             @Fail("QUIC AES HP must reject 24-byte AES keys")
+         } catch (e: ContractException) {
+             @Assert(e.code, ContractErrorCode.BadInput)
+         }
+
+         let (_, pnMask) = contractQuicHpAesEncrypt(sample, Array<Byte>(32, repeat: 0))
+         @Assert(pnMask.size, 15)
      }
 
      @TestCase

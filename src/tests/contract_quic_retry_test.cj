@@ -99,6 +99,18 @@
 
          @Assert(contractQuicVerifyRetryIntegrity(fullPacket, wrongConnId, false), false)
      }
+
+     @TestCase
+     public func testRetryRejectsOversizedOrigDestConnId(): Unit {
+         try {
+             _ = contractQuicRetryIntegrityTag(
+                 [0x00], Array<Byte>(21, repeat: 0), false
+             )
+             @Fail("QUIC original destination connection ID must not exceed 20 bytes")
+         } catch (e: ContractException) {
+             @Assert(e.code, ContractErrorCode.BadInput)
+         }
+     }
  }
 
  private func hexToBytes(hex: String): Array<Byte> {
