@@ -9,7 +9,7 @@
 <span style="font-weight:100;font-size:24px">面向仓颉应用的密码学、证书、TLS 与 SSH 契约层</span>
 <p align="center">
   <strong>先接稳定 facade，再按需下钻到底层实现</strong><br/>
-  <sub>Digest · ChaCha20-Poly1305 · X25519 · X.509 · TLS startup material · SSH startup bundle</sub>
+  <sub>Digest · ChaCha20-Poly1305 · X25519 · X.509 · TLS startup material · SSH startup bundle · QUIC</sub>
 </p>
 </div>
 
@@ -57,6 +57,7 @@
 - X.509 / PEM contract：证书链验证、pin 计算、客户端信任材料准备
 - HTTP/TLS startup material：服务端 / 客户端 TLS 输入校验与启动材料整理
 - SSH startup bundle：主机验证策略、握手输入整理、库级启动请求封装
+- QUIC contract：v1/v2 初始密钥、显式 AEAD 算法、Header Protection、Retry 完整性
 - 统一错误口径：`ContractErrorCode`、`ContractException`、Ignite 风格错误映射
 
 ## 生产级状态速记
@@ -216,7 +217,7 @@ examples/
 
 ### 测试状态
 
-当前测试覆盖：**273 项**
+当前测试覆盖：**282 项**
 
 ### 基准测试
 

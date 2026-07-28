@@ -20,7 +20,7 @@
      public let obfuscatedTicketAge: Int64
 
      public init(identity: Array<Byte>, obfuscatedTicketAge: Int64) {
-         this.identity = identity
+         this.identity = identity.clone()
          this.obfuscatedTicketAge = obfuscatedTicketAge
      }
  }
@@ -40,8 +40,8 @@
      ) {
          this.ticketLifetimeSeconds = ticketLifetimeSeconds
          this.ticketAgeAdd = ticketAgeAdd
-         this.ticketNonce = ticketNonce
-         this.ticket = ticket
+         this.ticketNonce = ticketNonce.clone()
+         this.ticket = ticket.clone()
      }
  }
 

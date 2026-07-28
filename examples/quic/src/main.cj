@@ -47,15 +47,24 @@ main() {
 
     // One-shot derivation returns (key, iv, hpKey)
     let (derivedKey, derivedIv, derivedHp) = contractQuicInitialKeyDerive(connId, false)
-    println("One-shot key derived: key_ok=${derivedKey.size > 0}")
+    println(
+        "One-shot key derived: key_ok=${derivedKey == key}, " +
+        "iv_ok=${derivedIv == iv}, hp_ok=${derivedHp == hpKey}"
+    )
 
     // QUIC AEAD encrypt/decrypt
     let testKey: Array<Byte> = [0x1f, 0x36, 0x96, 0x13, 0xdd, 0x76, 0xd5, 0x46, 0x77, 0x30, 0xef, 0xcb, 0xe3, 0xb1, 0xa2, 0x2d]
     let testIv: Array<Byte> = [0xfa, 0x04, 0x4b, 0x2f, 0x42, 0xa3, 0xfd, 0x3b, 0x46, 0xfb, 0x25, 0x5c]
     let pt = "hello quic".toArray()
     let aad = "aad".toArray()
-    let sealed = contractQuicAeadEncrypt(testKey, testIv, 42, pt, aad)
-    let recovered = contractQuicAeadDecrypt(testKey, testIv, 42, sealed, aad)
+    let sealed = contractQuicAeadEncrypt(
+        testKey, testIv, 42, pt, aad,
+        ContractQuicAeadAlgorithm.Aes128Gcm
+    )
+    let recovered = contractQuicAeadDecrypt(
+        testKey, testIv, 42, sealed, aad,
+        ContractQuicAeadAlgorithm.Aes128Gcm
+    )
     println("AEAD round-trip: ${String.fromUtf8(recovered)}")
 
     println("QUIC sample completed.")
