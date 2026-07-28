@@ -70,3 +70,29 @@ public class ContractProviderGateTestSuite {
         @Assert(decision.reason, "keep upper-layer attach glue")
     }
 }
+
+@Test
+public class ContractSupplementaryProviderGateTestSuite {
+    @TestCase
+    public func testContractProviderCapabilityRecordRejectsEmptyProviderId(): Unit {
+        try {
+            _ = ContractProviderCapabilityRecord("", "1.0", "linux", "cjc1", true, true, true, true, true, true, true, true, [], [])
+            @Fail("empty providerId should be rejected")
+        } catch (e: ContractException) {
+            @Assert(e.code.toString(), "BAD_INPUT")
+        }
+    }
+
+    @TestCase
+    public func testContractDescribeProviderErrorCodeShape(): Unit {
+        let d = contractDescribeProviderErrorCode(ContractErrorCode.Unsupported, phase: ContractProviderErrorPhase.ProviderSelection, detail: "test")
+        @Assert(d.providerId, "jinguissl")
+        @Assert(d.family.toString(), "UNSUPPORTED")
+    }
+
+    @TestCase
+    public func testContractErrorCodeOrdinals(): Unit {
+        @Assert(ContractErrorCode.BadInput.ordinalValue(), 0)
+        @Assert(ContractErrorCode.VerifyFailed.ordinalValue(), 2)
+    }
+}
