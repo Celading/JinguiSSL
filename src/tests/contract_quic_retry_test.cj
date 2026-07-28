@@ -83,9 +83,9 @@
              "cf6b3343cf0008f067a5502a4262b5746f6b656ec8646ce8bfe33952d955543665dcc7b6"
          )
          let origDestConnId = hexToBytes("8394c8f03e515708")
-         
+
          @Assert(contractQuicVerifyRetryIntegrity(fullPacket, origDestConnId, true), true)
-         
+
          // V2 tag should not verify under V1
          @Assert(contractQuicVerifyRetryIntegrity(fullPacket, origDestConnId, false), false)
      }
@@ -96,7 +96,7 @@
              "ff000000010008f067a5502a4262b5746f6b656e04a265ba2eff4d829058fb3f0f2496ba"
          )
          let wrongConnId = hexToBytes("0000000000000000")
-         
+
          @Assert(contractQuicVerifyRetryIntegrity(fullPacket, wrongConnId, false), false)
      }
  }
