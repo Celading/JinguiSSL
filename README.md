@@ -9,7 +9,7 @@
 <span style="font-weight:100;font-size:24px">面向仓颉应用的密码学、证书、TLS 与 SSH 契约层</span>
 <p align="center">
   <strong>先接稳定 facade，再按需下钻到底层实现</strong><br/>
-  <sub>Digest · ChaCha20-Poly1305 · X25519 · X.509 · TLS startup material · SSH startup bundle</sub>
+  <sub>Digest · ChaCha20-Poly1305 · X25519 · X.509 · TLS startup material · SSH startup bundle · QUIC</sub>
 </p>
 </div>
 
@@ -21,7 +21,7 @@
 - TLS / X.509 / SSH 的启动材料希望有统一入口
 - 上层框架需要稳定一些的错误模型、返回形状与输入约束
 
-`JinguiSSL-contract` 就是为这个场景准备的。  
+`JinguiSSL-contract` 就是为这个场景准备的。
 它把常用的密码学、证书、TLS 与 SSH 接口压成更适合应用层消费的 facade，让业务代码优先依赖稳定 contract，而不是直接散落地深 import 各种底层实现。
 
 ## 仓库定位
@@ -57,6 +57,7 @@
 - X.509 / PEM contract：证书链验证、pin 计算、客户端信任材料准备
 - HTTP/TLS startup material：服务端 / 客户端 TLS 输入校验与启动材料整理
 - SSH startup bundle：主机验证策略、握手输入整理、库级启动请求封装
+- QUIC contract：v1/v2 初始密钥、显式 AEAD 算法、Header Protection、Retry 完整性
 - 统一错误口径：`ContractErrorCode`、`ContractException`、Ignite 风格错误映射
 
 ## 生产级状态速记
@@ -73,13 +74,7 @@ Contract 的安全边界继承 `JinguiSSL-core`：如果 Core 某个私钥路径
 
 ```toml
 [dependencies]
-jinguissl = { git = "https://github.com/Celading/JinguiSSL.git" }
-
-# GitCode mirror
-# jinguissl = { git = "https://gitcode.com/cinyu/jinguiSSL.git" }
-
-# Local sibling checkout for family development
-# jinguissl = { path = "../JinguiSSL-contract" }
+jinguissl = { git = "https://gitcode.com/cinyu/jinguiSSL.git" }
 ```
 
 当前维护线的 `JinguiSSL-contract` 源码采用 `Apache-2.0`，但它依赖当前 `JinguiSSL-core` 源码线，而 Core 采用 `LGPL-3.0-only`。如果你分发包含 Core 的构建产物或组合包，需要同时核对 Core 的许可证要求和本仓库许可证。正式合规判断请以许可证原文和你的发布形态为准。
@@ -140,11 +135,17 @@ cjpm test
 JinguiSSL-contract/
 ├── src/
 │   ├── package.cj
-│   ├── contract/   # 对外 facade 与 contract
-│   ├── live/       # 面向 live 组合的共享实现
-│   ├── runtime/    # runtime 兼容与启动表面
-│   └── tests/      # contract 级测试
+│   ├── contract/       # 对外 facade 与 contract
+│   ├── live/           # 面向 live 组合的共享实现
+│   ├── runtime/        # runtime 兼容与启动表面
+│   └── tests/          # contract 级测试
+├── examples/           # 完整使用示例
+├── benchmark/          # 基准测试
 ├── testdata/           # 向量、证书与测试素材
+├── docs/               # 使用手册
+├── scripts/            # 工具脚本
+├── .github/
+│   └── workflows/      # CI 配置
 ├── cjpm.toml
 └── README.md
 ```
@@ -160,3 +161,72 @@ JinguiSSL-contract/
 本仓库源码采用 `Apache License 2.0`。详见 `LICENSE`。
 
 依赖边界说明：当前维护线依赖 `JinguiSSL-core`，其源码线采用 `LGPL-3.0-only`。因此本仓库的 Apache 源码许可不取消 Core 依赖在组合分发、静态/动态链接或打包场景中的许可证义务。
+
+## 使用手册与示例
+
+本仓库包含完整的 [使用手册](docs/) 和 [开发示例](examples/)。
+
+### 文档目录 `docs/`
+
+| 文档 | 说明 |
+|------|------|
+| [overview.md](docs/overview.md) | 项目概览与能力说明 |
+| [getting-started.md](docs/getting-started.md) | 快速开始指南 |
+| [digest.md](docs/digest.md) | Digest / HMAC / HKDF API 参考 |
+| [chacha20-poly1305.md](docs/chacha20-poly1305.md) | ChaCha20 / Poly1305 API 参考 |
+| [x25519.md](docs/x25519.md) | X25519 密钥协商 API 参考 |
+| [x509-and-http-tls.md](docs/x509-and-http-tls.md) | X.509 证书与 HTTP/TLS API 参考 |
+| [aes-readiness.md](docs/aes-readiness.md) | AES 后端探测与引擎选择 API 参考 |
+| [ssh.md](docs/ssh.md) | SSH 启动捆绑包 API 参考 |
+| [provider-gate.md](docs/provider-gate.md) | 提供商门禁 API 参考 |
+| [quic.md](docs/quic.md) | QUIC API 参考 |
+| [tls-session-cache.md](docs/tls-session-cache.md) | TLS 会话缓存 API 参考 |
+| [error-handling.md](docs/error-handling.md) | 错误处理指南 |
+| [ecc-ed25519-rsa.md](docs/ecc-ed25519-rsa.md) | ECC / Ed25519 / RSA 能力包 |
+| [china-crypto.md](docs/china-crypto.md) | 国密 SM3/SM4 |
+| [kem.md](docs/kem.md) | KEM 密钥封装机制（PQ 储备） |
+| [usage-guide.md](docs/usage-guide.md) | 完整使用手册 |
+
+### 示例目录 `examples/`
+
+每个子目录包含一个完整的使用示例：
+```
+examples/
+├── README.md
+├── basic/                   基础用法（facade 元数据）
+├── digest/                  SHA-256/384/512 摘要、HMAC、HKDF
+├── chacha20/                ChaCha20-Poly1305 流加密与 AEAD
+├── x25519/                  X25519 密钥协商
+├── x509/                    证书链验证与 TLS 信任材料
+├── aes/                     AES 硬件探测与引擎解析
+├── sm/                      国密 SM3/SM4 能力探测
+├── ecc/                     ECC 椭圆曲线能力探测
+├── ed25519/                 Ed25519 签名能力探测
+├── rsa/                     RSA 能力探测
+├── kem/                     KEM 密钥封装机制探测（PQ 储备）
+├── hmac-hkdf/               HMAC 消息认证码与 HKDF 密钥派生
+├── http_tls/                HTTP/TLS 启动材料验证与整理
+├── ssh/                     SSH KEX 启动捆绑包与主机验证
+├── quic/                    QUIC 初始密钥派生与 Header Protection
+├── provider-gate/           提供商门禁（错误描述、降级决策）
+├── tls-session-cache/       TLS 会话缓存（LRU）
+├── tls-client/              TLS 客户端 session attach
+├── tls-server/              TLS 服务端 session attach
+└── contract-application-smoke/  应用级集成冒烟
+```
+
+### 测试状态
+
+当前测试覆盖：**282 项**
+
+### 基准测试
+
+以下数据来自非正式环境单轮采样，仅供大致量级参考，不作为性能承诺。实际吞吐与运行环境、工具链版本、负载等因素强相关。
+
+运行方式：
+
+```bash
+cd benchmark && cjpm build && cjpm run
+```
+
+<sub>* 测试环境: x86_64-unknown-linux-gnu · Cangjie 1.0.5 · 未经当前环境复测 · 仅供参考</sub>
