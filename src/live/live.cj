@@ -172,8 +172,8 @@ import jinguissl_core.crypto.x509.{
     x509VerifyCertificateChain
 }
 
-/* LIBRARY_VERSION migrated from monolith — keep in sync with jinguissl_core */
-private let LIBRARY_VERSION: String = "0.6.21"
+/* Keep the legacy live-package capability record aligned with the Contract package. */
+private let LIBRARY_VERSION: String = "0.7.7"
 
 private let CONTRACT_AES_GCM_CONTEXT_CACHE_MAX: Int64 = 16
 private let _contractAesGcmContextCache = ArrayList<ContractAesGcmContextCacheEntry>()

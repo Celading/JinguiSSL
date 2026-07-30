@@ -1,9 +1,13 @@
 # ECC / Ed25519 / RSA 能力包 API 参考
 
+本页描述的是 capability probe：它们报告底层模块、参数形状和 policy 信息，
+并不提供完整的 ECC/Ed25519/RSA 操作 facade。Core 中尚未完成恒定时间证明的
+私钥路径，也不会因为 capability probe 可用而升级为已认证状态。
+
 ## ECC（椭圆曲线密码学）
 
 ### contractEccCapability(): ContractEccCapability
-返回 ECC 模块能力信息，包括可用曲线（P-256、P-384、P-521）、ECDSA/ECDH 可用状态、FIPS 合规曲线。
+返回 ECC 模块能力信息，包括可用曲线（P-256、P-384、P-521）、ECDSA/ECDH 可用状态和 FIPS-oriented policy 曲线。
 
 ```cangjie
 let ecc = contractEccCapability()
@@ -39,7 +43,7 @@ println("Seed length: ${ed.seedLen}")
 ## RSA
 
 ### contractRsaCapability(): ContractRsaCapability
-返回 RSA 能力信息：支持的密钥长度、签名方案、哈希算法、FIPS 合规信息。
+返回 RSA 能力信息：支持的密钥长度、签名方案、哈希算法和 policy 信息。
 
 ```cangjie
 let rsa = contractRsaCapability()

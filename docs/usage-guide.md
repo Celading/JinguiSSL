@@ -23,21 +23,16 @@ JinguiSSL 是面向仓颉（Cangjie）应用的密码学、证书、TLS 与 SSH 
 
 ### 当前能力矩阵
 
-| 领域 | API 集合 | 状态 |
-|------|----------|------|
-| Digest / HMAC / HKDF | SHA-256/384/512, MD5, SHA-1, HMAC, HKDF | Stable |
-| ChaCha20 / Poly1305 | 流加密、AEAD (RFC 8439) | Stable |
-| X25519 | 密钥对生成、公钥推导、密钥协商 | Stable |
-| X.509 / PEM | 证书链验证、pin 计算、信任材料 | Stable |
-| HTTP/TLS 启动材料 | 服务端/客户端配置验证 | Stable |
-| SSH 启动捆绑包 | KEX 握手、主机验证策略 | Stable |
-| AES 后端探测 | 硬件挂载点、引擎解析、release plan | Stable |
-| QUIC | 初始密钥派生、Header Protection、Retry | Stable |
-| TLS 会话缓存 | 有限容量 LRU 缓存 | Stable |
-| 提供商门禁 | 错误描述、降级决策、消费路径 | Stable |
-| ECC / Ed25519 / RSA | 能力包探测 | Stable |
-| 国密 SM3 / SM4 | 能力包探测 | Stable |
-| KEM | 密钥封装机制（储备） | Experimental |
+公开能力使用 `production-candidate-with-limits`、`implemented-local-test`、
+`internal-or-placeholder`、`blocked-or-deferred` 与 `legacy-only` 五级词汇。
+机器可检验的完整矩阵见 [capability-matrix.md](capability-matrix.md)。
+
+尤其需要区分：
+
+- Digest、ChaCha20-Poly1305、X25519、X.509 材料与 QUIC 包保护是较稳定的 facade 候选，但仍无外部认证。
+- ECC、Ed25519、RSA、SM3/SM4 当前主要是 capability probe，不是完整操作 facade。
+- KEM 是 profile placeholder，不是 ML-KEM/PQC 实现。
+- TLS 1.3 live runtime 已有 caller-owned transport 测试，但不是浏览器级 HTTPS 或外部 H2 证明。
 
 ## 2. 依赖集成
 
@@ -166,7 +161,7 @@ if (outcome.ok) {
 - `ok: Bool` — 操作是否成功
 - `message: String` — 描述信息
 - `code: ?ContractErrorCode` — 错误码（成功时为 None）
-- `igniteCode: ?ContractIgniteCryptoErrorCode` — Ignite 框架错误码
+- `igniteCode: ?ContractIgniteCryptoErrorCode` — 保留的下游兼容错误码字段
 - `result: ?ResultType` — 成功时的结果（类型因操作而异）
 
 ## 7. 构建与测试
@@ -178,8 +173,8 @@ cjpm build
 # 运行所有测试
 cjpm test
 
-# 运行示例（详见 sample/ 目录）
-cd sample/<scenario>
+# 运行示例（详见 examples/ 目录）
+cd examples/<scenario>
 cjpm run
 
 # 基准测试
@@ -191,13 +186,13 @@ cjpm run
 ## 8. 常见问题
 
 ### Q: contract 和 live 有什么区别？
-A: `contract` 包（jinguissl.contract.\*）提供纯 API facade、DTO 定义和依赖轻量的探测功能，不依赖运行时 TLS/SSH 握手实现。`live` 包（jinguissl.live.\*）包含完整的握手实现和运行时状态管理，依赖更重。一般场景优先使用 `contract.*`。
+A: `contract` 包（jinguissl.contract.\*）优先提供 facade、DTO 和能力探测；部分高层入口会与较厚的 live 编排配合。`live` 包（jinguissl.live.\*）承载 caller-owned transport 上的握手与运行时状态。一般场景先从 `contract.*` 开始，再按需要进入 `live.*`。
 
 ### Q: AES 硬件加速如何启用？
 A: 通过 `contractAesProbeHardware()` 探测硬件支持，使用 `contractResolveAesEngine(requestedEngine: Hardware)` 请求硬件加速引擎。不满足时自动回退到软件实现。
 
-### Q: 如何为生产环境配置 JinguiSSL？
-A: 使用 `contractRequireHttpSshStartupReadiness(ContractHttpSshStartupProfile.ProductionAccelerated)` 确保所有生产所需功能就绪，包括 AES 硬件加速。
+### Q: startup profile 通过是否等于生产认证？
+A: 不等于。`contractRequireHttpSshStartupReadiness(...)` 只检查当前 profile 定义的启动条件；它不能替代恒定时间审计、平台验证、证书策略、外部互操作或安全认证。
 
 ### Q: Outcome 模式有什么好处？
 A: 避免 try/catch 控制流，将错误作为值显式传递，更适合组合式调用和异步编程模式。
