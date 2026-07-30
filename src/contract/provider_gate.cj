@@ -1,6 +1,6 @@
 package jinguissl.contract
 
-internal let _contractProviderGateSourceLibraryVersion: String = "0.6.21"
+internal let _contractProviderGateSourceLibraryVersion: String = "0.7.7"
 
 public enum ContractProviderServerAttachStatus <: Equatable<ContractProviderServerAttachStatus> & ToString {
     | PrecheckOnly

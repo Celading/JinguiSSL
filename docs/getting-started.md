@@ -64,5 +64,6 @@ main() {
 
 ## 下一步
 
-- 查看 [sample/](../sample/) 目录获取各模块详细示例
-- 查看各模块 API 参考（docs/*.md）获取完整接口说明
+- 查看 [examples/](../examples/) 目录获取各模块示例
+- 查看 [能力矩阵](capability-matrix.md) 确认成熟度和限制
+- 查看各模块 API 参考获取接口说明

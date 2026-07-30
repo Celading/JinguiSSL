@@ -33,6 +33,8 @@ SM3 是中国国家密码管理局发布的密码杂凑算法，输出 32 字节
 
 SM4 是中国国家分组密码标准，分组长度 16 字节，密钥长度 16 字节。当前采用 ECB 模式。通过 `jinguissl_core.crypto.sm4` 模块实现。
 
-## 标准合规
+## 标准与使用边界
 
-SM3 和 SM4 作为中国国家密码标准（GM/T 系列），适用于等保和国密改造场景。JinguiSSL 在底层实现了这两个标准，contract 层通过 capability 探测机制报告其可用性。
+SM3 和 SM4 对应公开的 GM/T 算法标准。JinguiSSL Core 提供本地实现，
+Contract 当前只通过 capability probe 报告可用性和参数形状。
+这不构成商用密码产品检测、监管认证、等保适配结论或完整操作 facade。

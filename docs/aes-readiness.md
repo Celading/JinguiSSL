@@ -8,7 +8,7 @@
 ## 硬件探测
 
 ### contractAesListHardwareMountPoints(): Array<ContractAesHardwareMountPointInfo>
-列出所有 AES 硬件挂载点（aesni, armv8-ce, shim, loongarch64 等）。
+列出当前代码定义的 AES 硬件挂载点（aesni, armv8-ce, shim, loongarch64 等）。
 
 ### contractAesDefaultHardwareBackendHint(): String
 当前平台的默认硬件后端提示。
@@ -25,7 +25,7 @@
 解析 AES 引擎。`requestedEngine` 默认为 `Auto`。
 
 ### contractTryResolveAesEngine(...): ContractAesEngineResolveOutcome
-安全的引擎解析版本。
+非抛出引擎解析变体。
 
 ### contractRequireAesAcceleratedBackend(backendHint?): ContractAesHardwareProbeInfo
 要求加速后端可用，否则抛出 `UNSUPPORTED`。
@@ -36,10 +36,12 @@
 推荐最佳可用后端。
 
 ### contractAesStartupSelfCheck(requestedEngine?, backendHint?): ContractAesStartupSelfCheckReport
-全面的 AES 启动自检。
+按当前请求和后端提示生成 AES 启动自检报告。
 
 ### contractAesCurrentReleasePlan(requestedEngine?, backendHint?): ContractAesCurrentReleasePlanReport
 当前 release plan 与后端状态报告。
 
 ### contractRequireAesCurrentReleasePrimaryBackend(backendHint?)
 要求使用当前 release 的首选后端，否则抛出 `UNSUPPORTED`。
+
+readiness、roadmap 和 self-check 只描述当前代码路径，不构成硬件加速或生产安全认证。

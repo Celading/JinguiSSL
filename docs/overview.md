@@ -23,6 +23,10 @@ JinguiSSL 是面向仓颉（Cangjie）应用的密码学、证书、TLS 与 SSH 
 - **TLS 会话缓存**：有限容量 LRU 缓存
 - **提供商门禁（Provider Gate）**：错误描述、降级决策、消费路径
 
+这些能力并非统一成熟度。完整状态、测试证据和限制请查看
+[Capability Matrix](capability-matrix.md)。能力探测、placeholder 和 local-test
+runtime 不应统一描述为 stable 或 production-ready。
+
 ## 构建与测试
 
 ```bash

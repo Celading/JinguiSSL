@@ -40,9 +40,20 @@ jobs:
         if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: git diff --exit-code "$BASE_SHA" -- .github/workflows/ci.yml scripts/jinguissl_ci_audit.sh
+        run: git diff --exit-code "$BASE_SHA" -- .github/workflows/ci.yml scripts/jinguissl_ci_audit.sh scripts/jinguissl_capability_gate.py scripts/jinguissl_capability_gate_test.py scripts/jinguissl_pre_review.sh
       - name: Static public-surface audit
         run: bash scripts/jinguissl_ci_audit.sh public .
+      - name: Capability and public-document gate
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            python3 scripts/jinguissl_capability_gate.py --check --root . --base-ref "$BASE_SHA"
+          else
+            python3 scripts/jinguissl_capability_gate.py --check --root .
+          fi
+      - name: Capability gate regression tests
+        run: python3 scripts/jinguissl_capability_gate_test.py
 
   package-build-test:
     name: Package build and test

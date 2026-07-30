@@ -9,10 +9,12 @@
 验证服务端叶子证书。返回验证结果，失败抛出异常。
 
 ### contractVerifyServerCertificateChainPem(chainPem, trustAnchorsPem, ...): ContractX509VerifyResult
-验证完整证书链。
+验证调用方传入的证书链与显式信任材料。
 
 ### contractComputeLeafPinsFromPem(pem: String): (derSha256: Array<Byte>, spkiSha256: Array<Byte>)
 计算叶子证书指纹（DER 与 SPKI）。
+
+这些接口不代表完整 WebPKI、原生系统信任库或浏览器级 HTTPS 已完成。
 
 ## HTTP/TLS 服务端
 
@@ -23,7 +25,7 @@
 准备服务端 TLS 启动材料。
 
 ### contractTryValidateHttpServerTlsConfigInput(...): ContractHttpServerTlsConfigValidationOutcome
-安全的验证版本，返回 Outcome。
+非抛出变体，返回 Outcome。
 
 ## HTTP/TLS 客户端
 
@@ -34,7 +36,7 @@
 准备客户端信任材料。
 
 ### contractTryValidateHttpClientTlsConfigInput(...): ContractHttpClientTlsConfigValidationOutcome
-安全的验证版本，返回 Outcome。
+非抛出变体，返回 Outcome。
 
 ## 错误码
 
