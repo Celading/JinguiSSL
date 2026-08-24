@@ -1,47 +1,45 @@
-# AES 后端探测 API 参考
+# AES Contract API 与后端探测
 
-## 枚举
+## 应用操作面
 
-- `ContractAesEngineKind`: `Auto`, `Software`, `Hardware`
-- `ContractAesBackendReadiness`: `AcceleratedReady`, `BridgeReady`, `SoftwareOnly`, `Unavailable`
+`ContractAesMode` 提供 `AesEcb`、`AesCbc` 与 `AesCtr`。CBC/CTR 的 `parameter`
+为 16 字节 IV/counter；ECB 不使用该字段。ECB/CBC 可通过 `pkcs7` 显式控制填充。
 
-## 硬件探测
+```cangjie
+let ciphertext = contractAesEncrypt(
+    ContractAesMode.AesCbc,
+    key,
+    plaintext,
+    parameter: iv,
+    pkcs7: true
+)
+let recovered = contractAesDecrypt(
+    ContractAesMode.AesCbc,
+    key,
+    ciphertext,
+    parameter: iv,
+    pkcs7: true
+)
+```
 
-### contractAesListHardwareMountPoints(): Array<ContractAesHardwareMountPointInfo>
-列出当前代码定义的 AES 硬件挂载点（aesni, armv8-ce, shim, loongarch64 等）。
+AEAD 使用独立入口：
 
-### contractAesDefaultHardwareBackendHint(): String
-当前平台的默认硬件后端提示。
+- `contractAesGcmEncrypt(...) -> ContractAesGcmResult`
+- `contractAesGcmDecrypt(...) -> Array<Byte>`
 
-### contractAesProbeHardware(backendHint?: String): ContractAesHardwareProbeInfo
-探测指定后端的可用性。
+认证标签失败会归一化为 `VERIFY_FAILED`。Contract 不公开 Core context、`into`
+缓冲区、AES-NI/ARMv8 native handle 或 benchmark hook。
 
-### contractAesHardwareRoadmap(): Array<ContractAesHardwareRoadmapEntry>
-获取 AES 硬件路线图。
+## 后端探测
 
-## 引擎解析
+- `contractAesListHardwareMountPoints()`
+- `contractAesProbeHardware(...)`
+- `contractResolveAesEngine(...)`
+- `contractAesStartupSelfCheck(...)`
+- `contractRequireAesAcceleratedBackend(...)`
 
-### contractResolveAesEngine(requestedEngine?, backendHint?): ContractAesEngineInfo
-解析 AES 引擎。`requestedEngine` 默认为 `Auto`。
+`ContractAesEngineKind` 包含 `Auto`、`Software`、`Hardware`；readiness 结果描述
+当前宿主代码路径，不构成硬件加速、恒定时间或生产安全认证。
 
-### contractTryResolveAesEngine(...): ContractAesEngineResolveOutcome
-非抛出引擎解析变体。
-
-### contractRequireAesAcceleratedBackend(backendHint?): ContractAesHardwareProbeInfo
-要求加速后端可用，否则抛出 `UNSUPPORTED`。
-
-## 启动自检
-
-### contractRecommendAesBackend(): ContractAesBackendRecommendation
-推荐最佳可用后端。
-
-### contractAesStartupSelfCheck(requestedEngine?, backendHint?): ContractAesStartupSelfCheckReport
-按当前请求和后端提示生成 AES 启动自检报告。
-
-### contractAesCurrentReleasePlan(requestedEngine?, backendHint?): ContractAesCurrentReleasePlanReport
-当前 release plan 与后端状态报告。
-
-### contractRequireAesCurrentReleasePrimaryBackend(backendHint?)
-要求使用当前 release 的首选后端，否则抛出 `UNSUPPORTED`。
-
-readiness、roadmap 和 self-check 只描述当前代码路径，不构成硬件加速或生产安全认证。
+当前证明包括 FIPS 197 AES-128 block vector、GCM roundtrip/篡改拒绝、后端解析
+测试与完整 309 项回归。

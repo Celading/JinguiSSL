@@ -1,64 +1,72 @@
-# ECC / Ed25519 / RSA 能力包 API 参考
+# ECC / Ed25519 / RSA Contract API
 
-本页描述的是 capability probe：它们报告底层模块、参数形状和 policy 信息，
-并不提供完整的 ECC/Ed25519/RSA 操作 facade。Core 中尚未完成恒定时间证明的
-私钥路径，也不会因为 capability probe 可用而升级为已认证状态。
+本页描述 `jinguissl.contract.*` 的应用级非国密非对称密码入口。公开面只使用
+Contract DTO、枚举和 `Array<Byte>`；`BigNum`、Core key、raw transform 与 native
+handle 不属于 Contract API。
 
-## ECC（椭圆曲线密码学）
+## ECC / ECDSA / ECDH
 
-### contractEccCapability(): ContractEccCapability
-返回 ECC 模块能力信息，包括可用曲线（P-256、P-384、P-521）、ECDSA/ECDH 可用状态和 FIPS-oriented policy 曲线。
+`ContractEcCurve` 支持 `P256`、`P384`、`P521` 与 `Secp256k1`。公钥采用未压缩
+SEC1 编码，私钥采用固定曲线宽度的大端字节，ECDSA 签名采用固定宽度 `r || s`。
 
 ```cangjie
-let ecc = contractEccCapability()
-println("Curves: ${ecc.supportedCurves}")
+let alice = contractEcGenerateKeyPair(ContractEcCurve.P256)
+let bob = contractEcGenerateKeyPair(ContractEcCurve.P256)
+let signature = contractEcdsaSign(
+    ContractEcCurve.P256,
+    alice.privateKey,
+    "message".toArray()
+)
+let verified = contractEcdsaVerify(alice.publicKey, "message".toArray(), signature)
+let sharedA = contractEcdh(ContractEcCurve.P256, alice.privateKey, bob.publicKey)
+let sharedB = contractEcdh(ContractEcCurve.P256, bob.privateKey, alice.publicKey)
 ```
 
-### contractTryEccCapability(): ContractEccCapabilityOutcome
-非抛出版本的 capability 查询，返回 Outcome 类型。
-
-### contractRequireEccCapability(): ContractEccCapability
-要求 ECC 功能可用，不可用时抛出 `CryptoUnavailable`。
-
----
+`contractEs256VerifyDer(...)` 为 P-256/SHA-256 的 DER 签名验证入口。Capability
+probe (`contractEccCapability`) 仍保留，用于启动期参数与 policy 查询。
 
 ## Ed25519
 
-### contractEd25519SigningCapability(): ContractEd25519SigningCapability
-返回 Ed25519 签名能力：种子长度（32）、公钥长度（32）、签名长度（64）。
-
 ```cangjie
-let ed = contractEd25519SigningCapability()
-println("Seed length: ${ed.seedLen}")
+let keyPair = contractEd25519GenerateKeyPair()
+let signature = contractEd25519Sign(keyPair.privateKeySeed, "message".toArray())
+let verified = contractEd25519Verify(
+    keyPair.publicKey,
+    "message".toArray(),
+    signature
+)
 ```
 
-### contractTryEd25519SigningCapability(): ContractEd25519SigningCapabilityOutcome
-非抛出版本。
-
-### contractRequireEd25519SigningCapability(): ContractEd25519SigningCapability
-要求 Ed25519 可用。
-
----
+种子与公钥均为 32 字节，签名为 64 字节。也可用
+`contractEd25519PublicFromSeed(...)` 从已有种子派生公钥。
 
 ## RSA
 
-### contractRsaCapability(): ContractRsaCapability
-返回 RSA 能力信息：支持的密钥长度、签名方案、哈希算法和 policy 信息。
+`ContractRsaPublicKey` 和 `ContractRsaPrivateKey` 使用大端字节字段。密钥可通过
+`contractRsaGenerateKeyPair(...)` 生成，或由 X.509/key-container facade 导入。
 
 ```cangjie
-let rsa = contractRsaCapability()
-println("Key sizes: ${rsa.supportedKeySizes}")
+let privateKey = contractX509ParseRsaPrivateKeyPkcs8Pem(pem)
+let signature = contractRsaSign(
+    privateKey,
+    "message".toArray(),
+    scheme: ContractRsaSignatureScheme.Pss,
+    hashAlgorithm: ContractSignatureHash.Sha256
+)
+let verified = contractRsaVerify(
+    privateKey.publicKey,
+    "message".toArray(),
+    signature
+)
 ```
 
-### contractTryRsaCapability(): ContractRsaCapabilityOutcome
-非抛出版本。
+支持 message-level RSA-PSS 与 PKCS#1 v1.5 sign/verify。`saltLen = -1` 交由 Core
+使用其默认策略；应用需要固定策略时应显式传入。Contract 不公开 raw private
+transform、CRT 参数或自定义 padding primitive。PSS 是默认方案；PKCS#1 v1.5
+仅用于既有协议/数据兼容。
 
-### contractRequireRsaCapability(): ContractRsaCapability
-要求 RSA 可用。
+## 证据与边界
 
-## DTO 验证规则
-
-所有 Capability DTO 在构造时执行输入验证：
-- `detail` 不可为空
-- 正数约束（key length、curve count 等）
-- Outcome 类型中 `ok = true` 时 `code` 必须为 `None`
+当前证据包括 P-256 签名/篡改/ECDH、本地 RSA PSS/PKCS#1 v1.5、RFC 8032
+Ed25519 seed/public-key shape 与完整 309 项回归。它们继承 Core 私钥路径的时序
+边界，不构成恒定时间、安全认证、HSM 托管或外部密码栈互操作声明。

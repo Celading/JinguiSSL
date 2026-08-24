@@ -261,9 +261,11 @@ public func contractHttpSshStartupReadiness(
                 "transport-packet-protection",
                 "x25519-kex",
                 "rsa-sha2-hostkey",
+                "contract-owned-kex-prelude",
                 "client-initial-handshake-facade",
                 "server-initial-handshake-facade",
-                "session-runtime-snapshot-facade"
+                "session-runtime-snapshot-facade",
+                "contract-owned-packet-channel"
             ]
         )
         let x509Ready = contractStartupHasAllFeatures(

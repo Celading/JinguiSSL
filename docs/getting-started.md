@@ -62,8 +62,43 @@ main() {
 }
 ```
 
+## 示例：AES-GCM 与 CSPRNG
+
+```cangjie
+import jinguissl.contract.*
+
+main() {
+    let key = contractRandomBytes(16)
+    let nonce = contractRandomBytes(12)
+    let sealed = contractAesGcmEncrypt(
+        key,
+        nonce,
+        "hello contract".toArray(),
+        aad: "context".toArray()
+    )
+    let opened = contractAesGcmDecrypt(
+        key,
+        nonce,
+        sealed.ciphertext,
+        sealed.tag,
+        aad: "context".toArray()
+    )
+    println(String.fromUtf8(opened))
+}
+```
+
+## 示例：Ed25519 签名
+
+```cangjie
+let keyPair = contractEd25519GenerateKeyPair()
+let message = "hello signature".toArray()
+let signature = contractEd25519Sign(keyPair.privateKeySeed, message)
+println(contractEd25519Verify(keyPair.publicKey, message, signature))
+```
+
 ## 下一步
 
 - 查看 [examples/](../examples/) 目录获取各模块示例
 - 查看 [能力矩阵](capability-matrix.md) 确认成熟度和限制
+- 查看 [非国密测试清单](non-gm-test-manifest.md) 重放 AES、非对称、KEM、X.509 与 SSH 证据
 - 查看各模块 API 参考获取接口说明
