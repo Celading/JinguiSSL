@@ -106,7 +106,7 @@ public func contractSmCapability(): ContractSmCapability {
     ContractSmCapability(
         sm3Ok,
         sm4Ok,
-        "SM3 hash (GM/T 0004-2012) and SM4 ECB cipher (GM/T 0002-2012)",
+        "SM3/SM4 baseline probe; full GM operation and protocol facades are published separately",
         Int64(32),
         Int64(16),
         Int64(16)

@@ -14,11 +14,15 @@ import jinguissl_core.crypto.tls.{
  public enum ContractTlsAeadAlgorithm <: ToString {
      | AesGcm
      | ChaCha20Poly1305
+     | Sm4Gcm
+     | Sm4Ccm
 
      public func toString(): String {
          match (this) {
              case AesGcm => "AES-GCM"
              case ChaCha20Poly1305 => "ChaCha20-Poly1305"
+             case Sm4Gcm => "SM4-GCM"
+             case Sm4Ccm => "SM4-CCM"
          }
      }
  }
@@ -28,6 +32,8 @@ import jinguissl_core.crypto.tls.{
      match (alg) {
          case TlsAeadAlgorithm.AES_GCM => ContractTlsAeadAlgorithm.AesGcm
          case TlsAeadAlgorithm.CHACHA20_POLY1305 => ContractTlsAeadAlgorithm.ChaCha20Poly1305
+         case TlsAeadAlgorithm.SM4_GCM => ContractTlsAeadAlgorithm.Sm4Gcm
+         case TlsAeadAlgorithm.SM4_CCM => ContractTlsAeadAlgorithm.Sm4Ccm
      }
  }
 

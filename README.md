@@ -10,7 +10,7 @@
 <span style="font-weight:100;font-size:24px">面向仓颉应用的密码、证书与协议契约层</span>
 <p align="center">
   <strong>应用先依赖稳定 facade，再按需下钻到 Core 或 Bridge</strong><br/>
-  <sub>Digest · ChaCha20-Poly1305 · X25519 · X.509 · TLS startup · SSH startup · QUIC protection</sub>
+  <sub>Digest · SM2/SM3/SM4/SM9 · GM X.509 · RFC 8998 · TLCP/DTLCP · TLS/SSH/QUIC</sub>
 </p>
 </div>
 
@@ -49,7 +49,11 @@
 | ECC capability probe | 曲线、ECDSA/ECDH availability 探测 | capability only，不是操作 facade |
 | Ed25519 capability probe | key/signature shape 与 availability 探测 | capability only，不是签名 facade |
 | RSA capability probe | key size、scheme 与 hash policy 探测 | capability only，不是私钥操作 facade |
-| SM3 / SM4 capability probe | availability 与参数形状 | capability only，不是完整操作 facade |
+| GM primitives / SM2 / SM3 / SM4 / DRBG facade | hash/KDF、全模式/AEAD/MAC、签名/加密/协商与随机 | implemented local test |
+| SM9 identity-based crypto facade | KGC、用户私钥、签名、身份加密、配对与认证协商 | implemented local test |
+| GM X.509 / key-container facade | SEC1/PKCS#8/SPKI、CSR、证书链与 CRL | implemented local test |
+| RFC 8998 TLS 1.3 GM facade | curveSM2、SM4-GCM/CCM+SM3、Finished/record/CertificateVerify | implemented local test |
+| TLCP / DTLCP protocol facade | 双证书、静态 ECC/ECDHE、record、replay、fragment 与 flight | implemented local test |
 | KEM profile placeholder | KEM profile metadata | 不是 ML-KEM/PQC 实现 |
 | QUIC v1/v2 protection facade | Initial、显式 AEAD、Header Protection、Retry integrity | 不含 transport/HTTP3 |
 | TLS session cache | bounded cache、ticket identity 与 replay helper | implemented local test |
@@ -97,6 +101,16 @@ Contract 源码采用 `Apache-2.0`，依赖的 Core 当前源码线采用 `LGPL-
 
 `jinguissl.live.*` 提供增量 client/server record 输入输出、protected flight、client Finished 验证和 verified application channel。调用方仍负责 socket、读写调度、超时和上层协议。
 
+### 国密与国密协议
+
+- `contractSm3(...)`、`contractSm4Encrypt(...)`、`contractSm2Sign(...)`
+- `contractSm9Sign(...)`、`contractSm9Encrypt(...)`、`contractSm9BeginKeyExchange(...)`
+- `contractGmSm2KeyContainers(...)`、`contractGmCreateCertificateRequest(...)`、`contractGmCreateCrl(...)`
+- `contractRfc8998BuildHelloPair(...)`、`contractRfc8998DeriveSecrets(...)`
+- `contractTlcpBuildDualCertificateHandshake(...)`、`contractDtlcpCreateClientRecordLayer(...)`
+
+这些入口由仓颉运行时实现，只暴露 Contract DTO、字节编码和不透明状态对象。它们不构成商密检测、监管认证或外部协议栈互操作证明。
+
 ## 构建、测试与提交前门禁
 
 ```bash
@@ -115,15 +129,17 @@ bash scripts/jinguissl_pre_review.sh <base-ref>
 - [错误处理](docs/error-handling.md)
 - [QUIC](docs/quic.md)
 - [X.509 与 HTTP/TLS](docs/x509-and-http-tls.md)
+- [国密与国密协议](docs/china-crypto.md)
+- [GM Contract 测试清单](docs/gm-test-manifest.md)
 - [开发示例](examples/README.md)
 
-当前完整测试覆盖：**282 项**。基准目录只提供非正式量级采样，不构成性能承诺。
+当前完整测试覆盖：**302 项**。基准目录只提供非正式量级采样，不构成性能承诺。
 
 ## 安全与生产边界
 
 Contract 的安全边界继承 Core。Core 中尚未完成恒定时间证明的私钥路径，不能因为套上 Contract facade 就被描述为已认证的生产级密码后端。
 
-当前不声明法律或安全认证、完整恒定时间保证、浏览器级 HTTPS、外部 OpenSSL/curl/SSH/QUIC 在线互操作完成、完整 thin facade、全平台原生系统信任库、QUIC transport 或 HTTP/3。
+当前不声明法律或安全认证、商密检测认证、完整恒定时间保证、浏览器级 HTTPS、外部 OpenSSL/curl/openHiTLS/SSH/QUIC 在线互操作完成、完整 thin facade、全平台原生系统信任库、QUIC transport 或 HTTP/3。
 
 ## 许可证
 
