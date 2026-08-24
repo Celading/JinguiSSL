@@ -30,8 +30,9 @@ JinguiSSL 是面向仓颉（Cangjie）应用的密码学、证书、TLS 与 SSH 
 尤其需要区分：
 
 - Digest、ChaCha20-Poly1305、X25519、X.509 材料与 QUIC 包保护是较稳定的 facade 候选，但仍无外部认证。
-- ECC、Ed25519、RSA 当前主要是 capability probe；SM2/SM3/SM4、SM9、GM X.509、RFC 8998 与 TLCP/DTLCP 已有独立 Contract facade 和本地测试。
-- KEM 是 profile placeholder，不是 ML-KEM/PQC 实现。
+- AES、ECC/ECDSA/ECDH、Ed25519、RSA 已有 Contract-owned 操作面；capability probe 继续服务启动查询。
+- KEM 当前提供传统 RSA-KEM/P-256 ECDH-KEM；没有 ML-KEM/hybrid PQC 实现。
+- SM2/SM3/SM4、SM9、GM X.509、RFC 8998 与 TLCP/DTLCP 有独立 Contract facade 和本地测试。
 - TLS 1.3 live runtime 已有 caller-owned transport 测试，但不是浏览器级 HTTPS 或外部 H2 证明。
 
 ## 2. 依赖集成
@@ -49,7 +50,7 @@ jinguissl = { git = "https://gitcode.com/cinyu/jinguiSSL.git" }
 // 导入全部 contract 类型和函数
 import jinguissl.contract.*
 
-// 导入 live 层（TLS 握手、SSH 运行时等）
+// 仅在 Contract 尚未提供所需的底层 TLS runtime 时导入 live 层
 import jinguissl.live.*
 
 // 按需导入 core 层（仅当直接使用底层算法时）
@@ -110,12 +111,14 @@ main() {
 | [chacha20-poly1305.md](chacha20-poly1305.md) | ChaCha20 / Poly1305 AEAD |
 | [x25519.md](x25519.md) | X25519 密钥协商 |
 | [x509-and-http-tls.md](x509-and-http-tls.md) | X.509 证书 / HTTP/TLS |
-| [ssh.md](ssh.md) | SSH 启动捆绑包 |
+| [ssh.md](ssh.md) | SSH Contract protocol facade |
 | [quic.md](quic.md) | QUIC 初始密钥派生 |
-| [aes-readiness.md](aes-readiness.md) | AES 后端探测 |
+| [aes-readiness.md](aes-readiness.md) | AES 操作与后端探测 |
 | [tls-session-cache.md](tls-session-cache.md) | TLS 会话缓存 |
 | [china-crypto.md](china-crypto.md) | SM2/SM3/SM4/SM9、GM X.509、RFC 8998 与 TLCP/DTLCP |
 | [gm-test-manifest.md](gm-test-manifest.md) | 国密 Contract 公开测试面与重放命令 |
+| [non-gm-test-manifest.md](non-gm-test-manifest.md) | 非国密 Contract 公开测试面与重放命令 |
+| [core-contract-gap-matrix.md](core-contract-gap-matrix.md) | Core → Contract 应用边界 |
 | [provider-gate.md](provider-gate.md) | 提供商门禁 |
 | [error-handling.md](error-handling.md) | 错误处理模型 |
 | [ecc-ed25519-rsa.md](ecc-ed25519-rsa.md) | ECC / Ed25519 / RSA |
@@ -192,7 +195,7 @@ cjpm run
 ## 8. 常见问题
 
 ### Q: contract 和 live 有什么区别？
-A: `contract` 包（jinguissl.contract.\*）优先提供 facade、DTO 和能力探测；部分高层入口会与较厚的 live 编排配合。`live` 包（jinguissl.live.\*）承载 caller-owned transport 上的握手与运行时状态。一般场景先从 `contract.*` 开始，再按需要进入 `live.*`。
+A: `contract` 包（jinguissl.contract.\*）是应用优先入口，提供 facade、DTO、稳定错误以及 SSH 的 Contract-owned channel。`live` 包（jinguissl.live.\*）承载仍需直接控制的 TLS caller-owned transport runtime。一般场景先从 `contract.*` 开始，只有 Contract 明确未覆盖的底层运行时工作才进入 `live.*`。
 
 ### Q: AES 硬件加速如何启用？
 A: 通过 `contractAesProbeHardware()` 探测硬件支持，使用 `contractResolveAesEngine(requestedEngine: Hardware)` 请求硬件加速引擎。不满足时自动回退到软件实现。

@@ -1,39 +1,52 @@
-# SSH 启动捆绑包 API 参考
+# SSH Contract Protocol Facade
 
-## 类型
+SSH 的推荐应用入口现在完整归属 `jinguissl.contract.*`：调用方不需要 deep-import
+Core 构造 KEX prelude，也不会从 startup bundle 收到 `jinguissl.live` 类型。
 
-### ContractSshKexExchangeTranscript
-KEX 交互记录：`clientBannerLine`, `serverBannerLine`, `clientKexInitPayload`, `serverKexInitPayload`。
+## Prelude
 
-### ContractSshNegotiatedAlgorithms
-已协商的 SSH 算法：kex、host key、encryption、MAC、compression。
+- `contractSshBuildVersionBannerLine(...)`
+- `contractSshBuildDefaultKexInitPayload(...)`
+- `contractSshBuildKexEcdhInitX25519(...) -> ContractSshX25519ClientInit`
+- `contractSshEncodeNewKeys()`
 
-### ContractSshHostVerificationPolicy
-主机验证策略：`negotiatedHostKeyAlgorithm`, `expectedHostKeySha256`, `requireKnownHost`, `requireHostSignature`, `requireVerifiedHost`。
+这些函数返回 wire bytes 或 Contract DTO，可直接填入
+`ContractSshKexExchangeTranscript` 与 startup request。
 
-## 服务端函数
+## 服务端启动
 
-### contractPrepareSshServerLibraryStartupX25519RsaPkcs8Request(request): ContractSshServerLibraryStartupBundle
-准备使用 RSA PKCS#8 主机密钥的 SSH 服务端启动 bundle。
+- `contractPrepareSshServerLibraryStartupX25519RsaPkcs8Request(...)`
+- `contractPrepareSshServerLibraryStartupX25519EcdsaPkcs8Request(...)`
+- `contractPrepareSshServerLibraryStartupX25519Ed25519SeedRequest(...)`
 
-### contractPrepareSshServerLibraryStartupX25519EcdsaPkcs8Request(request): ContractSshServerLibraryStartupBundle
-准备使用 ECDSA PKCS#8 主机密钥的服务端启动 bundle。
+bundle 中的 `handshake` 是 `ContractSshServerHandshakeResult`，`runtime` 是
+`ContractSshServerRuntime`。支持 RSA-SHA2、ECDSA P-256 与 Ed25519 host key 路径。
 
-### contractPrepareSshServerLibraryStartupX25519Ed25519SeedRequest(request): ContractSshServerLibraryStartupBundle
-准备使用 Ed25519 种子密钥的服务端启动 bundle。
+## 客户端启动与主机验证
 
-## 客户端函数
+`contractPrepareSshClientLibraryStartupX25519Request(...)` 接受
+`ContractSshHostVerificationPolicy`。成功后：
 
-### contractPrepareSshClientLibraryStartupX25519Request(request): ContractSshClientLibraryStartupBundle
-准备 X25519 SSH 客户端启动 bundle，包含主机验证策略。
+```cangjie
+let verification = bundle.handshake.requireHostVerification()
+let sessionId = bundle.runtime.sessionId()
+```
 
-### contractTryPrepareSshServerLibraryStartupX25519RsaPkcs8Request(request): ContractSshServerLibraryStartupOutcome
-### contractTryPrepareSshClientLibraryStartupX25519Request(request): ContractSshClientLibraryStartupOutcome
-非抛出错误处理变体。
+`ContractSshClientHandshakeResult`、`ContractSshHostVerificationResult` 与
+`ContractSshClientRuntime` 均为 Contract-owned 类型。
 
-## 错误处理
+## Caller-owned transport
 
-使用 `profile` 不匹配时抛出 `UNSUPPORTED`。调用方可通过 `contractTry*` 变体显式处理失败。
+server/client runtime 暴露：
 
-这些接口整理启动输入、协商结果与主机验证策略，不声明外部 SSH client/server
-互操作或完整用户会话实现。
+- `seal(payload, randomPadding)` / `open(encodedPacket)`
+- `sessionId()`、`writeSequence`、`readSequence`
+- `resetTransportCounters()`
+
+`open(...)` 返回 Contract-owned `ContractSshTransportPacket`。调用方仍负责 socket、
+版本行/KEX 报文收发调度、用户认证、SSH channel semantics、超时、rekey policy 与
+连接生命周期。
+
+当前证据覆盖 RSA/ECDSA/Ed25519 host key startup、known-host/signature policy、
+server→client 包保护 roundtrip 与完整 309 项本地回归；不声明外部 OpenSSH
+client/server 在线互操作完成。

@@ -15,6 +15,27 @@ main(): Int64 {
         return 1
     }
 
+    let aesKey: Array<Byte> = [
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+        0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
+    ]
+    let aesBlock: Array<Byte> = [
+        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+        0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff
+    ]
+    let aesCiphertext = contractAesEncrypt(ContractAesMode.AesEcb, aesKey, aesBlock)
+    if (contractBytesToHexLower(aesCiphertext) != "69c4e0d86a7b0430d8cdb78070b4c55a") {
+        println("fatal=JinguiSSLContract AES application smoke mismatch")
+        return 1
+    }
+
+    let signingKey = contractEd25519GenerateKeyPair()
+    let signature = contractEd25519Sign(signingKey.privateKeySeed, payload)
+    if (!contractEd25519Verify(signingKey.publicKey, payload, signature)) {
+        println("fatal=JinguiSSLContract Ed25519 application smoke mismatch")
+        return 1
+    }
+
     let sm3Digest = contractBytesToHexLower(contractSm3(payload))
     if (sm3Digest != "66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0") {
         println("fatal=JinguiSSLContract SM3 application smoke mismatch")
@@ -74,6 +95,8 @@ main(): Int64 {
 
     println("jinguissl_contract_application_smoke=pass")
     println("sha256_abc=${digest}")
+    println("aes128_ecb=pass")
+    println("ed25519=pass")
     println("sm3_abc=${sm3Digest}")
     println("sm4_ecb=pass")
     println("quic_aead=${ContractQuicAeadAlgorithm.Aes128Gcm}")

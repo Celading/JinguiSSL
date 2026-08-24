@@ -10,7 +10,7 @@
 <span style="font-weight:100;font-size:24px">面向仓颉应用的密码、证书与协议契约层</span>
 <p align="center">
   <strong>应用先依赖稳定 facade，再按需下钻到 Core 或 Bridge</strong><br/>
-  <sub>Digest · SM2/SM3/SM4/SM9 · GM X.509 · RFC 8998 · TLCP/DTLCP · TLS/SSH/QUIC</sub>
+  <sub>Digest · AES · ECC/Ed25519/RSA · X.509 · 国密 · TLS/SSH/QUIC</sub>
 </p>
 </div>
 
@@ -42,19 +42,20 @@
 | Digest / HMAC / HKDF | SHA-256/384/512、HMAC、HKDF；MD5/SHA-1 仅兼容 | production candidate with limits |
 | ChaCha20 / Poly1305 | 流密码、MAC 与 AEAD facade | production candidate with limits |
 | X25519 contract | key pair、公钥派生、key agreement request/outcome | production candidate with limits |
-| X.509 / PEM contract | 证书链、pin 与 HTTP TLS trust/server material | production candidate with limits |
-| AES backend readiness | backend 探测、引擎选择与启动检查 | implemented local test |
-| SSH startup bundle | KEX 输入、主机验证策略与启动 DTO | implemented local test |
+| X.509 / PEM contract | 通用证书摘要、RSA/EC 密钥容器、证书链、pin 与 HTTP TLS material | production candidate with limits |
+| AES operations / backend readiness | ECB/CBC/CTR/GCM byte facade、backend 探测与启动检查 | implemented local test |
+| System CSPRNG facade | fail-closed system entropy bytes | implemented local test |
+| SSH protocol facade | KEX prelude、主机验证、Contract-owned 握手摘要与包保护 channel | implemented local test |
 | Provider readiness | capability、self-check、smoke 与 fallback 描述 | 部分 smoke 为 metadata/precheck |
-| ECC capability probe | 曲线、ECDSA/ECDH availability 探测 | capability only，不是操作 facade |
-| Ed25519 capability probe | key/signature shape 与 availability 探测 | capability only，不是签名 facade |
-| RSA capability probe | key size、scheme 与 hash policy 探测 | capability only，不是私钥操作 facade |
+| ECC operations | P-256/P-384/P-521/secp256k1 key DTO、ECDSA/ECDH 与 ES256 verify | implemented local test |
+| Ed25519 operations | seed/keypair、公钥派生、签名与验证 | implemented local test |
+| RSA operations | key DTO/import/generation、PSS 与 PKCS#1 v1.5 sign/verify | implemented local test |
 | GM primitives / SM2 / SM3 / SM4 / DRBG facade | hash/KDF、全模式/AEAD/MAC、签名/加密/协商与随机 | implemented local test |
 | SM9 identity-based crypto facade | KGC、用户私钥、签名、身份加密、配对与认证协商 | implemented local test |
 | GM X.509 / key-container facade | SEC1/PKCS#8/SPKI、CSR、证书链与 CRL | implemented local test |
 | RFC 8998 TLS 1.3 GM facade | curveSM2、SM4-GCM/CCM+SM3、Finished/record/CertificateVerify | implemented local test |
 | TLCP / DTLCP protocol facade | 双证书、静态 ECC/ECDHE、record、replay、fragment 与 flight | implemented local test |
-| KEM profile placeholder | KEM profile metadata | 不是 ML-KEM/PQC 实现 |
+| Traditional RSA / ECDH KEM facade | RSA-KEM 与 P-256 ECDH-KEM | 不是 ML-KEM/PQC 实现 |
 | QUIC v1/v2 protection facade | Initial、显式 AEAD、Header Protection、Retry integrity | 不含 transport/HTTP3 |
 | TLS session cache | bounded cache、ticket identity 与 replay helper | implemented local test |
 | TLS cipher-suite / PSK contracts | cipher suite、PSK 与 server-handshake DTO | implemented local test |
@@ -85,6 +86,8 @@ Contract 源码采用 `Apache-2.0`，依赖的 Core 当前源码线采用 `LGPL-
 
 ### 证书与 HTTP/TLS 材料
 
+- `contractX509ParseCertificatePem(...)`
+- `contractX509ParseRsaPrivateKeyPkcs8Pem(...)`
 - `contractComputeLeafPinsFromPem(...)`
 - `contractVerifyServerCertificateChainPem(...)`
 - `contractPrepareHttpClientTlsTrustMaterial(...)`
@@ -96,6 +99,22 @@ Contract 源码采用 `Apache-2.0`，依赖的 Core 当前源码线采用 `LGPL-
 - `contractQuicAeadEncrypt(...)` / `contractQuicAeadDecrypt(...)`
 - `contractQuicHpAesEncrypt(...)` / `contractQuicHpChaChaEncrypt(...)`
 - `contractQuicRetryIntegrityTag(...)`
+
+### 非国密密码操作
+
+- `contractAesEncrypt(...)`、`contractAesGcmEncrypt(...)`
+- `contractEcGenerateKeyPair(...)`、`contractEcdsaSign(...)`、`contractEcdh(...)`
+- `contractEd25519Sign(...)`、`contractRsaSign(...)`
+- `contractRsaKemEncapsulate(...)`、`contractEcdhKemEncapsulate(...)`
+- `contractRandomBytes(...)`
+
+### SSH caller-owned transport
+
+- `contractSshBuildDefaultKexInitPayload(...)`、`contractSshBuildKexEcdhInitX25519(...)`
+- `contractPrepareSshServerLibraryStartupX25519*Request(...)`
+- `ContractSshServerRuntime` / `ContractSshClientRuntime` 的 `seal(...)`、`open(...)`
+
+这些公开入口只使用 `jinguissl.contract` 自有 DTO 与字节类型。调用方仍负责 socket、用户认证、channel 调度、超时与 rekey 策略。
 
 ### TLS 1.3 caller-owned transport
 
@@ -131,9 +150,11 @@ bash scripts/jinguissl_pre_review.sh <base-ref>
 - [X.509 与 HTTP/TLS](docs/x509-and-http-tls.md)
 - [国密与国密协议](docs/china-crypto.md)
 - [GM Contract 测试清单](docs/gm-test-manifest.md)
+- [非国密 Contract 测试清单](docs/non-gm-test-manifest.md)
+- [Core → Contract 缺口矩阵](docs/core-contract-gap-matrix.md)
 - [开发示例](examples/README.md)
 
-当前完整测试覆盖：**302 项**。基准目录只提供非正式量级采样，不构成性能承诺。
+当前完整测试覆盖：**309 项**。基准目录只提供非正式量级采样，不构成性能承诺。
 
 ## 安全与生产边界
 

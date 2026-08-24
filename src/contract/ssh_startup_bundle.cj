@@ -336,19 +336,17 @@ public class ContractSshClientLibraryStartupX25519Request {
     }
 }
 
-// Transitional truth: startup facade is target-local, but handshake/runtime result
-// objects still ride on the old live-source contract package in this packet.
 public class ContractSshServerLibraryStartupBundle {
     public let template: ContractHttpSshStartupProfileTemplate
     public let readiness: ContractHttpSshStartupReadinessReport
-    public let handshake: livecontract.ContractSshServerInitialHandshakeResult
-    public let runtime: livecontract.ContractSshServerRuntime
+    public let handshake: ContractSshServerHandshakeResult
+    public let runtime: ContractSshServerRuntime
 
     public init(
         template: ContractHttpSshStartupProfileTemplate,
         readiness: ContractHttpSshStartupReadinessReport,
-        handshake: livecontract.ContractSshServerInitialHandshakeResult,
-        runtime: livecontract.ContractSshServerRuntime
+        handshake: ContractSshServerHandshakeResult,
+        runtime: ContractSshServerRuntime
     ) {
         this.template = template
         this.readiness = readiness
@@ -360,14 +358,14 @@ public class ContractSshServerLibraryStartupBundle {
 public class ContractSshClientLibraryStartupBundle {
     public let template: ContractHttpSshStartupProfileTemplate
     public let readiness: ContractHttpSshStartupReadinessReport
-    public let handshake: livecontract.ContractSshClientInitialHandshakeResult
-    public let runtime: livecontract.ContractSshClientRuntime
+    public let handshake: ContractSshClientHandshakeResult
+    public let runtime: ContractSshClientRuntime
 
     public init(
         template: ContractHttpSshStartupProfileTemplate,
         readiness: ContractHttpSshStartupReadinessReport,
-        handshake: livecontract.ContractSshClientInitialHandshakeResult,
-        runtime: livecontract.ContractSshClientRuntime
+        handshake: ContractSshClientHandshakeResult,
+        runtime: ContractSshClientRuntime
     ) {
         this.template = template
         this.readiness = readiness
@@ -474,7 +472,12 @@ public func contractPrepareSshServerLibraryStartupX25519RsaPkcs8Request(
         let runtime = livecontract.contractSshCreateServerRuntimeRequest(
             livecontract.ContractSshServerRuntimeRequest(handshake)
         )
-        ContractSshServerLibraryStartupBundle(template, readiness, handshake, runtime)
+        ContractSshServerLibraryStartupBundle(
+            template,
+            readiness,
+            contractWrapSshServerHandshake(handshake),
+            contractWrapSshServerRuntime(runtime)
+        )
     } catch (e: ContractException) {
         throw e
     } catch (e: livecontract.ContractException) {
@@ -530,7 +533,12 @@ public func contractPrepareSshServerLibraryStartupX25519EcdsaPkcs8Request(
         let runtime = livecontract.contractSshCreateServerRuntimeRequest(
             livecontract.ContractSshServerRuntimeRequest(handshake)
         )
-        ContractSshServerLibraryStartupBundle(template, readiness, handshake, runtime)
+        ContractSshServerLibraryStartupBundle(
+            template,
+            readiness,
+            contractWrapSshServerHandshake(handshake),
+            contractWrapSshServerRuntime(runtime)
+        )
     } catch (e: ContractException) {
         throw e
     } catch (e: livecontract.ContractException) {
@@ -585,7 +593,12 @@ public func contractPrepareSshServerLibraryStartupX25519Ed25519SeedRequest(
         let runtime = livecontract.contractSshCreateServerRuntimeRequest(
             livecontract.ContractSshServerRuntimeRequest(handshake)
         )
-        ContractSshServerLibraryStartupBundle(template, readiness, handshake, runtime)
+        ContractSshServerLibraryStartupBundle(
+            template,
+            readiness,
+            contractWrapSshServerHandshake(handshake),
+            contractWrapSshServerRuntime(runtime)
+        )
     } catch (e: ContractException) {
         throw e
     } catch (e: livecontract.ContractException) {
@@ -631,7 +644,12 @@ public func contractPrepareSshClientLibraryStartupX25519Request(
         let runtime = livecontract.contractSshCreateClientRuntimeRequest(
             livecontract.ContractSshClientRuntimeRequest(handshake)
         )
-        ContractSshClientLibraryStartupBundle(template, readiness, handshake, runtime)
+        ContractSshClientLibraryStartupBundle(
+            template,
+            readiness,
+            contractWrapSshClientHandshake(handshake),
+            contractWrapSshClientRuntime(runtime)
+        )
     } catch (e: ContractException) {
         throw e
     } catch (e: livecontract.ContractException) {
