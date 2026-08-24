@@ -15,6 +15,26 @@ main(): Int64 {
         return 1
     }
 
+    let sm3Digest = contractBytesToHexLower(contractSm3(payload))
+    if (sm3Digest != "66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0") {
+        println("fatal=JinguiSSLContract SM3 application smoke mismatch")
+        return 1
+    }
+    let sm4Key: Array<Byte> = [
+        0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
+        0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10
+    ]
+    let sm4Block = sm4Key.clone()
+    let sm4Ciphertext = contractSm4Encrypt(ContractSm4Mode.Ecb, sm4Key, sm4Block)
+    if (contractBytesToHexLower(sm4Ciphertext) != "681edf34d206965e86b3e94f536e4246") {
+        println("fatal=JinguiSSLContract SM4 application smoke mismatch")
+        return 1
+    }
+    if (contractSm4Decrypt(ContractSm4Mode.Ecb, sm4Key, sm4Ciphertext) != sm4Block) {
+        println("fatal=JinguiSSLContract SM4 application roundtrip mismatch")
+        return 1
+    }
+
     let quicKey: Array<Byte> = [
         0x1f, 0x36, 0x96, 0x13, 0xdd, 0x76, 0xd5, 0x46,
         0x77, 0x30, 0xef, 0xcb, 0xe3, 0xb1, 0xa2, 0x2d
@@ -54,6 +74,8 @@ main(): Int64 {
 
     println("jinguissl_contract_application_smoke=pass")
     println("sha256_abc=${digest}")
+    println("sm3_abc=${sm3Digest}")
+    println("sm4_ecb=pass")
     println("quic_aead=${ContractQuicAeadAlgorithm.Aes128Gcm}")
     0
 }

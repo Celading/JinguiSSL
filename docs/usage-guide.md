@@ -30,7 +30,7 @@ JinguiSSL 是面向仓颉（Cangjie）应用的密码学、证书、TLS 与 SSH 
 尤其需要区分：
 
 - Digest、ChaCha20-Poly1305、X25519、X.509 材料与 QUIC 包保护是较稳定的 facade 候选，但仍无外部认证。
-- ECC、Ed25519、RSA、SM3/SM4 当前主要是 capability probe，不是完整操作 facade。
+- ECC、Ed25519、RSA 当前主要是 capability probe；SM2/SM3/SM4、SM9、GM X.509、RFC 8998 与 TLCP/DTLCP 已有独立 Contract facade 和本地测试。
 - KEM 是 profile placeholder，不是 ML-KEM/PQC 实现。
 - TLS 1.3 live runtime 已有 caller-owned transport 测试，但不是浏览器级 HTTPS 或外部 H2 证明。
 
@@ -114,11 +114,17 @@ main() {
 | [quic.md](quic.md) | QUIC 初始密钥派生 |
 | [aes-readiness.md](aes-readiness.md) | AES 后端探测 |
 | [tls-session-cache.md](tls-session-cache.md) | TLS 会话缓存 |
+| [china-crypto.md](china-crypto.md) | SM2/SM3/SM4/SM9、GM X.509、RFC 8998 与 TLCP/DTLCP |
+| [gm-test-manifest.md](gm-test-manifest.md) | 国密 Contract 公开测试面与重放命令 |
 | [provider-gate.md](provider-gate.md) | 提供商门禁 |
 | [error-handling.md](error-handling.md) | 错误处理模型 |
 | [ecc-ed25519-rsa.md](ecc-ed25519-rsa.md) | ECC / Ed25519 / RSA |
-| [china-crypto.md](china-crypto.md) | 国密 SM3 / SM4 |
 | [kem.md](kem.md) | KEM 密钥封装机制 |
+
+`contractTls13CipherSuiteAeadAlgorithm(...)` 现在识别 RFC 8998 的
+`TLS_SM4_GCM_SM3` 与 `TLS_SM4_CCM_SM3`，分别返回 `Sm4Gcm` 与 `Sm4Ccm`。
+完整国密握手应使用 `contractRfc8998*` facade；遗留 AES/ChaCha live 路径不会静默把
+SM4 suite 当作普通 TLS 1.3 runtime 处理。
 
 ## 5. 错误处理模式
 

@@ -16,6 +16,8 @@ if [ -n "${base_ref}" ]; then
 fi
 python3 scripts/jinguissl_capability_gate.py "${capability_args[@]}"
 python3 scripts/jinguissl_capability_gate_test.py
+python3 scripts/jinguissl_gm_contract_boundary_gate.py
+python3 scripts/jinguissl_gm_contract_boundary_gate_test.py
 
 cjpm build
 cjpm test

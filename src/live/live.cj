@@ -16262,6 +16262,16 @@ private func contractFromTlsAeadAlgorithm(algorithm: TlsAeadAlgorithm): Contract
     match (algorithm) {
         case TlsAeadAlgorithm.AES_GCM => ContractAeadAlgorithm.Aes256Gcm
         case TlsAeadAlgorithm.CHACHA20_POLY1305 => ContractAeadAlgorithm.Chacha20Poly1305
+        case TlsAeadAlgorithm.SM4_GCM =>
+            throw ContractException(
+                ContractErrorCode.Unsupported,
+                "SM4-GCM requires the GM TLS contract surface"
+            )
+        case TlsAeadAlgorithm.SM4_CCM =>
+            throw ContractException(
+                ContractErrorCode.Unsupported,
+                "SM4-CCM requires the GM TLS contract surface"
+            )
     }
 }
 
