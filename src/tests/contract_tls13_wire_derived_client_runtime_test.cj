@@ -3,7 +3,8 @@ package jinguissl.tests
 import std.collection.ArrayList
 import std.fs.File
 import jinguissl.live.*
-import jinguissl_core.crypto.tls.{tls13DeriveSecretsFromX25519ForCipherSuite, tls13ExtractServerX25519KeyShare}
+import jinguissl_core.crypto.digest.{sha256, sha384}
+import jinguissl_core.crypto.tls.{TLS13_CIPHER_SUITE_AES_256_GCM_SHA384, tls13DeriveSecretsFromX25519ForCipherSuite, tls13ExtractServerX25519KeyShare}
 
 private let LIVE_SOURCE_ROOT: String = ""
 private let TEST_HOST_WWW: String = "www." + "example.com"
@@ -126,10 +127,21 @@ private func rebuildProtectedRecords(
 ): Array<Array<Byte>> {
     let binding = contractTls13ResolveCipherBindingFromServerFlight(fixture.serverFlight)
     let serverPublicKey = tls13ExtractServerX25519KeyShare(fixture.serverFlight.serverHello)
+    let helloTranscript = concatRecords([
+        fixture.clientHello.encodedClientHello,
+        fixture.serverFlight.serverHello
+    ])
+    let helloTranscriptHash = if (
+        binding.cipherSuite == TLS13_CIPHER_SUITE_AES_256_GCM_SHA384
+    ) {
+        sha384(helloTranscript)
+    } else {
+        sha256(helloTranscript)
+    }
     let secrets = tls13DeriveSecretsFromX25519ForCipherSuite(
         fixture.clientHello.clientPrivateKey,
         serverPublicKey,
-        fixture.serverFlight.transcriptHash,
+        helloTranscriptHash,
         binding.cipherSuite
     )
     let (clientHandshakeKey, clientHandshakeIv) = contractTls13DeriveApplicationTrafficKeyIv(
@@ -161,7 +173,7 @@ private func rebuildProtectedRecords(
     }
     [
         contractTlsEncodePlaintextRecord(
-            ContractTlsVersion.Tls13,
+            ContractTlsVersion.Tls12,
             ContractTlsRecordContentType.Handshake,
             fixture.serverFlight.serverHello
         ),
