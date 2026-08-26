@@ -382,7 +382,7 @@ private func c188TryMapWireDerivedServerFlight(
     }
 
     let serverHelloRecord = recordResult.records[0]
-    if (serverHelloRecord.version != ContractTlsVersion.Tls13 ||
+    if (serverHelloRecord.version != ContractTlsVersion.Tls12 ||
         serverHelloRecord.contentType != ContractTlsRecordContentType.Handshake) {
         return C188WireDerivedAttempt(failure: Some(c188WireFailure(
             ContractTls13IncrementalHandshakeStatus.Malformed,
@@ -407,11 +407,16 @@ private func c188TryMapWireDerivedServerFlight(
     try {
         let binding = contractTls13ResolveCipherBindingFromServerHello(serverHelloRecord.payload)
         let serverPublicKey = tls13ExtractServerX25519KeyShare(serverHelloRecord.payload)
+        let helloTranscriptHash = c188Tls13HashForCipherSuite(
+            binding.cipherSuite,
+            c188ConcatBytes([clientHello.encodedClientHello, serverHelloRecord.payload])
+        )
         let candidates = c188BuildEncryptedExtensionsCandidates(clientHello, trust, serverHelloRecord.payload, binding)
         let matched = c188MatchEncryptedExtensionsCandidate(
             clientHello,
             binding,
             serverPublicKey,
+            helloTranscriptHash,
             recordResult.records[1],
             candidates
         )
@@ -567,6 +572,7 @@ private func c188MatchEncryptedExtensionsCandidate(
     clientHello: ContractTls13HttpClientHelloX25519,
     binding: ContractTls13CipherBinding,
     serverPublicKey: Array<Byte>,
+    helloTranscriptHash: Array<Byte>,
     encryptedExtensionsRecord: ContractTls13IncrementalRecordFrame,
     candidates: Array<C188EncryptedExtensionsCandidate>
 ): ?C188MatchedEncryptedExtensions {
@@ -575,7 +581,7 @@ private func c188MatchEncryptedExtensionsCandidate(
             tls13DeriveSecretsFromX25519ForCipherSuite(
                 clientHello.clientPrivateKey,
                 serverPublicKey,
-                candidate.transcriptHash,
+                helloTranscriptHash,
                 binding.cipherSuite
             )
         } catch (_: CryptoException) {

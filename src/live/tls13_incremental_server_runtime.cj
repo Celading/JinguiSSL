@@ -492,7 +492,32 @@ public func contractTryTls13VerifyIncrementalServerClientFinished(
             needBytes: if (recordResult.needBytes > 0) { recordResult.needBytes } else { Int64(1) }
         )
     }
-    if (!c187IsProtectedRecordEnvelope(recordResult.records[0])) {
+    let firstRecord = recordResult.records[0]
+    if (firstRecord.contentType == ContractTlsRecordContentType.ChangeCipherSpec) {
+        if (
+            firstRecord.version != ContractTlsVersion.Tls12 ||
+            firstRecord.payload.size != 1 ||
+            firstRecord.payload[0] != UInt8(0x01)
+        ) {
+            return c187FinishedFailure(
+                state,
+                ContractTls13IncrementalHandshakeStatus.Malformed,
+                "TLS1.3 compatibility ChangeCipherSpec record is malformed",
+                ContractErrorCode.BadInput,
+                recordResult,
+                ContractTlsAlertDescription.AlertUnexpectedMessage
+            )
+        }
+        return ContractTls13IncrementalServerFinishedOutcome(
+            false,
+            ContractTls13IncrementalHandshakeStatus.NeedMoreBytes,
+            "TLS1.3 compatibility ChangeCipherSpec ignored; client Finished is still required",
+            recordsObserved: recordResult.records.size,
+            pendingBytes: recordResult.pendingBytes,
+            needBytes: Int64(1)
+        )
+    }
+    if (!c187IsProtectedRecordEnvelope(firstRecord)) {
         return c187FinishedFailure(
             state,
             ContractTls13IncrementalHandshakeStatus.Malformed,
@@ -517,7 +542,7 @@ public func contractTryTls13VerifyIncrementalServerClientFinished(
     }
 
     let plain = try {
-        channel.open(recordResult.records[0].encodedRecord)
+        channel.open(firstRecord.encodedRecord)
     } catch (e: ContractException) {
         return c187FinishedFailureWithChannel(
             channel,
