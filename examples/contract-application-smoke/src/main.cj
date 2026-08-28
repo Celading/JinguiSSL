@@ -14,6 +14,28 @@ main(): Int64 {
         println("actual=${digest}")
         return 1
     }
+    if (contractHash(HashAlgorithm.SHA256, payload) != contractSha256(payload)) {
+        println("fatal=JinguiSSLContract Contract-owned hash enum mismatch")
+        return 1
+    }
+
+    let sessionCache = ContractTlsSessionCache(maxEntries: 2, defaultTtlSeconds: 60)
+    let sessionIdentity = ContractTlsSessionIdentity(
+        ContractTlsVersion.Tls13,
+        [UInt8(0x01), UInt8(0x02)],
+        serverName: "API.EXAMPLE.COM",
+        alpnProtocol: "H2"
+    )
+    _ = sessionCache.storeFromSecret(
+        sessionIdentity,
+        Array<Byte>(32, repeat: UInt8(0x33)),
+        nowUnixSeconds: 1_800_000_000,
+        ttlSeconds: 60
+    )
+    if (sessionCache.load(sessionIdentity, nowUnixSeconds: 1_800_000_001).isNone()) {
+        println("fatal=JinguiSSLContract session cache application smoke miss")
+        return 1
+    }
 
     let aesKey: Array<Byte> = [
         0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
@@ -97,6 +119,7 @@ main(): Int64 {
     println("sha256_abc=${digest}")
     println("aes128_ecb=pass")
     println("ed25519=pass")
+    println("tls_session_cache=pass")
     println("sm3_abc=${sm3Digest}")
     println("sm4_ecb=pass")
     println("quic_aead=${ContractQuicAeadAlgorithm.Aes128Gcm}")

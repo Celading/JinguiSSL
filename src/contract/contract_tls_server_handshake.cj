@@ -45,7 +45,7 @@
 
  /// 构建完整的服务端握手上下文（X25519 ECDHE）。
  /// 返回: Tls13ServerHandshakeContext 包含 ServerHello + 后续飞行 + 握手密钥
- public func contractTls13BuildServerHandshakeContextX25519(
+ internal func contractTls13BuildServerHandshakeContextX25519(
      encodedClientHello: Array<Byte>,
      serverKeyExchangePrivate: Array<Byte>,
      serverKeyShare: Array<Byte>,
@@ -76,7 +76,7 @@
 
  /// 处理完整的服务端握手飞行（客户端视角）。
  /// 返回: 握手结果，包含协商的密钥和证书验证结果
- public func contractTls13ProcessServerHandshakeFlightX25519(
+ internal func contractTls13ProcessServerHandshakeFlightX25519(
      encodedClientHello: Array<Byte>,
      clientKeyExchangePrivate: Array<Byte>,
      flight: Tls13ServerHandshakeFlight,
@@ -145,7 +145,7 @@
  /// serverHsTrafficSecret: 服务端握手流量密钥（用于 Finished 计算）
  /// requestContext: CertificateRequest 上下文（可选）
  /// 返回: 服务端认证飞行
- public func contractTls13BuildServerAuthFlightEcdsa(
+ internal func contractTls13BuildServerAuthFlightEcdsa(
      certChainDer: Array<Array<Byte>>,
      privateKey: EcPrivateKey,
      transcriptHash: Array<Byte>,
@@ -169,7 +169,7 @@
  }
 
  /// 使用 RSA-PSS 构建服务端完整认证飞行（Certificate + CertificateVerify + Finished）。
- public func contractTls13BuildServerAuthFlightRsaPss(
+ internal func contractTls13BuildServerAuthFlightRsaPss(
      certChainDer: Array<Array<Byte>>,
      privateKey: RsaPrivateKey,
      transcriptHash: Array<Byte>,
@@ -193,7 +193,7 @@
  }
 
  /// 验证服务端 Certificate + CertificateVerify 飞行。
- public func contractTls13VerifyServerAuthFlight(
+ internal func contractTls13VerifyServerAuthFlight(
      flight: Tls13AuthFlight,
      policy: X509VerificationPolicy,
      transcriptHash: Array<Byte>,
@@ -210,7 +210,7 @@
  }
 
  /// 验证客户端 Certificate + CertificateVerify 飞行。
- public func contractTls13VerifyClientAuthFlight(
+ internal func contractTls13VerifyClientAuthFlight(
      flight: Tls13AuthFlight,
      policy: X509VerificationPolicy,
      transcriptHash: Array<Byte>,
@@ -227,7 +227,7 @@
  }
 
  /// 使用 ECDSA 构建客户端认证飞行（Certificate + CertificateVerify + Finished）。
- public func contractTls13BuildClientAuthFlightEcdsa(
+ internal func contractTls13BuildClientAuthFlightEcdsa(
      certChainDer: Array<Array<Byte>>,
      privateKey: EcPrivateKey,
      transcriptHash: Array<Byte>,
@@ -251,7 +251,7 @@
  }
 
  /// 使用 RSA-PSS 构建客户端认证飞行（Certificate + CertificateVerify + Finished）。
- public func contractTls13BuildClientAuthFlightRsaPss(
+ internal func contractTls13BuildClientAuthFlightRsaPss(
      certChainDer: Array<Array<Byte>>,
      privateKey: RsaPrivateKey,
      transcriptHash: Array<Byte>,
@@ -281,7 +281,7 @@
 /// cipherSuite: 选定的密码套件 ID
  /// appTranscriptHash: 应用层 Transcript 哈希覆盖（可选）
 /// 返回: 握手密钥结构体
-public func contractTls13DeriveSecretsFromX25519(
+internal func contractTls13DeriveSecretsFromX25519(
      privateKey: Array<Byte>,
      peerPublicKey: Array<Byte>,
      transcriptHash: Array<Byte>,

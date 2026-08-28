@@ -52,10 +52,9 @@ import jinguissl.contract.*
 
 // 仅在 Contract 尚未提供所需的底层 TLS runtime 时导入 live 层
 import jinguissl.live.*
-
-// 按需导入 core 层（仅当直接使用底层算法时）
-import jinguissl_core.crypto.digest.{sha256, bytesToHexLower}
 ```
+
+应用代码不应导入 `jinguissl_core.*`。若 Contract/live 未提供一项必需能力，应把它记为公开边界缺口，而不是让业务层固定到 Core 内部包路径。
 
 ## 3. 快速开始
 
@@ -123,6 +122,10 @@ main() {
 | [error-handling.md](error-handling.md) | 错误处理模型 |
 | [ecc-ed25519-rsa.md](ecc-ed25519-rsa.md) | ECC / Ed25519 / RSA |
 | [kem.md](kem.md) | KEM 密钥封装机制 |
+
+TLS session cache、PSK ticket builder 与安全 opaque resumption 现在都提供 Contract-owned DTO；应用层应从 `jinguissl.contract` 消费，`jinguissl_core.*` 仅保留为 Contract 内部实现依赖。
+
+原始 TLS 1.3 handshake context/secret 不作为 Contract 公开 DTO：它们会暴露底层 key 和 traffic secret。需要完整握手与 record runtime 的应用应使用 `jinguissl.live` 的 caller-owned transport 入口，而不是导入 Core。
 
 `contractTls13CipherSuiteAeadAlgorithm(...)` 现在识别 RFC 8998 的
 `TLS_SM4_GCM_SM3` 与 `TLS_SM4_CCM_SM3`，分别返回 `Sm4Gcm` 与 `Sm4Ccm`。
