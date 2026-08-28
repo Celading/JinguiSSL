@@ -57,8 +57,8 @@
 | TLCP / DTLCP protocol facade | 双证书、静态 ECC/ECDHE、record、replay、fragment 与 flight | implemented local test |
 | Traditional RSA / ECDH KEM facade | RSA-KEM 与 P-256 ECDH-KEM | 不是 ML-KEM/PQC 实现 |
 | QUIC v1/v2 protection facade | Initial、显式 AEAD、Header Protection、Retry integrity | 不含 transport/HTTP3 |
-| TLS session cache | bounded cache、ticket identity 与 replay helper | implemented local test |
-| TLS cipher-suite / PSK contracts | cipher suite、PSK 与 server-handshake DTO | implemented local test |
+| TLS session cache / secure opaque resumption | bounded cache、server-owned opaque ticket、binder validation、rotation 与 single-use consumption | implemented local test |
+| TLS cipher-suite / PSK contracts | cipher suite、Contract-owned PSK/session DTO 与无秘密 wire helper | implemented local test |
 | Incremental TLS 1.3 live runtime | caller-owned transport 的 client/server handshake 与 verified channel | 非浏览器级 HTTPS 证明 |
 | Runtime compatibility profiles | runtime marker 与 startup profile catalog | 不等于多平台实机证明 |
 
