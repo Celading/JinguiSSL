@@ -91,7 +91,7 @@ private func buildRuntimeFixture(): IncrementalClientRuntimeFixture {
 private func buildServerFlightRecords(serverFlight: ContractTls13HttpServerFlight): Array<Array<Byte>> {
     [
         contractTlsEncodePlaintextRecord(
-            ContractTlsVersion.Tls13,
+            ContractTlsVersion.Tls12,
             ContractTlsRecordContentType.Handshake,
             serverFlight.serverHello
         ),
