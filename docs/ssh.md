@@ -13,6 +13,15 @@ Core 构造 KEX prelude，也不会从 startup bundle 收到 `jinguissl.live` �
 这些函数返回 wire bytes 或 Contract DTO，可直接填入
 `ContractSshKexExchangeTranscript` 与 startup request。
 
+## Bridge key adapters
+
+需要保留 Bridge 既有 typed SSH 入口时，可使用
+`contractBridgeSshEncode*HostPublicKey(...)`、
+`contractBridgeSshSignExchangeHash*(...)` 和对应 handshake adapter。它们接受
+Contract-owned RSA/EC key DTO、transcript 与 negotiated-algorithm DTO，使 Bridge
+无需再导入 Core key 类型。较新的应用仍优先使用下方 startup bundle，它会把
+握手结果与 runtime 包装为 Contract-owned 类型。
+
 ## 服务端启动
 
 - `contractPrepareSshServerLibraryStartupX25519RsaPkcs8Request(...)`
@@ -48,5 +57,6 @@ server/client runtime 暴露：
 连接生命周期。
 
 当前证据覆盖 RSA/ECDSA/Ed25519 host key startup、known-host/signature policy、
-server→client 包保护 roundtrip 与完整 309 项本地回归；不声明外部 OpenSSH
+server→client 包保护 roundtrip、Contract-owned RSA host-signing adapter 与完整
+318 项本地回归；不声明外部 OpenSSH
 client/server 在线互操作完成。

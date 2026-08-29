@@ -25,6 +25,11 @@ let sharedB = contractEcdh(ContractEcCurve.P256, bob.privateKey, alice.publicKey
 `contractEs256VerifyDer(...)` 为 P-256/SHA-256 的 DER 签名验证入口。Capability
 probe (`contractEccCapability`) 仍保留，用于启动期参数与 policy 查询。
 
+`contractEcdsaSignDigest(...)` 与 `contractEcdsaVerifyDigest(...)` 是供 FFI 和协议
+adapter 使用的显式预哈希边界：调用方传入与 `ContractSignatureHash` 长度一致的
+digest，Contract 不会再次哈希。普通应用消息仍应优先使用 message-level 入口，
+避免误把原文当成 digest。
+
 ## Ed25519
 
 ```cangjie
@@ -67,6 +72,7 @@ transform、CRT 参数或自定义 padding primitive。PSS 是默认方案；PKC
 
 ## 证据与边界
 
-当前证据包括 P-256 签名/篡改/ECDH、本地 RSA PSS/PKCS#1 v1.5、RFC 8032
-Ed25519 seed/public-key shape 与完整 309 项回归。它们继承 Core 私钥路径的时序
+当前证据包括 P-256 message/pre-hashed 签名/篡改/ECDH、本地 RSA
+PSS/PKCS#1 v1.5、RSA SSH host-signing adapter、RFC 8032 Ed25519
+seed/public-key shape 与完整 318 项回归。它们继承 Core 私钥路径的时序
 边界，不构成恒定时间、安全认证、HSM 托管或外部密码栈互操作声明。
