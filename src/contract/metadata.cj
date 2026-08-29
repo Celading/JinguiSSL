@@ -134,7 +134,16 @@ public func contractFacadeInfo(): ContractFacadeInfo {
             "tls13",
             "ssh",
             "hkdf",
-            "random"
+            "random",
+            "aes",
+            "ecc",
+            "ed25519",
+            "rsa",
+            "traditional-kem",
+            "gm-crypto",
+            "rfc8998",
+            "tlcp",
+            "dtlcp"
         ],
         "import jinguissl.contract.* only; avoid deep import from jinguissl.crypto.* in app/framework layers"
     )
@@ -189,7 +198,16 @@ public func contractCapabilityInfo(): ContractCapabilityInfo {
             "tls13",
             "ssh",
             "hkdf",
-            "random"
+            "random",
+            "aes",
+            "ecc",
+            "ed25519",
+            "rsa",
+            "traditional-kem",
+            "gm-crypto",
+            "rfc8998",
+            "tlcp",
+            "dtlcp"
         ],
         [
             "tls12-rsa",
@@ -201,6 +219,9 @@ public func contractCapabilityInfo(): ContractCapabilityInfo {
             "tls13-client-auth",
             "tls13-session-ticket-psk",
             "tls13-key-update",
+            "rfc8998-sm2-sm4-sm3",
+            "tlcp-dual-certificate",
+            "dtlcp-datagram-record",
             "http-server-tls-config-validation",
             "http-server-tls-material-preparation",
             "http-client-tls-config-validation",
@@ -216,15 +237,20 @@ public func contractCapabilityInfo(): ContractCapabilityInfo {
             "ecdsa-p384-hostkey",
             "ed25519-hostkey",
             "host-signing-material-facade",
+            "contract-owned-kex-prelude",
             "client-initial-handshake-facade",
             "server-initial-handshake-facade",
             "host-verification-required-modes",
-            "session-runtime-snapshot-facade"
+            "session-runtime-snapshot-facade",
+            "contract-owned-packet-channel"
         ],
         [
             "pem-der-parse",
+            "certificate-summary-facade",
             "pem-bundle-normalization",
             "certificate-chain-verify",
+            "sm2-spki-sec1-pkcs8",
+            "sm2-csr-certificate-crl",
             "http-client-peer-certificate-verify",
             "hostname-policy",
             "leaf-pin-der-sha256",

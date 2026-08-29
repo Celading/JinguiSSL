@@ -1,10 +1,11 @@
  package jinguissl.contract
 
+ import std.collection.ArrayList
  import jinguissl_core.crypto.error.{CryptoErrorCode, CryptoException}
+ import jinguissl_core.crypto.tls.TlsSessionTicket as CoreTlsSessionTicket
  import jinguissl_core.crypto.tls.{
      Tls13NewSessionTicketMessage,
      Tls13PskIdentityEntry,
-     TlsSessionTicket,
      tls13BuildClientHelloPskFromSessionTicket,
      tls13BuildClientHelloPskFromSessionTickets,
      tls13BuildClientHelloPskWithBinder,
@@ -47,11 +48,14 @@
 
  /// 从 session ticket 构建 PSK ClientHello。
  public func contractTls13BuildClientHelloPskFromSessionTicket(
-     ticket: TlsSessionTicket,
+     ticket: ContractTlsSessionTicket,
      sessionId!: Array<Byte> = []
  ): Array<Byte> {
      try {
-         tls13BuildClientHelloPskFromSessionTicket(ticket, sessionId: sessionId)
+         tls13BuildClientHelloPskFromSessionTicket(
+             contractSessionCacheToCoreTicket(ticket),
+             sessionId: sessionId
+         )
      } catch (e: CryptoException) {
          throw ContractException(
              mapCryptoErrorForOperation(e, "tls"),
@@ -62,11 +66,23 @@
 
  /// 从多个 session ticket 构建 PSK ClientHello。
  public func contractTls13BuildClientHelloPskFromSessionTickets(
-     tickets: Array<TlsSessionTicket>,
+     tickets: Array<ContractTlsSessionTicket>,
      sessionId!: Array<Byte> = []
  ): Array<Byte> {
      try {
-         tls13BuildClientHelloPskFromSessionTickets(tickets, sessionId: sessionId)
+         if (tickets.size == 0) {
+             throw ContractException(
+                 ContractErrorCode.BadInput,
+                 "TLS 1.3 session ticket list must not be empty"
+             )
+         }
+         let coreTickets = ArrayList<CoreTlsSessionTicket>()
+         for (ticket in tickets) {
+             coreTickets.add(contractSessionCacheToCoreTicket(ticket))
+         }
+         tls13BuildClientHelloPskFromSessionTickets(coreTickets.toArray(), sessionId: sessionId)
+     } catch (e: ContractException) {
+         throw e
      } catch (e: CryptoException) {
          throw ContractException(
              mapCryptoErrorForOperation(e, "tls"),

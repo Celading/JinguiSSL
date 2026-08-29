@@ -18,8 +18,8 @@ SHA-384 摘要。
 SHA-512 摘要。
 
 ### contractHash(algorithm: HashAlgorithm, data: Array<Byte>): Array<Byte>
-通用哈希分发器。通过 `HashAlgorithm` 枚举选择算法：
-`MD5`, `SHA1`, `SHA256`, `SHA384`, `SHA512`
+通用哈希分发器。`HashAlgorithm` 是 Contract-owned 枚举，不需要导入 Core；可选择：
+`MD5`, `SHA1`, `SHA256`, `SHA384`, `SHA512`, `SM3`
 
 ### contractBytesToHexLower(bytes: Array<Byte>): String
 字节数组转小写十六进制字符串。
@@ -27,7 +27,7 @@ SHA-512 摘要。
 ## HMAC
 
 ### contractHmac(algorithm: HashAlgorithm, key: Array<Byte>, data: Array<Byte>): Array<Byte>
-计算 HMAC。算法可选 MD5/SHA1/SHA256/SHA384/SHA512。
+计算 HMAC。算法可选 MD5/SHA1/SHA256/SHA384/SHA512/SM3。
 
 ## HKDF
 

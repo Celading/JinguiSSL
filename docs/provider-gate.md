@@ -23,10 +23,10 @@
 ## 错误映射
 
 ### contractMapToIgniteCryptoErrorCode(code: ContractErrorCode): ContractIgniteCryptoErrorCode
-将 `ContractErrorCode` 映射为 Ignite 风格的错误码。
+将 `ContractErrorCode` 映射为保留的下游兼容错误码。
 
 ### contractMapExceptionToIgniteCryptoErrorCode(exception: ContractException): ContractIgniteCryptoErrorCode
-从异常获取 Ignite 错误码。
+从异常获取保留的下游兼容错误码。
 
 ### contractDescribeProviderErrorCode(code, phase?, detail?): ContractProviderErrorDescriptor
 构造提供商错误描述。
@@ -52,3 +52,6 @@
 
 ### contractListProviderConsumptionGates(): Array<ContractProviderConsumptionGateReport>
 列出所有消费路径的入口状态。
+
+部分 smoke fixture 只验证 metadata、precheck 或 provider-selection 分支。
+只有明确执行 live handshake 的证据，才能描述为网络互操作证明。

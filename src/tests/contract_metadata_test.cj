@@ -11,6 +11,8 @@ public class ContractMetadataTestSuite {
         @Assert(info.stabilityLevel, "L1")
         @Assert(info.freezeDate, "2026-03-24")
         @Assert(info.stableDomains.size > 0, true)
+        @Assert(info.stableDomains.contains("aes"), true)
+        @Assert(info.stableDomains.contains("traditional-kem"), true)
         @Assert(info.importRule.contains("jinguissl.contract.*"), true)
     }
 
@@ -20,7 +22,9 @@ public class ContractMetadataTestSuite {
         @Assert(info.stableDomains.size > 0, true)
         @Assert(info.httpTlsFeatures.contains("tls13-x25519"), true)
         @Assert(info.sshFeatures.contains("x25519-kex"), true)
+        @Assert(info.sshFeatures.contains("contract-owned-packet-channel"), true)
         @Assert(info.x509Features.contains("certificate-chain-verify"), true)
+        @Assert(info.x509Features.contains("certificate-summary-facade"), true)
         @Assert(info.directStdxTlsServerConfigBridge, false)
         @Assert(info.notes.size > 0, true)
     }

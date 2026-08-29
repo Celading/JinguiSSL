@@ -4,19 +4,53 @@ import jinguissl_core.crypto.digest.{hash, md5, sha1, sha256, sha384, sha512, by
 import jinguissl_core.crypto.digest.HashAlgorithm as CoreHashAlgorithm
 
 /**
- * HashAlgorithm — contract-side type alias for core's digest.HashAlgorithm.
- *
- * This type is structurally identical to the core enum. Consumers may pass
- * values via contractHashAlgorithm constants without importing core.
+ * Contract-owned digest selection. No Core-owned enum crosses public APIs.
  */
-public type HashAlgorithm = CoreHashAlgorithm
+public enum HashAlgorithm <: Equatable<HashAlgorithm> & ToString {
+    | MD5
+    | SHA1
+    | SHA256
+    | SHA384
+    | SHA512
+    | SM3
+
+    public operator func ==(right: HashAlgorithm): Bool {
+        ordinalValue() == right.ordinalValue()
+    }
+
+    public operator func !=(right: HashAlgorithm): Bool {
+        !(this == right)
+    }
+
+    public func ordinalValue(): Int64 {
+        match (this) {
+            case MD5 => 0
+            case SHA1 => 1
+            case SHA256 => 2
+            case SHA384 => 3
+            case SHA512 => 4
+            case SM3 => 5
+        }
+    }
+
+    public func toString(): String {
+        match (this) {
+            case MD5 => "MD5"
+            case SHA1 => "SHA-1"
+            case SHA256 => "SHA-256"
+            case SHA384 => "SHA-384"
+            case SHA512 => "SHA-512"
+            case SM3 => "SM3"
+        }
+    }
+}
 
 /**
  * contractHash — generic hash dispatcher.
  * Delegates to core's hash().
  */
 public func contractHash(algorithm: HashAlgorithm, data: Array<Byte>): Array<Byte> {
-    hash(algorithm, data)
+    hash(contractCoreHashAlgorithm(algorithm), data)
 }
 
 /**
@@ -67,7 +101,7 @@ public func contractBytesToHexLower(bytes: Array<Byte>): String {
  * contractHmac — HMAC with given hash algorithm.
  */
 public func contractHmac(algorithm: HashAlgorithm, key: Array<Byte>, data: Array<Byte>): Array<Byte> {
-    hmac(algorithm, key, data)
+    hmac(contractCoreHashAlgorithm(algorithm), key, data)
 }
 
 /**
@@ -78,7 +112,7 @@ public func contractHkdfExtract(
     salt: Array<Byte>,
     ikm: Array<Byte>
 ): Array<Byte> {
-    hkdfExtract(algorithm, salt, ikm)
+    hkdfExtract(contractCoreHashAlgorithm(algorithm), salt, ikm)
 }
 
 /**
@@ -90,7 +124,7 @@ public func contractHkdfExpand(
     info: Array<Byte>,
     outputLen: Int64
 ): Array<Byte> {
-    hkdfExpand(algorithm, prk, info, outputLen)
+    hkdfExpand(contractCoreHashAlgorithm(algorithm), prk, info, outputLen)
 }
 
 /**
@@ -103,5 +137,16 @@ public func contractHkdf(
     outputLen: Int64,
     salt!: Array<Byte> = []
 ): Array<Byte> {
-    hkdf(algorithm, ikm, info, outputLen, salt: salt)
+    hkdf(contractCoreHashAlgorithm(algorithm), ikm, info, outputLen, salt: salt)
+}
+
+internal func contractCoreHashAlgorithm(algorithm: HashAlgorithm): CoreHashAlgorithm {
+    match (algorithm) {
+        case HashAlgorithm.MD5 => CoreHashAlgorithm.MD5
+        case HashAlgorithm.SHA1 => CoreHashAlgorithm.SHA1
+        case HashAlgorithm.SHA256 => CoreHashAlgorithm.SHA256
+        case HashAlgorithm.SHA384 => CoreHashAlgorithm.SHA384
+        case HashAlgorithm.SHA512 => CoreHashAlgorithm.SHA512
+        case HashAlgorithm.SM3 => CoreHashAlgorithm.SM3
+    }
 }

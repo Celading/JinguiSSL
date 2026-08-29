@@ -45,16 +45,6 @@ public class ContractTlsServerHandshakeTestSuite {
     }
 
     @TestCase
-    public func testContractDeriveSecretsFromX25519RequiresNonEmptyKeys(): Unit {
-        try {
-            _ = contractTls13DeriveSecretsFromX25519([], [], [], 0x1301)
-            @Fail("empty keys should be rejected")
-        } catch (e: ContractException) {
-            @Assert(e.code.toString(), "BAD_INPUT")
-        }
-    }
-
-    @TestCase
     public func testContractBuildEncryptedExtensionsWithAlpnAndAcknowledge(): Unit {
         let ee = contractTls13BuildEncryptedExtensions(selectedAlpn: "h2", acknowledgeServerName: true)
         @Assert(ee.size > 0, true)

@@ -1,43 +1,43 @@
-# X.509 与 HTTP/TLS API 参考
+# X.509、密钥容器与 HTTP/TLS Contract API
 
-## X.509 证书验证
+## 通用 X.509 摘要
 
-### contractParseX509CertificateFromPem(pem: String): ContractX509Certificate
-解析单个 PEM 证书。
+- `contractX509ParseCertificatePem(...)`
+- `contractX509ParseCertificateDer(...)`
 
-### contractVerifyServerCertificatePem(leafPem, trustAnchorsPem, intermediatesPemBundle?, hostname?, validationTime?, pinPolicy?): ContractX509VerifyResult
-验证服务端叶子证书。返回验证结果，失败抛出异常。
+两者返回 `ContractX509CertificateSummary`，包含 DER/PEM、serial、subject/issuer
+CN、有效期、签名 OID、SAN DNS、EKU、policy OID、key usage 与 basic constraints。
+它不是 Core `X509Certificate` 的公开别名。
 
-### contractVerifyServerCertificateChainPem(chainPem, trustAnchorsPem, ...): ContractX509VerifyResult
-验证完整证书链。
+## 公钥与私钥容器
 
-### contractComputeLeafPinsFromPem(pem: String): (derSha256: Array<Byte>, spkiSha256: Array<Byte>)
-计算叶子证书指纹（DER 与 SPKI）。
+- `contractX509ExtractRsaPublicKeyPem(...)`
+- `contractX509ExtractEcPublicKeyPem(...)`
+- `contractX509ParseRsaPrivateKeyPkcs1Pem(...)`
+- `contractX509ParseRsaPrivateKeyPkcs8Pem(...)`
+- `contractX509ParseEcPrivateKeyPkcs8Pem(...)`
 
-## HTTP/TLS 服务端
+返回值全部为 Contract-owned RSA/EC DTO。解析失败通过稳定
+`ContractException` 映射，不向应用暴露 Core exception/type。
 
-### contractValidateHttpServerTlsConfigInput(certChainPem, privateKeyPem, alpnProtocols, requireHttp2Alpn): ContractHttpServerTlsConfigValidationResult
-验证 TLS 配置：证书链、私钥匹配、ALPN 标准化。
+## 证书链、pin 与 HTTP/TLS
 
-### contractPrepareHttpServerTlsMaterial(request): ContractHttpServerTlsMaterial
-准备服务端 TLS 启动材料。
+- `contractVerifyServerCertificatePem(...)`
+- `contractVerifyServerCertificateChainPem(...)`
+- `contractComputeLeafPinsFromPem(...)`
+- `contractValidateHttpServerTlsConfigInput(...)`
+- `contractPrepareHttpServerTlsMaterial(...)`
+- `contractValidateHttpClientTlsConfigInput(...)`
+- `contractPrepareHttpClientTlsTrustMaterial(...)`
 
-### contractTryValidateHttpServerTlsConfigInput(...): ContractHttpServerTlsConfigValidationOutcome
-安全的验证版本，返回 Outcome。
+这些入口覆盖显式 trust material、hostname/pin policy、证书/私钥匹配和 ALPN
+标准化。它们不代表完整 WebPKI、原生系统信任库或浏览器级 HTTPS 已完成。
 
-## HTTP/TLS 客户端
+## 错误码与证据
 
-### contractValidateHttpClientTlsConfigInput(trustAnchorsPem, intermediatesPemBundle, hostname, validationTime, pinPolicy, policy): ContractHttpClientTlsConfigValidationResult
-验证客户端 TLS 配置。
+- `VERIFY_FAILED`：证书验证、pin/hostname、公钥匹配或认证数据失败
+- `BAD_INPUT`：编码、字段或参数无效
+- `COMPLIANCE_REJECTED`：provider policy 拒绝
 
-### contractPrepareHttpClientTlsTrustMaterial(request): ContractHttpClientTlsTrustMaterial
-准备客户端信任材料。
-
-### contractTryValidateHttpClientTlsConfigInput(...): ContractHttpClientTlsConfigValidationOutcome
-安全的验证版本，返回 Outcome。
-
-## 错误码
-
-- `VERIFY_FAILED`：证书验证失败、公钥不匹配
-- `BAD_INPUT`：输入参数无效
-- `COMPLIANCE_REJECTED`：合规检查未通过
+通用 parser/container 当前由证书 summary、SAN/policy、RSA PKCS#1/PKCS#8、EC
+PKCS#8 和公钥匹配测试覆盖，并参与完整 309 项回归。
