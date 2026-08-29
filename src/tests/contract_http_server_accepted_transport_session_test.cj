@@ -130,6 +130,8 @@ public class ContractHttpServerAcceptedTransportSessionTestSuite {
         @Assert(session.initialHandshake.recordCount, Int64(5))
         @Assert(session.initialHandshake.records.size, Int64(5))
         @Assert(session.initialHandshake.records[0][0], UInt8(22))
+        @Assert(session.initialHandshake.records[0][1], UInt8(3))
+        @Assert(session.initialHandshake.records[0][2], UInt8(3))
         @Assert(session.initialHandshake.records[1][0], UInt8(23))
         @Assert(session.initialHandshake.records[2][0], UInt8(23))
         @Assert(session.initialHandshake.records[3][0], UInt8(23))

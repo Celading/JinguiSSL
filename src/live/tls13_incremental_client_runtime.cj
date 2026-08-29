@@ -265,7 +265,7 @@ private func contractTls13ValidateCollectedServerFlightRecords(
         ))
     }
     let first = recordResult.records[0]
-    if (first.version != ContractTlsVersion.Tls13 ||
+    if (first.version != ContractTlsVersion.Tls12 ||
         first.contentType != ContractTlsRecordContentType.Handshake ||
         !contractTls13IncrementalBytesEqual(first.payload, serverFlight.serverHello)) {
         return Some(ContractTls13IncrementalClientRuntimeOutcome(

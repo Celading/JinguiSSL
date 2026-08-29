@@ -352,6 +352,59 @@ public class ContractTls13IncrementalServerRuntimeTestSuite {
     }
 
     @TestCase
+    public func testIncrementalServerIgnoresWellFormedCompatibilityChangeCipherSpec(): Unit {
+        let fixture = c187BuildFixture("h2")
+        let state = c187OpenServerState(fixture)
+        let client = c187RunClientAgainstServerFlight(fixture, state)
+        let compatibilityRecord = contractTls13CollectIncrementalHandshakeRecords(
+            [],
+            contractTlsEncodePlaintextRecord(
+                ContractTlsVersion.Tls12,
+                ContractTlsRecordContentType.ChangeCipherSpec,
+                [UInt8(0x01)]
+            )
+        )
+        let ignored = contractTryTls13VerifyIncrementalServerClientFinished(
+            state,
+            compatibilityRecord
+        )
+        @Assert(ignored.ok, false)
+        @Assert(ignored.status.toString(), "NEED_MORE_BYTES")
+        @Assert(ignored.alertOutput.size, Int64(0))
+
+        let finished = contractTryTls13VerifyIncrementalServerClientFinished(
+            state,
+            contractTls13CollectIncrementalHandshakeRecords(
+                [],
+                client.clientFinished.encodedRecord
+            )
+        )
+        @Assert(finished.ok, true)
+        @Assert(finished.status.toString(), "COMPLETED")
+    }
+
+    @TestCase
+    public func testIncrementalServerRejectsMalformedCompatibilityChangeCipherSpec(): Unit {
+        let fixture = c187BuildFixture("h2")
+        let state = c187OpenServerState(fixture)
+        let malformedRecord = contractTls13CollectIncrementalHandshakeRecords(
+            [],
+            contractTlsEncodePlaintextRecord(
+                ContractTlsVersion.Tls12,
+                ContractTlsRecordContentType.ChangeCipherSpec,
+                [UInt8(0x02)]
+            )
+        )
+        let outcome = contractTryTls13VerifyIncrementalServerClientFinished(
+            state,
+            malformedRecord
+        )
+        @Assert(outcome.ok, false)
+        @Assert(outcome.status.toString(), "MALFORMED")
+        @Assert(outcome.alertOutput.size > 0, true)
+    }
+
+    @TestCase
     public func testConsumerCompatibilityStartFinishCompletesH2Handshake(): Unit {
         let fixture = c187BuildFixture("h2")
         let startOutcome = contractTryTls13StartIncrementalHttpServerHandshake(

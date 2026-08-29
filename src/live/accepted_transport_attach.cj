@@ -68,7 +68,9 @@ private func contractBuildHttpServerInitialHandshakeFacadeFromContext(
     let records = ArrayList<Array<Byte>>()
     records.add(
         contractTlsEncodePlaintextRecord(
-            ContractTlsVersion.Tls13,
+            // RFC 8446 §5.1: TLS 1.3 ServerHello is carried in a
+            // TLSPlaintext record whose legacy_record_version is 0x0303.
+            ContractTlsVersion.Tls12,
             ContractTlsRecordContentType.Handshake,
             flight.serverHello
         )
