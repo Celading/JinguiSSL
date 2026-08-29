@@ -16,6 +16,26 @@ main() {
     println("Initial stats: size=${initialStats.size}, hits=${initialStats.hits}, misses=${initialStats.misses}")
     println("  evictions=${initialStats.evictions}, expired=${initialStats.expiredRemovals}")
 
+    let identity = ContractTlsSessionIdentity(
+        ContractTlsVersion.Tls13,
+        [UInt8(0x01), UInt8(0x02)],
+        serverName: "API.EXAMPLE.COM",
+        alpnProtocol: "H2"
+    )
+    _ = cache.storeFromSecret(
+        identity,
+        Array<Byte>(32, repeat: UInt8(0x33)),
+        nowUnixSeconds: 1_800_000_000,
+        ttlSeconds: 60
+    )
+    if (let Some(ticket) <- cache.load(identity, nowUnixSeconds: 1_800_000_001)) {
+        println("Contract ticket loaded: server=${ticket.identity.serverName}, version=${ticket.identity.version}")
+    } else {
+        println("FAIL: Contract ticket should load")
+        return
+    }
+    _ = cache.remove(identity)
+
     // Clear the cache
     cache.clear()
     println("After clear: size=${cache.size}")

@@ -95,4 +95,59 @@ public class ContractSupplementarySessionCacheTestSuite {
         @Assert(stats.evictions, 0)
         @Assert(stats.expiredRemovals, 0)
     }
+
+    @TestCase
+    public func testContractOwnedSessionTicketStoreLoadRemove(): Unit {
+        let cache = ContractTlsSessionCache(maxEntries: 2, defaultTtlSeconds: 60)
+        let identity = ContractTlsSessionIdentity(
+            ContractTlsVersion.Tls13,
+            [UInt8(0x01), UInt8(0x02)],
+            serverName: "API.EXAMPLE.COM",
+            alpnProtocol: "H2"
+        )
+        let ticket = cache.storeFromSecret(
+            identity,
+            Array<Byte>(32, repeat: UInt8(0x33)),
+            nonce: [UInt8(0x07)],
+            nowUnixSeconds: 1_800_000_000,
+            ttlSeconds: 60
+        )
+        @Assert(ticket.identity.serverName, "api.example.com")
+        @Assert(ticket.identity.alpnProtocol, "h2")
+        @Assert(ticket.isExpired(1_800_000_059), false)
+
+        if (let Some(loaded) <- cache.load(identity, nowUnixSeconds: 1_800_000_001)) {
+            @Assert(loaded.secret.size, 32)
+            @Assert(loaded.identity.version.toString(), "TLS1.3")
+            try {
+                _ = contractTls13BuildClientHelloPskFromSessionTicket(loaded)
+                @Fail("local cache tickets must not become self-describing wire identities")
+            } catch (e: ContractException) {
+                @Assert(e.code.toString(), "UNSUPPORTED")
+            }
+        } else {
+            @Fail("Contract-owned session ticket should load")
+        }
+        @Assert(cache.remove(identity), true)
+        @Assert(cache.size, 0)
+    }
+
+    @TestCase
+    public func testContractOwnedSessionTicketExpiryPurges(): Unit {
+        let cache = ContractTlsSessionCache(maxEntries: 2, defaultTtlSeconds: 1)
+        let identity = ContractTlsSessionIdentity(
+            ContractTlsVersion.Tls13,
+            [UInt8(0x09)],
+            serverName: "expiry.example",
+            alpnProtocol: "h2"
+        )
+        _ = cache.storeFromSecret(
+            identity,
+            Array<Byte>(32, repeat: UInt8(0x44)),
+            nowUnixSeconds: 1_800_000_100,
+            ttlSeconds: 1
+        )
+        @Assert(cache.purgeExpired(nowUnixSeconds: 1_800_000_101), 1)
+        @Assert(cache.size, 0)
+    }
 }

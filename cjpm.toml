@@ -1,13 +1,13 @@
 [package]
   cjc-version = "1.0.0"
-  version = "0.7.6"
+  version = "0.7.7"
   name = "jinguissl"
   output-type = "static"
   src-dir = "src"
   compile-option = "-Woff unused"
   license = "Apache-2.0"
-  description = "Stable Cangjie facade for cryptography, X.509, TLS, and SSH startup contracts"
+  description = "Cangjie application facade for cryptography, X.509, TLS, SSH, and QUIC contracts"
   include = ["src"]
 
 [dependencies]
-  jinguissl_core = { git = "https://gitcode.com/CjKu/JinguiCore.git" }
+  jinguissl_core = { git = "https://gitcode.com/CjKu/JinguiCore.git", commitId = "cf27ef1807767ebd5155aa32eb467e6dce8ba144" }
