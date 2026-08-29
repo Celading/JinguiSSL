@@ -2,7 +2,6 @@ package jinguissl.tests
 
 import std.collection.ArrayList
 import std.fs.File
-import jinguissl_core.crypto.ssh.{sshBuildDefaultKexInit, sshBuildKexEcdhInitX25519, sshEncodeKexInit, sshEncodeNewKeys}
 import jinguissl.contract.*
 
 private let LIVE_SOURCE_ROOT: String = ""
@@ -16,10 +15,10 @@ public class ContractSshStartupBundleTestSuite {
         let transcript = ContractSshKexExchangeTranscript(
             "SSH-2.0-contract-startup-client\r\n".toArray(),
             "SSH-2.0-contract-startup-server\r\n".toArray(),
-            sshEncodeKexInit(sshBuildDefaultKexInit(cookie: incrementalBytes(16, start: 1820))),
-            sshEncodeKexInit(sshBuildDefaultKexInit(cookie: incrementalBytes(16, start: 1860)))
+            contractSshBuildDefaultKexInitPayload(cookie: incrementalBytes(16, start: 1820)),
+            contractSshBuildDefaultKexInitPayload(cookie: incrementalBytes(16, start: 1860))
         )
-        let (encodedInit, _) = sshBuildKexEcdhInitX25519(clientPrivate)
+        let encodedInit = contractSshBuildKexEcdhInitX25519(clientPrivate).encodedInit
         let negotiated = ContractSshNegotiatedAlgorithms(
             "curve25519-sha256",
             "rsa-sha2-256",
@@ -37,8 +36,8 @@ public class ContractSshStartupBundleTestSuite {
                 encodedInit,
                 readText("testdata/x509/rsa_2048_pkcs8.pem"),
                 negotiated,
-                sshEncodeNewKeys(),
-                sshEncodeNewKeys(),
+                contractSshEncodeNewKeys(),
+                contractSshEncodeNewKeys(),
                 profile: ContractHttpSshStartupProfile.SshServerLibrary,
                 aesBackendHint: "shim"
             )
@@ -64,8 +63,8 @@ public class ContractSshStartupBundleTestSuite {
                     compressionAlgorithmClientToServer: "none",
                     compressionAlgorithmServerToClient: "none"
                 ),
-                sshEncodeNewKeys(),
-                sshEncodeNewKeys(),
+                contractSshEncodeNewKeys(),
+                contractSshEncodeNewKeys(),
                 profile: ContractHttpSshStartupProfile.SshServerLibrary,
                 aesBackendHint: "shim"
             )
@@ -89,8 +88,8 @@ public class ContractSshStartupBundleTestSuite {
                     compressionAlgorithmClientToServer: "none",
                     compressionAlgorithmServerToClient: "none"
                 ),
-                sshEncodeNewKeys(),
-                sshEncodeNewKeys(),
+                contractSshEncodeNewKeys(),
+                contractSshEncodeNewKeys(),
                 profile: ContractHttpSshStartupProfile.SshServerLibrary,
                 aesBackendHint: "shim"
             )
@@ -106,8 +105,8 @@ public class ContractSshStartupBundleTestSuite {
                     encodedInit,
                     serverBundle.handshake.encodedReply,
                     negotiated,
-                    sshEncodeNewKeys(),
-                    sshEncodeNewKeys(),
+                    contractSshEncodeNewKeys(),
+                    contractSshEncodeNewKeys(),
                     policy: ContractSshHostVerificationPolicy(
                         negotiatedHostKeyAlgorithm: "rsa-sha2-256",
                         expectedHostKeySha256: serverBundle.handshake.hostKeySha256,
@@ -124,6 +123,8 @@ public class ContractSshStartupBundleTestSuite {
         @Assert(clientBundle.readiness.sshReady, true)
         @Assert(clientBundle.handshake.requireHostVerification().hostSignatureVerified, true)
         @Assert(clientBundle.runtime.sessionId(), clientBundle.handshake.sessionId)
+        let sealed = serverBundle.runtime.seal("contract-owned-ssh-channel".toArray())
+        @Assert(clientBundle.runtime.open(sealed).payload, "contract-owned-ssh-channel".toArray())
 
         let productionServer = contractTryPrepareSshServerLibraryStartupX25519RsaPkcs8Request(
             ContractSshServerLibraryStartupX25519RsaPkcs8Request(
@@ -132,8 +133,8 @@ public class ContractSshStartupBundleTestSuite {
                 encodedInit,
                 readText("testdata/x509/rsa_2048_pkcs8.pem"),
                 negotiated,
-                sshEncodeNewKeys(),
-                sshEncodeNewKeys(),
+                contractSshEncodeNewKeys(),
+                contractSshEncodeNewKeys(),
                 profile: ContractHttpSshStartupProfile.ProductionAccelerated,
                 aesBackendHint: "shim"
             )
@@ -154,8 +155,8 @@ public class ContractSshStartupBundleTestSuite {
                     encodedInit,
                     serverBundle.handshake.encodedReply,
                     negotiated,
-                    sshEncodeNewKeys(),
-                    sshEncodeNewKeys()
+                    contractSshEncodeNewKeys(),
+                    contractSshEncodeNewKeys()
                 ),
                 profile: ContractHttpSshStartupProfile.HttpClientLibrary,
                 aesBackendHint: "shim"
@@ -177,10 +178,10 @@ public class ContractSshStartupBundleTestSuite {
         let transcript = ContractSshKexExchangeTranscript(
             "SSH-2.0-contract-startup-client\r\n".toArray(),
             "SSH-2.0-contract-startup-server\r\n".toArray(),
-            sshEncodeKexInit(sshBuildDefaultKexInit(cookie: incrementalBytes(16, start: 1820))),
-            sshEncodeKexInit(sshBuildDefaultKexInit(cookie: incrementalBytes(16, start: 1860)))
+            contractSshBuildDefaultKexInitPayload(cookie: incrementalBytes(16, start: 1820)),
+            contractSshBuildDefaultKexInitPayload(cookie: incrementalBytes(16, start: 1860))
         )
-        let (encodedInit, _) = sshBuildKexEcdhInitX25519(clientPrivate)
+        let encodedInit = contractSshBuildKexEcdhInitX25519(clientPrivate).encodedInit
         let negotiated = ContractSshNegotiatedAlgorithms(
             "curve25519-sha256",
             "ecdsa-sha2-nistp256",
@@ -200,8 +201,8 @@ public class ContractSshStartupBundleTestSuite {
                 encodedInit,
                 readText("testdata/x509/policy_leaf_key_pkcs8.pem"),
                 negotiated,
-                sshEncodeNewKeys(),
-                sshEncodeNewKeys(),
+                contractSshEncodeNewKeys(),
+                contractSshEncodeNewKeys(),
                 profile: ContractHttpSshStartupProfile.SshServerLibrary,
                 aesBackendHint: "shim"
             )
@@ -232,8 +233,8 @@ public class ContractSshStartupBundleTestSuite {
                 encodedInit,
                 hexToBytes("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"),
                 ed25519Negotiated,
-                sshEncodeNewKeys(),
-                sshEncodeNewKeys(),
+                contractSshEncodeNewKeys(),
+                contractSshEncodeNewKeys(),
                 profile: ContractHttpSshStartupProfile.SshServerLibrary,
                 aesBackendHint: "shim"
             )
@@ -263,8 +264,8 @@ public class ContractSshStartupBundleTestSuite {
                     compressionAlgorithmClientToServer: "none",
                     compressionAlgorithmServerToClient: "none"
                 ),
-                sshEncodeNewKeys(),
-                sshEncodeNewKeys(),
+                    contractSshEncodeNewKeys(),
+                    contractSshEncodeNewKeys(),
                 profile: ContractHttpSshStartupProfile.ProductionAccelerated,
                 aesBackendHint: "shim"
             )

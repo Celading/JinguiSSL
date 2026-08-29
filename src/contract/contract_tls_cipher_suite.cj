@@ -1,6 +1,7 @@
  package jinguissl.contract
 
 import jinguissl_core.crypto.error.{CryptoErrorCode, CryptoException}
+import jinguissl_core.crypto.digest.HashAlgorithm as CoreHashAlgorithm
 import jinguissl_core.crypto.tls.{
     TlsAeadAlgorithm,
     tls13CipherSuiteAeadAlgorithm,
@@ -14,11 +15,15 @@ import jinguissl_core.crypto.tls.{
  public enum ContractTlsAeadAlgorithm <: ToString {
      | AesGcm
      | ChaCha20Poly1305
+     | Sm4Gcm
+     | Sm4Ccm
 
      public func toString(): String {
          match (this) {
              case AesGcm => "AES-GCM"
              case ChaCha20Poly1305 => "ChaCha20-Poly1305"
+             case Sm4Gcm => "SM4-GCM"
+             case Sm4Ccm => "SM4-CCM"
          }
      }
  }
@@ -28,6 +33,8 @@ import jinguissl_core.crypto.tls.{
      match (alg) {
          case TlsAeadAlgorithm.AES_GCM => ContractTlsAeadAlgorithm.AesGcm
          case TlsAeadAlgorithm.CHACHA20_POLY1305 => ContractTlsAeadAlgorithm.ChaCha20Poly1305
+         case TlsAeadAlgorithm.SM4_GCM => ContractTlsAeadAlgorithm.Sm4Gcm
+         case TlsAeadAlgorithm.SM4_CCM => ContractTlsAeadAlgorithm.Sm4Ccm
      }
  }
 
@@ -61,12 +68,23 @@ import jinguissl_core.crypto.tls.{
  /// suite: TLS 1.3 密码套件 ID
  public func contractTls13CipherSuiteHashAlgorithm(suite: Int64): HashAlgorithm {
      try {
-         tls13CipherSuiteHashAlgorithm(suite)
+         contractFromTlsHashAlgorithm(tls13CipherSuiteHashAlgorithm(suite))
      } catch (e: CryptoException) {
          throw ContractException(
              mapCryptoErrorForOperation(e, "tls"),
              "TLS 1.3 cipher suite hash algorithm lookup failed: ${e.message}"
          )
+     }
+ }
+
+ private func contractFromTlsHashAlgorithm(algorithm: CoreHashAlgorithm): HashAlgorithm {
+     match (algorithm) {
+         case CoreHashAlgorithm.MD5 => HashAlgorithm.MD5
+         case CoreHashAlgorithm.SHA1 => HashAlgorithm.SHA1
+         case CoreHashAlgorithm.SHA256 => HashAlgorithm.SHA256
+         case CoreHashAlgorithm.SHA384 => HashAlgorithm.SHA384
+         case CoreHashAlgorithm.SHA512 => HashAlgorithm.SHA512
+         case CoreHashAlgorithm.SM3 => HashAlgorithm.SM3
      }
  }
 

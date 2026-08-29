@@ -7,6 +7,8 @@ target/
 .idea/
 .cache/
 .atomcode/
+__pycache__/
+*.py[cod]
 
 # OS files
 .DS_Store

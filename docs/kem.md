@@ -1,37 +1,35 @@
-# KEM（密钥封装机制）API 参考
+# Traditional KEM Contract API
 
-## 概述
+## 已实现
 
-KEM（Key Encapsulation Mechanism）是后量子密码储备模块。JinguiSSL 当前支持 RSA-KEM 和 ECDH-KEM 的合规检查，主打量子安全 ML-KEM（Kyber）暂无产品路线图。
+Contract 提供传统 RSA-KEM 与 P-256 ECDH-KEM 的 byte/DTO facade：
 
-### contractKemProfile(): ContractKemProfile
-返回 KEM 模块配置信息。
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `available` | Bool | KEM 功能是否可用 |
-| `algoHint` | String | 算法提示（如 "ML-KEM / Kyber"） |
-| `detail` | String | 详细描述 |
+- `contractRsaKemEncapsulate(...)` / `contractRsaKemDecapsulate(...)`
+- `contractEcdhKemEncapsulate(...)` / `contractEcdhKemDecapsulate(...)`
+- `ContractKemEncapsulation`：`encapsulatedKey` 与 `sharedSecret`
 
 ```cangjie
-let kem = contractKemProfile()
-println("KEM available: ${kem.available}")
-println("Algo: ${kem.algoHint}")
+let result = contractRsaKemEncapsulate(
+    recipientPublicKey,
+    sharedSecretLen: 32,
+    info: "context".toArray()
+)
+let secret = contractRsaKemDecapsulate(
+    recipientPrivateKey,
+    result.encapsulatedKey,
+    sharedSecretLen: 32,
+    info: "context".toArray()
+)
 ```
 
-### contractTryKemProfile(): ContractKemProfileOutcome
-非抛出版本。
+双方必须使用相同的 `sharedSecretLen` 与 `info`。ECDH-KEM 当前由 Core 的 P-256
+实现支撑；其他 Contract 曲线传入该入口会被底层约束拒绝。
 
-## 用途说明
+## ML-KEM 边界
 
-KEM 在当前版本中保持为储备能力：
-- 主线程证书/签名路径仍使用传统 KEX（X25519、ECDHE）
-- ML-KEM 的标准化尚未关闭，产品化时间线待定
-- 可通过 `contractKemProfile()` 查询当前可用性状态
+`contractKemProfile()` 继续用于描述 provider 路由事实，但 JinguiSSL Core 当前没有
+ML-KEM 或 hybrid PQC 实现。传统 RSA-KEM/ECDH-KEM 不具备后量子安全属性，也不
+能被描述成 ML-KEM/Kyber。
 
-## 相关函数
-
-- `rsaKemRequireAllowed()`: 检查 RSA-KEM 是否允许
-- `ecdhKemRequireAllowed()`: 检查 ECDH-KEM 是否允许
-
-这些函数在 `jinguissl_core.crypto.kem` 模块中提供。
+当前证据是本地双方 roundtrip、输入边界与完整 309 项回归；不声明 PQC、外部 KEM
+互操作或恒定时间认证。
