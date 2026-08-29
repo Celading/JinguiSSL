@@ -414,7 +414,7 @@ private func c186TryMapProtectedServerFlight(
     }
 
     let first = recordResult.records[0]
-    if (first.version != ContractTlsVersion.Tls13 ||
+    if (first.version != ContractTlsVersion.Tls12 ||
         first.contentType != ContractTlsRecordContentType.Handshake ||
         !c186BytesEqual(first.payload, serverFlight.serverHello)) {
         return C186ProtectedServerFlightMapAttempt(failure: Some(c186ProtectedFailure(
@@ -441,10 +441,14 @@ private func c186TryMapProtectedServerFlight(
     try {
         let binding = contractTls13ResolveCipherBindingFromServerFlight(serverFlight)
         let serverPublicKey = tls13ExtractServerX25519KeyShare(serverFlight.serverHello)
+        let helloTranscriptHash = c186Tls13HashForCipherSuite(
+            binding.cipherSuite,
+            c186ConcatBytes([clientHello.encodedClientHello, serverFlight.serverHello])
+        )
         let secrets = tls13DeriveSecretsFromX25519ForCipherSuite(
             clientHello.clientPrivateKey,
             serverPublicKey,
-            serverFlight.transcriptHash,
+            helloTranscriptHash,
             binding.cipherSuite
         )
         let (clientHandshakeKey, clientHandshakeIv) = contractTls13DeriveApplicationTrafficKeyIv(
@@ -592,10 +596,17 @@ private func c186Tls13FullServerFlightTranscriptHash(
         certificateVerifyHandshake,
         finishedHandshake
     ])
+    c186Tls13HashForCipherSuite(cipherSuite, transcript)
+}
+
+private func c186Tls13HashForCipherSuite(
+    cipherSuite: Int64,
+    data: Array<Byte>
+): Array<Byte> {
     if (cipherSuite == TLS13_CIPHER_SUITE_AES_256_GCM_SHA384) {
-        return sha384(transcript)
+        return sha384(data)
     }
-    sha256(transcript)
+    sha256(data)
 }
 
 private func c186ConcatBytes(parts: Array<Array<Byte>>): Array<Byte> {
