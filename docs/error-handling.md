@@ -9,7 +9,7 @@ ContractException
   ├── code: ContractErrorCode    → 应用层可读的错误分类
   └── message: String            → 人类可读的描述
 
-ContractIgniteCryptoErrorCode    → 向下游框架映射的错误码
+ContractIgniteCryptoErrorCode    → 保留的下游兼容错误码
   ├── BadEnvelope
   ├── KeyNotFound
   ├── DecryptFailed
@@ -30,10 +30,10 @@ ContractIgniteCryptoErrorCode    → 向下游框架映射的错误码
 
 ## 错误映射
 
-`contractMapToIgniteCryptoErrorCode(code)` 用于将 contract 错误码映射为
-Ignite 风格的下游错误码：
+`contractMapToIgniteCryptoErrorCode(code)` 是保留的兼容 API，用于把
+contract 错误码映射到较窄的下游错误集合：
 
-| ContractErrorCode | Ignite 映射 |
+| ContractErrorCode | 兼容映射 |
 |------------------|-------------|
 | `BadInput` | `BadEnvelope` |
 | `KeyNotFound` | `KeyNotFound` |
@@ -46,7 +46,7 @@ Ignite 风格的下游错误码：
 1. **使用 `contractTry*` 变体**：大多数函数都有 `try` 版本，返回 `Outcome` 类型，
    可优雅处理错误而无需 try-catch。
 
-2. **检查 `code` 和 `igniteCode`**：`Outcome` 类型同时携带这两种错误码。
+2. **优先检查 `code`**：`igniteCode` 是兼容字段，新代码不应让它取代 Contract 自己的错误语义。
 
 3. **Provider Gate 错误描述**：高风险操作（证书验证、TLS 握手）使用
    `contractDescribeProviderErrorCode` 获取带阶段的错误描述。

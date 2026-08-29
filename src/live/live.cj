@@ -172,8 +172,8 @@ import jinguissl_core.crypto.x509.{
     x509VerifyCertificateChain
 }
 
-/* LIBRARY_VERSION migrated from monolith — keep in sync with jinguissl_core */
-private let LIBRARY_VERSION: String = "0.6.21"
+/* Keep the legacy live-package capability record aligned with the Contract package. */
+private let LIBRARY_VERSION: String = "0.7.7"
 
 private let CONTRACT_AES_GCM_CONTEXT_CACHE_MAX: Int64 = 16
 private let _contractAesGcmContextCache = ArrayList<ContractAesGcmContextCacheEntry>()
@@ -16262,6 +16262,16 @@ private func contractFromTlsAeadAlgorithm(algorithm: TlsAeadAlgorithm): Contract
     match (algorithm) {
         case TlsAeadAlgorithm.AES_GCM => ContractAeadAlgorithm.Aes256Gcm
         case TlsAeadAlgorithm.CHACHA20_POLY1305 => ContractAeadAlgorithm.Chacha20Poly1305
+        case TlsAeadAlgorithm.SM4_GCM =>
+            throw ContractException(
+                ContractErrorCode.Unsupported,
+                "SM4-GCM requires the GM TLS contract surface"
+            )
+        case TlsAeadAlgorithm.SM4_CCM =>
+            throw ContractException(
+                ContractErrorCode.Unsupported,
+                "SM4-CCM requires the GM TLS contract surface"
+            )
     }
 }
 
