@@ -5769,7 +5769,8 @@ public class ContractHttpServerAcceptedTransportTls13X25519Request {
         this.policy = ContractTlsHttpNegotiationPolicy(
             requireServerName: policy.requireServerName,
             allowedServerNames: policy.allowedServerNames,
-            alpnPreference: policy.alpnPreference
+            alpnPreference: policy.alpnPreference,
+            allowMissingAlpnHttp11Fallback: policy.allowMissingAlpnHttp11Fallback
         )
     }
 }
@@ -5912,7 +5913,8 @@ public class ContractHttpClientTlsTrustRequest {
         this.policy = ContractTlsHttpNegotiationPolicy(
             requireServerName: policy.requireServerName,
             allowedServerNames: policy.allowedServerNames,
-            alpnPreference: policy.alpnPreference
+            alpnPreference: policy.alpnPreference,
+            allowMissingAlpnHttp11Fallback: policy.allowMissingAlpnHttp11Fallback
         )
     }
 }
@@ -5997,11 +5999,13 @@ public class ContractTlsHttpNegotiationPolicyValidationResult {
     public let requireServerName: Bool
     public let normalizedAllowedServerNames: Array<String>
     public let normalizedAlpnPreference: Array<String>
+    public let allowMissingAlpnHttp11Fallback: Bool
 
     public init(
         requireServerName: Bool,
         normalizedAllowedServerNames: Array<String>,
-        normalizedAlpnPreference: Array<String>
+        normalizedAlpnPreference: Array<String>,
+        allowMissingAlpnHttp11Fallback!: Bool = false
     ) {
         if (normalizedAlpnPreference.size == 0) {
             throw ContractException(ContractErrorCode.BadInput, "TLS HTTP negotiation ALPN preference must not be empty")
@@ -6009,6 +6013,7 @@ public class ContractTlsHttpNegotiationPolicyValidationResult {
         this.requireServerName = requireServerName
         this.normalizedAllowedServerNames = normalizedAllowedServerNames.clone()
         this.normalizedAlpnPreference = normalizedAlpnPreference.clone()
+        this.allowMissingAlpnHttp11Fallback = allowMissingAlpnHttp11Fallback
     }
 }
 
@@ -8121,15 +8126,18 @@ public class ContractTlsHttpNegotiationPolicy {
     public let requireServerName: Bool
     public let allowedServerNames: Array<String>
     public let alpnPreference: Array<String>
+    public let allowMissingAlpnHttp11Fallback: Bool
 
     public init(
         requireServerName!: Bool = true,
         allowedServerNames!: Array<String> = [],
-        alpnPreference!: Array<String> = []
+        alpnPreference!: Array<String> = [],
+        allowMissingAlpnHttp11Fallback!: Bool = false
     ) {
         this.requireServerName = requireServerName
         this.allowedServerNames = allowedServerNames.clone()
         this.alpnPreference = alpnPreference.clone()
+        this.allowMissingAlpnHttp11Fallback = allowMissingAlpnHttp11Fallback
     }
 }
 
@@ -8141,7 +8149,8 @@ public func contractValidateTlsHttpNegotiationPolicy(
         ContractTlsHttpNegotiationPolicyValidationResult(
             normalized.requireServerName,
             normalized.allowedServerNames,
-            normalized.alpnPreference
+            normalized.alpnPreference,
+            allowMissingAlpnHttp11Fallback: normalized.allowMissingAlpnHttp11Fallback
         )
     } catch (e: ContractException) {
         throw e
@@ -8668,7 +8677,8 @@ public class ContractTls13HttpServerFlightX25519Request {
         this.policy = ContractTlsHttpNegotiationPolicy(
             requireServerName: policy.requireServerName,
             allowedServerNames: policy.allowedServerNames,
-            alpnPreference: policy.alpnPreference
+            alpnPreference: policy.alpnPreference,
+            allowMissingAlpnHttp11Fallback: policy.allowMissingAlpnHttp11Fallback
         )
     }
 }
@@ -16685,7 +16695,8 @@ private func contractToTlsHttpNegotiationPolicy(
     TlsHttpNegotiationPolicy(
         requireServerName: policy.requireServerName,
         allowedServerNames: policy.allowedServerNames,
-        alpnPreference: policy.alpnPreference
+        alpnPreference: policy.alpnPreference,
+        allowMissingAlpnHttp11Fallback: policy.allowMissingAlpnHttp11Fallback
     )
 }
 

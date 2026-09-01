@@ -33,7 +33,8 @@ JinguiSSL 是面向仓颉（Cangjie）应用的密码学、证书、TLS 与 SSH 
 - AES、ECC/ECDSA/ECDH、Ed25519、RSA 已有 Contract-owned 操作面；capability probe 继续服务启动查询。
 - KEM 当前提供传统 RSA-KEM/P-256 ECDH-KEM；没有 ML-KEM/hybrid PQC 实现。
 - SM2/SM3/SM4、SM9、GM X.509、RFC 8998 与 TLCP/DTLCP 有独立 Contract facade 和本地测试。
-- TLS 1.3 live runtime 已有 caller-owned transport 测试，但不是浏览器级 HTTPS 或外部 H2 证明。
+- TLS 1.3 live runtime 已有 caller-owned transport 测试；服务端可显式允许未携带 ALPN
+  的 HTTP/1.1 回落，但默认仍严格拒绝，且这不是浏览器级 HTTPS 或外部 H2 证明。
 
 ## 2. 依赖集成
 
