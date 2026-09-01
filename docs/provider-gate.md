@@ -54,4 +54,8 @@
 列出所有消费路径的入口状态。
 
 部分 smoke fixture 只验证 metadata、precheck 或 provider-selection 分支。
+
+TLS HTTP 的缺失 ALPN 回落属于每次握手的显式策略，不是 provider 全局降级。
+`allowMissingAlpnHttp11Fallback` 默认关闭，并且只有策略同时包含 `http/1.1` 时才有效；
+provider readiness 或 smoke 通过不会自动开启该行为。
 只有明确执行 live handshake 的证据，才能描述为网络互操作证明。

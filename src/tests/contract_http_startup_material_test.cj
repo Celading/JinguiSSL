@@ -19,12 +19,14 @@ public class ContractHttpStartupMaterialTestSuite {
             policy: ContractTlsHttpNegotiationPolicy(
                 requireServerName: true,
                 allowedServerNames: [TEST_HOST_API_UPPER_PADDED, TEST_HOST_API, TEST_HOST_WWW_UPPER],
-                alpnPreference: [" H2 ", "http/1.1", "h2"]
+                alpnPreference: [" H2 ", "http/1.1", "h2"],
+                allowMissingAlpnHttp11Fallback: true
             )
         )
         @Assert(result.requireServerName, true)
         @Assert(result.normalizedAllowedServerNames, [TEST_HOST_API, TEST_HOST_WWW])
         @Assert(result.normalizedAlpnPreference, ["h2", "http/1.1"])
+        @Assert(result.allowMissingAlpnHttp11Fallback, true)
 
         let defaults = contractValidateTlsHttpNegotiationPolicy(
             policy: ContractTlsHttpNegotiationPolicy(
@@ -34,6 +36,7 @@ public class ContractHttpStartupMaterialTestSuite {
         @Assert(defaults.requireServerName, false)
         @Assert(defaults.normalizedAllowedServerNames.size, 0)
         @Assert(defaults.normalizedAlpnPreference, ["h2", "http/1.1"])
+        @Assert(defaults.allowMissingAlpnHttp11Fallback, false)
     }
 
     @TestCase
@@ -68,6 +71,18 @@ public class ContractHttpStartupMaterialTestSuite {
         match (failed.igniteCode) {
             case Some(value) => @Assert(value.toString(), "BAD_ENVELOPE")
             case None => @Fail("TLS HTTP policy failed outcome should carry ignite code")
+        }
+
+        let invalidFallback = contractTryValidateTlsHttpNegotiationPolicy(
+            policy: ContractTlsHttpNegotiationPolicy(
+                alpnPreference: ["h2"],
+                allowMissingAlpnHttp11Fallback: true
+            )
+        )
+        @Assert(invalidFallback.ok, false)
+        match (invalidFallback.code) {
+            case Some(value) => @Assert(value.toString(), "BAD_INPUT")
+            case None => @Fail("missing-ALPN HTTP/1.1 fallback should require http/1.1")
         }
     }
 

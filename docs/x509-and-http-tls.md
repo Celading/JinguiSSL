@@ -33,6 +33,11 @@ CN、有效期、签名 OID、SAN DNS、EKU、policy OID、key usage 与 basic c
 这些入口覆盖显式 trust material、hostname/pin policy、证书/私钥匹配和 ALPN
 标准化。它们不代表完整 WebPKI、原生系统信任库或浏览器级 HTTPS 已完成。
 
+`ContractTlsHttpNegotiationPolicy` 默认要求协商出受支持的 ALPN。服务端兼容未发送
+ALPN 的 HTTP/1.1 客户端时，必须显式启用
+`allowMissingAlpnHttp11Fallback`，并把 `http/1.1` 纳入 `alpnPreference`。该路径
+不会伪造 ALPN：成功继续态中的 `selectedAlpn` 仍为空；未知的非空协议不会被放行。
+
 ## 错误码与证据
 
 - `VERIFY_FAILED`：证书验证、pin/hostname、公钥匹配或认证数据失败
@@ -40,4 +45,4 @@ CN、有效期、签名 OID、SAN DNS、EKU、policy OID、key usage 与 basic c
 - `COMPLIANCE_REJECTED`：provider policy 拒绝
 
 通用 parser/container 当前由证书 summary、SAN/policy、RSA PKCS#1/PKCS#8、EC
-PKCS#8 和公钥匹配测试覆盖，并参与完整 309 项回归。
+PKCS#8 和公钥匹配测试覆盖，并参与完整 319 项回归。

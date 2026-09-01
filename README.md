@@ -121,6 +121,11 @@ Contract 源码采用 `Apache-2.0`，依赖的 Core 当前源码线采用 `LGPL-
 
 `jinguissl.live.*` 提供增量 client/server record 输入输出、protected flight、client Finished 验证和 verified application channel。调用方仍负责 socket、读写调度、超时和上层协议。
 
+服务端策略默认拒绝缺失 ALPN。仅在 `ContractTlsHttpNegotiationPolicy` 显式设置
+`allowMissingAlpnHttp11Fallback: true` 且 ALPN 偏好包含 `http/1.1` 时，增量服务端
+入口才接受未发送 ALPN 的 ClientHello；继续态的 `selectedAlpn` 保持为空，由调用方
+选择 HTTP/1.1。未知的非空 ALPN 仍会失败关闭。
+
 ### 国密与国密协议
 
 - `contractSm3(...)`、`contractSm4Encrypt(...)`、`contractSm2Sign(...)`
