@@ -5,8 +5,8 @@ import jinguissl_core.crypto.compliance.FipsProfile
 
 /**
  * ContractKemProfile — DTO that reports whether the KEM (Key Encapsulation
- * Mechanism) module is available. KEM is currently a post-quantum reserve
- * (ML-KEM / Kyber) with no active product roadmap in JinguiSSL.
+ * Mechanism) operations are available. Availability applies only to the
+ * algorithms named by algoHint, never to an absent post-quantum provider.
  */
 public class ContractKemProfile {
     public let available: Bool
@@ -111,25 +111,25 @@ public class ContractKemProfileOutcome {
 
 /**
  * contractKemProfile — probes whether the KEM module is linked and available.
- * Currently a placeholder: KEM is extracted in core but has no active PQC
- * roadmap in the product.
+ * Reports the implemented traditional algorithms, not post-quantum KEM.
  */
 public func contractKemProfile(): ContractKemProfile {
     try {
-        let profile = FipsProfile()
+        let profile = FipsProfile.phase1Default()
         rsaKemRequireAllowed(profile)
+        ecdhKemRequireAllowed(profile)
         ContractKemProfile(
             true,
-            "ml-kem",
-            "KEM module is present in jinguissl-core (ML-KEM / Kyber reserve); PQC product roadmap is TBD"
+            "rsa-kem,p256-ecdh-kem",
+            "Traditional RSA-KEM and P-256 ECDH-KEM are available; ML-KEM is unavailable"
         )
     } catch (e: ContractException) {
         throw e
     } catch (_: Exception) {
         ContractKemProfile(
             false,
-            "ml-kem",
-            "KEM module is unavailable in the current runtime; PQC product roadmap is TBD"
+            "rsa-kem,p256-ecdh-kem",
+            "Traditional KEM is unavailable in the current runtime; ML-KEM is unavailable"
         )
     }
 }

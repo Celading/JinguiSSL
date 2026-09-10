@@ -27,9 +27,10 @@ let secret = contractRsaKemDecapsulate(
 
 ## ML-KEM 边界
 
-`contractKemProfile()` 继续用于描述 provider 路由事实，但 JinguiSSL Core 当前没有
-ML-KEM 或 hybrid PQC 实现。传统 RSA-KEM/ECDH-KEM 不具备后量子安全属性，也不
-能被描述成 ML-KEM/Kyber。
+`contractKemProfile()` 的 `available` 仅描述 `algoHint` 中列出的传统算法：
+`rsa-kem,p256-ecdh-kem`。探测显式检查默认算法策略中的 RSA-KEM 与 ECDH-KEM；
+这不是运行时自检、合规认证或外部设备探测。ML-KEM 和 hybrid PQC 均未实现。
+传统 RSA-KEM/ECDH-KEM 不具备后量子安全属性，不能被描述成 ML-KEM/Kyber。
 
 当前证据是本地双方 roundtrip、输入边界与完整 309 项回归；不声明 PQC、外部 KEM
 互操作或恒定时间认证。
