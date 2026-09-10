@@ -28,3 +28,5 @@ pushd examples/contract-application-smoke >/dev/null
 cjpm build
 cjpm run
 popd >/dev/null
+
+bash scripts/jinguissl_consumer_smokes.sh
