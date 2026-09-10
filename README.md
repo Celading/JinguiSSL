@@ -45,9 +45,9 @@
 | X.509 / PEM contract | 通用证书摘要、RSA/EC 密钥容器、证书链、pin 与 HTTP TLS material | production candidate with limits |
 | AES operations / backend readiness | ECB/CBC/CTR/GCM byte facade、backend 探测与启动检查 | implemented local test |
 | System CSPRNG facade | fail-closed system entropy bytes | implemented local test |
-| SSH protocol facade | KEX prelude、主机验证、Contract-owned 握手摘要与包保护 channel | implemented local test |
+| SSH protocol facade | KEX prelude、主机验证、Contract-owned 握手摘要、Bridge key adapter 与包保护 channel | implemented local test |
 | Provider readiness | capability、self-check、smoke 与 fallback 描述 | 部分 smoke 为 metadata/precheck |
-| ECC operations | P-256/P-384/P-521/secp256k1 key DTO、ECDSA/ECDH 与 ES256 verify | implemented local test |
+| ECC operations | P-256/P-384/P-521/secp256k1 key DTO、message/pre-hashed ECDSA、ECDH 与 ES256 verify | implemented local test |
 | Ed25519 operations | seed/keypair、公钥派生、签名与验证 | implemented local test |
 | RSA operations | key DTO/import/generation、PSS 与 PKCS#1 v1.5 sign/verify | implemented local test |
 | GM primitives / SM2 / SM3 / SM4 / DRBG facade | hash/KDF、全模式/AEAD/MAC、签名/加密/协商与随机 | implemented local test |
@@ -59,6 +59,7 @@
 | QUIC v1/v2 protection facade | Initial、显式 AEAD、Header Protection、Retry integrity | 不含 transport/HTTP3 |
 | TLS session cache / secure opaque resumption | bounded cache、server-owned opaque ticket、binder validation、rotation 与 single-use consumption | implemented local test |
 | TLS cipher-suite / PSK contracts | cipher suite、Contract-owned PSK/session DTO 与无秘密 wire helper | implemented local test |
+| Generic TLS / QUIC client engine | 自有认证状态、TLS stream record、QUIC 无 record 输入与阶段秘密；可选 CertificateRequest 的空证书回应 | 本机独立对端验证；不含客户端身份认证或 QUIC transport |
 | Incremental TLS 1.3 live runtime | caller-owned transport 的 client/server handshake 与 verified channel | 非浏览器级 HTTPS 证明 |
 | Runtime compatibility profiles | runtime marker 与 startup profile catalog | 不等于多平台实机证明 |
 
@@ -103,7 +104,7 @@ Contract 源码采用 `Apache-2.0`，依赖的 Core 当前源码线采用 `LGPL-
 ### 非国密密码操作
 
 - `contractAesEncrypt(...)`、`contractAesGcmEncrypt(...)`
-- `contractEcGenerateKeyPair(...)`、`contractEcdsaSign(...)`、`contractEcdh(...)`
+- `contractEcGenerateKeyPair(...)`、`contractEcdsaSign(...)`、`contractEcdsaSignDigest(...)`、`contractEcdh(...)`
 - `contractEd25519Sign(...)`、`contractRsaSign(...)`
 - `contractRsaKemEncapsulate(...)`、`contractEcdhKemEncapsulate(...)`
 - `contractRandomBytes(...)`
@@ -112,13 +113,24 @@ Contract 源码采用 `Apache-2.0`，依赖的 Core 当前源码线采用 `LGPL-
 
 - `contractSshBuildDefaultKexInitPayload(...)`、`contractSshBuildKexEcdhInitX25519(...)`
 - `contractPrepareSshServerLibraryStartupX25519*Request(...)`
+- `contractBridgeSshEncode*HostPublicKey(...)`、`contractBridgeSshSignExchangeHash*(...)`
 - `ContractSshServerRuntime` / `ContractSshClientRuntime` 的 `seal(...)`、`open(...)`
 
 这些公开入口只使用 `jinguissl.contract` 自有 DTO 与字节类型。调用方仍负责 socket、用户认证、channel 调度、超时与 rekey 策略。
 
 ### TLS 1.3 caller-owned transport
 
+新应用可从 `jinguissl.contract.ContractTls13StreamClient`（TCP 字节流）或
+`ContractTls13ClientEngine`（QUIC/自有传输的握手字节）开始。两者不套用 HTTP ALPN，
+要求明确的信任根、DNS 主机名与证书校验时间；应用秘密只在服务器认证全部通过后开放。
+用法、销毁责任、版本取得方式和限制见 [通用 TLS / QUIC 客户端](docs/tls13-client-engine.md)。
+
 `jinguissl.live.*` 提供增量 client/server record 输入输出、protected flight、client Finished 验证和 verified application channel。调用方仍负责 socket、读写调度、超时和上层协议。
+
+服务端策略默认拒绝缺失 ALPN。仅在 `ContractTlsHttpNegotiationPolicy` 显式设置
+`allowMissingAlpnHttp11Fallback: true` 且 ALPN 偏好包含 `http/1.1` 时，增量服务端
+入口才接受未发送 ALPN 的 ClientHello；继续态的 `selectedAlpn` 保持为空，由调用方
+选择 HTTP/1.1。未知的非空 ALPN 仍会失败关闭。
 
 ### 国密与国密协议
 
@@ -154,14 +166,20 @@ bash scripts/jinguissl_pre_review.sh <base-ref>
 - [Core → Contract 缺口矩阵](docs/core-contract-gap-matrix.md)
 - [开发示例](examples/README.md)
 
-当前完整测试覆盖：**309 项**。基准目录只提供非正式量级采样，不构成性能承诺。
+测试数量以当前提交的完整测试日志为准。基准目录只提供非正式量级采样，不构成性能承诺。
 
 ## 安全与生产边界
 
 Contract 的安全边界继承 Core。Core 中尚未完成恒定时间证明的私钥路径，不能因为套上 Contract facade 就被描述为已认证的生产级密码后端。
 
-当前不声明法律或安全认证、商密检测认证、完整恒定时间保证、浏览器级 HTTPS、外部 OpenSSL/curl/openHiTLS/SSH/QUIC 在线互操作完成、完整 thin facade、全平台原生系统信任库、QUIC transport 或 HTTP/3。
+当前不声明法律或安全认证、商密检测认证、完整恒定时间保证、浏览器级 HTTPS、全套外部协议互操作完成、完整 thin facade、全平台原生系统信任库、QUIC transport 或 HTTP/3。新客户端有范围明确的本机 OpenSSL TLS 与 aioquic raw-handshake 对照，不能推广为上述更广证明。
 
 ## 许可证
 
 本仓库源码采用 `Apache License 2.0`，详见 `LICENSE`。其 Apache 源码许可不取消 Core 依赖在组合分发、链接或打包场景中的 LGPL 义务。
+# 兼容修复提示
+
+ContractErrorCode / ContractException 在主桥与 legacy live 中共享类型身份，
+旧导入路径保留，升级需要重新编译。legacy envelope 不再全局缓存 AES-GCM 密钥。
+当前固定的 Core 包含 SSH 线格式/KDF 与 PKIX 边界修复；SSH 旧错误线格式不兼容。
+其他 legacy DTO 收敛、旧对象全量清理及消费者仓库迁移仍未全部完成。新客户端不会自动替换旧 live runtime。

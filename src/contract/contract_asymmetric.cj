@@ -207,6 +207,31 @@ public func contractEcdsaSign(
     }
 }
 
+/**
+ * Signs a caller-owned digest without hashing it again.
+ *
+ * This is the bounded pre-hashed boundary used by C ABI and protocol adapters.
+ * Application callers should normally prefer `contractEcdsaSign`.
+ */
+public func contractEcdsaSignDigest(
+    curve: ContractEcCurve,
+    privateKey: Array<Byte>,
+    digest: Array<Byte>,
+    hashAlgorithm!: ContractSignatureHash = ContractSignatureHash.Sha256
+): ContractEcSignature {
+    contractRequireDigestShape(digest, hashAlgorithm)
+    try {
+        let (r, s) = ecdsaSign(contractEcPrivateKey(curve, privateKey), digest)
+        let width = curve.fieldLen()
+        let encoded = Array<Byte>(2 * width, repeat: 0)
+        contractCopyBytes(r.toBytesBE(paddedLen: width), encoded, 0)
+        contractCopyBytes(s.toBytesBE(paddedLen: width), encoded, width)
+        ContractEcSignature(curve, encoded)
+    } catch (e: CryptoException) {
+        throw contractAsymmetricException(e, "ECDSA pre-hashed signing")
+    }
+}
+
 public func contractEcdsaVerify(
     publicKey: ContractEcPublicKey,
     message: Array<Byte>,
@@ -226,6 +251,30 @@ public func contractEcdsaVerify(
         )
     } catch (e: CryptoException) {
         throw contractAsymmetricException(e, "ECDSA verification")
+    }
+}
+
+/** Verifies a caller-owned digest without hashing it again. */
+public func contractEcdsaVerifyDigest(
+    publicKey: ContractEcPublicKey,
+    digest: Array<Byte>,
+    signature: ContractEcSignature,
+    hashAlgorithm!: ContractSignatureHash = ContractSignatureHash.Sha256
+): Bool {
+    contractRequireDigestShape(digest, hashAlgorithm)
+    if (publicKey.curve != signature.curve) {
+        return false
+    }
+    try {
+        let width = publicKey.curve.fieldLen()
+        ecdsaVerify(
+            contractEcCorePublicKey(publicKey),
+            digest,
+            BigNum.fromBytesBE(signature.encoded[..width]),
+            BigNum.fromBytesBE(signature.encoded[width..])
+        )
+    } catch (e: CryptoException) {
+        throw contractAsymmetricException(e, "ECDSA pre-hashed verification")
     }
 }
 
@@ -511,6 +560,22 @@ private func contractCoreCurve(curve: ContractEcCurve): NamedCurve {
         case P384 => NamedCurve.P384
         case P521 => NamedCurve.P521
         case Secp256k1 => NamedCurve.SECP256K1
+    }
+}
+
+private func contractRequireDigestShape(
+    digest: Array<Byte>, hashAlgorithm: ContractSignatureHash
+): Unit {
+    let expected = match (hashAlgorithm) {
+        case Sha256 => 32
+        case Sha384 => 48
+        case Sha512 => 64
+    }
+    if (digest.size != expected) {
+        throw ContractException(
+            ContractErrorCode.BadInput,
+            "${hashAlgorithm.toString()} digest must be ${expected} bytes"
+        )
     }
 }
 

@@ -89,7 +89,9 @@ public class ContractSupplementaryTestSuite {
     @TestCase
     public func testContractKemProfile(): Unit {
         let profile = contractKemProfile()
-        @Assert(profile.available, false)
+        @Assert(profile.available, true)
+        @Assert(profile.algoHint, "rsa-kem,p256-ecdh-kem")
+        @Assert(profile.detail.contains("ML-KEM is unavailable"), true)
     }
 
     @TestCase
