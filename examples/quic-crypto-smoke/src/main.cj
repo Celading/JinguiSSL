@@ -81,7 +81,7 @@ main(args: Array<String>): Int64 {
         if (!client.authenticated || client.selectedAlpn() != "igquic-echo" ||
             client.peerTransportParameters() != [UInt8(3), UInt8(0)]) { throw Exception("QUIC auth result mismatch") }
         let app = client.applicationSecrets()
-        writeFrame(socket, client.clientFinished())
+        writeFrame(socket, client.clientHandshakeOutput())
         writeFrame(socket, contractSha256(hs.clientTrafficSecret()))
         writeFrame(socket, contractSha256(hs.serverTrafficSecret()))
         writeFrame(socket, contractSha256(app.clientTrafficSecret()))

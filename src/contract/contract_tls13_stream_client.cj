@@ -124,6 +124,10 @@ public class ContractTls13StreamClient {
                                     }
                                     engine.receiveHandshake(plain.fragment)
                                     if (engine.authenticated) {
+                                        let certificate = engine.clientCertificate()
+                                        if (certificate.size > 0) {
+                                            outbound = streamJoin([outbound, layer.seal(TlsContentType.Handshake, certificate)])
+                                        }
                                         outbound = streamJoin([outbound, layer.seal(TlsContentType.Handshake, engine.clientFinished())])
                                         let secrets = engine.applicationSecrets()
                                         try { application = Some(streamLayer(secrets)) } finally { secrets.destroy() }

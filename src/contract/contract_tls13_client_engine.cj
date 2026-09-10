@@ -7,6 +7,7 @@ import jinguissl_core.crypto.compliance.TlsVersion
 import jinguissl_core.crypto.digest.{sha256, sha384}
 import jinguissl_core.crypto.error.CryptoException
 import jinguissl_core.crypto.tls.*
+import jinguissl_core.crypto.utils.constantTimeEquals
 import jinguissl_core.crypto.x25519.{x25519GeneratePrivateKey, x25519PublicFromPrivate}
 import jinguissl_core.crypto.x509.{X509VerificationPolicy, x509ParsePemChain}
 
@@ -61,7 +62,8 @@ public class ContractTls13PhaseSecrets {
  * packets. The transport must decrypt with the correct encryption level first.
  * Initial accepts only ServerHello; Handshake accepts EE/Certificate/CV/Finished.
  * Supports X25519 and 0x1301/02/03, without HRR, PSK, 0-RTT, client authentication
- * or KeyUpdate. Post-handshake tickets can be validated and discarded, never
+ * or KeyUpdate. An optional initial CertificateRequest is answered with an empty
+ * Certificate (no client identity is configured). Post-handshake tickets can be validated and discarded, never
  * cached/resumed. No HTTP defaults or unauthenticated application keys.
  */
 public class ContractTls13ClientEngine {
@@ -85,6 +87,8 @@ public class ContractTls13ClientEngine {
     private var peerParameters: Array<Byte> = []
     private var peerChain: Array<Array<Byte>> = []
     private var finished: Array<Byte> = []
+    private var certificateRequest: Array<Byte> = []
+    private var clientCertificateBytes: Array<Byte> = []
     private var postBytes: Int64 = 0
     private var failureAlert: ?Int64 = None
 
@@ -170,6 +174,15 @@ public class ContractTls13ClientEngine {
         synchronized(mutex) { requireAuthenticated(); cloneChain(peerChain) }
     }
     public func clientFinished(): Array<Byte> { synchronized(mutex) { requireAuthenticated(); finished.clone() } }
+    /** Empty bytes when no request; otherwise an encoded empty Certificate. Send
+     * before clientFinished(), at the Handshake encryption level. */
+    public func clientCertificate(): Array<Byte> {
+        synchronized(mutex) { requireAuthenticated(); clientCertificateBytes.clone() }
+    }
+    /** Ordered raw Handshake-level response: optional Certificate then Finished. */
+    public func clientHandshakeOutput(): Array<Byte> {
+        synchronized(mutex) { requireAuthenticated(); joinEngineBytes([clientCertificateBytes, finished]) }
+    }
     public func close(): Unit { synchronized(mutex) { closeOwned() } }
 
     /** Feed authenticated Application/One-RTT-level handshake bytes. Only validates
@@ -211,7 +224,8 @@ public class ContractTls13ClientEngine {
                 pending = joinEngineBytes([pending, bytes])
                 while (pending.size >= 4) {
                     let expected: Array<Byte> = [2, 8, 11, 15, 20]
-                    if (state >= 5 || pending[0] != expected[state]) {
+                    let isRequest = state == 2 && pending[0] == 13 && certificateRequest.size == 0
+                    if (state >= 5 || (pending[0] != expected[state] && !isRequest)) {
                         throw engineError("unexpected TLS handshake message order")
                     }
                     let length = (Int64(pending[1]) << 16) | (Int64(pending[2]) << 8) | Int64(pending[3])
@@ -219,6 +233,10 @@ public class ContractTls13ClientEngine {
                     if (pending.size < length + 4) { break }
                     let message = pending[..(length + 4)].clone()
                     pending = pending[(length + 4)..].clone()
+                    if (isRequest) {
+                        acceptCertificateRequest(message)
+                        continue
+                    }
                     if (state == 0) {
                         if (pending.size != 0) { throw engineError("ServerHello must end the Initial encryption level") }
                         acceptServerHello(message)
@@ -298,6 +316,15 @@ public class ContractTls13ClientEngine {
                 selected = protocols[0]
             } else if (ext.extType == 0) {
                 if (ext.data.size != 0) { throw engineError("server_name acknowledgement must be empty") }
+            } else if (ext.extType == 10) {
+                // RFC8446 4.2.7: a server preference list, not a new key-share
+                // selection. Keep it in the authenticated transcript; do not
+                // change this connection's X25519 choice or cache preferences.
+                if (ext.data.size < 4 || ext.data.size % 2 != 0) {
+                    throw engineError("invalid server supported_groups vector")
+                }
+                let size = Int64(ext.data[0]) * 256 + Int64(ext.data[1])
+                if (size != ext.data.size - 2) { throw engineError("invalid server supported_groups length") }
             } else if (ext.extType == 0x39 && quic) {
                 peerParameters = ext.data.clone()
                 hasParameters = true
@@ -310,26 +337,58 @@ public class ContractTls13ClientEngine {
         if (quic && !hasParameters) { failureAlert = Some(109); throw engineError("QUIC peer transport parameters are required") }
     }
 
+    private func acceptCertificateRequest(message: Array<Byte>): Unit {
+        let request = tls13DecodeCertificateRequestHandshake(message)
+        if (request.requestContext.size != 0) { throw engineError("initial CertificateRequest context must be empty") }
+        let seen = ArrayList<Int64>()
+        for (ext in request.extensions) {
+            for (value in seen) { if (value == ext.extType) { throw engineError("duplicate CertificateRequest extension") } }
+            seen.add(ext.extType)
+        }
+        // RFC8446 4.3.2: ignore unknown extensions, retain their bytes in transcript.
+        certificateRequest = message.clone()
+    }
+
     private func authenticateFlight(): Unit {
-        let flight = Tls13ServerHandshakeFlight(
-            messages[0], messages[1],
-            Tls13AuthFlight(Tls13AuthFlightRole.SERVER, messages[2], messages[3], messages[4]),
-            digest(joinEngineBytes([hello, messages[0], messages[1]])), requestedServerName: hostname
-        )
-        let result = tls13ProcessServerHandshakeFlightX25519(hello, privateKey.bytes(), flight, policy)
+        let prefix = joinEngineBytes([hello, messages[0], messages[1], certificateRequest])
+        let verification = tls13VerifyCertificateChainFromHandshake(messages[2], policy)
+        if (!tls13VerifyServerCertificateVerify(messages[3], verification.chain[0],
+            digest(joinEngineBytes([prefix, messages[2]])))) {
+            throw ContractException(ContractErrorCode.VerifyFailed, "TLS CertificateVerify validation failed")
+        }
+        let hs = match (handshake) {
+            case Some(value) => value
+            case None => throw engineError("handshake secrets unavailable")
+        }
+        let serverSecret = hs.serverTrafficSecret()
+        try {
+            let expected = tls13ComputeFinishedVerifyDataForCipherSuite(serverSecret,
+                digest(joinEngineBytes([prefix, messages[2], messages[3]])), suite)
+            if (!constantTimeEquals(tlsDecodeFinishedHandshake(messages[4]), expected)) {
+                throw ContractException(ContractErrorCode.VerifyFailed, "TLS Finished verify_data mismatch")
+            }
+        } finally { for (i in 0..serverSecret.size) { serverSecret[i] = 0 } }
+        let full = joinEngineBytes([prefix, messages[2], messages[3], messages[4]])
+        let key = privateKey.bytes()
+        let secrets = try {
+            tls13DeriveSecretsFromX25519ForCipherSuite(key, tls13ExtractServerX25519KeyShare(messages[0]),
+                digest(joinEngineBytes([hello, messages[0]])), suite, appTranscriptHash: digest(full))
+        } finally { for (i in 0..key.size) { key[i] = 0 } }
         try {
             application = Some(ContractTls13PhaseSecrets(
-                suite, "application", result.secrets.clientAppTrafficSecret, result.secrets.serverAppTrafficSecret
+                suite, "application", secrets.clientAppTrafficSecret, secrets.serverAppTrafficSecret
             ))
+            clientCertificateBytes = if (certificateRequest.size == 0) { [] } else {
+                tlsEncodeCertificateHandshakeTls13(Tls13CertificateMessage())
+            }
             finished = tlsEncodeFinishedHandshake(tls13ComputeFinishedVerifyDataForCipherSuite(
-                result.secrets.clientHsTrafficSecret,
-                digest(joinEngineBytes([hello, messages[0], messages[1], messages[2], messages[3], messages[4]])), suite
+                secrets.clientHsTrafficSecret, digest(joinEngineBytes([full, clientCertificateBytes])), suite
             ))
             let chain = ArrayList<Array<Byte>>()
-            for (cert in result.verification.chain) { chain.add(cert.der.clone()) }
+            for (cert in verification.chain) { chain.add(cert.der.clone()) }
             peerChain = chain.toArray()
         } finally {
-            result.secrets.destroy()
+            secrets.destroy()
             privateKey.destroy()
         }
     }
@@ -349,6 +408,8 @@ public class ContractTls13ClientEngine {
         pending = []
         messages.clear()
         finished = []
+        certificateRequest = []
+        clientCertificateBytes = []
         peerChain = []
         peerParameters = []
         state = -1

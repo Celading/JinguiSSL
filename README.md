@@ -59,7 +59,7 @@
 | QUIC v1/v2 protection facade | Initial、显式 AEAD、Header Protection、Retry integrity | 不含 transport/HTTP3 |
 | TLS session cache / secure opaque resumption | bounded cache、server-owned opaque ticket、binder validation、rotation 与 single-use consumption | implemented local test |
 | TLS cipher-suite / PSK contracts | cipher suite、Contract-owned PSK/session DTO 与无秘密 wire helper | implemented local test |
-| Generic TLS / QUIC client engine | 自有认证状态、TLS stream record adapter、QUIC 无 record 分级输入与阶段秘密 | 本机独立对端验证；不含 QUIC transport |
+| Generic TLS / QUIC client engine | 自有认证状态、TLS stream record、QUIC 无 record 输入与阶段秘密；可选 CertificateRequest 的空证书回应 | 本机独立对端验证；不含客户端身份认证或 QUIC transport |
 | Incremental TLS 1.3 live runtime | caller-owned transport 的 client/server handshake 与 verified channel | 非浏览器级 HTTPS 证明 |
 | Runtime compatibility profiles | runtime marker 与 startup profile catalog | 不等于多平台实机证明 |
 

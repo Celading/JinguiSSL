@@ -6,7 +6,9 @@ import std.net.TcpSocket
 import jinguissl.contract.*
 
 main(args: Array<String>): Int64 {
-    if (args.size != 2) { println("usage: <port> <cipher-suite-decimal>"); return 2 }
+    if (args.size != 2 && args.size != 3) { println("usage: <port> <cipher-suite-decimal> [http-probe]"); return 2 }
+    let httpProbe = args.size == 3 && args[2] == "http-probe"
+    if (args.size == 3 && !httpProbe) { return 2 }
     let client = ContractTls13StreamClient(
         String.fromUtf8(File.readFrom("../../testdata/x509/engine_root.pem")),
         "www.example.com", "270101000000Z", alpnProtocols: ["mqtt"], requireAlpn: true,
@@ -29,16 +31,21 @@ main(args: Array<String>): Int64 {
             if (output.size > 0) { socket.write(output) }
         }
         if (client.selectedAlpn() != "mqtt") { throw Exception("non-HTTP ALPN was lost") }
-        socket.write(client.sealApplicationData("ping".toArray()))
+        socket.write(client.sealApplicationData(if (httpProbe) { "GET / HTTP/1.0\r\n\r\n".toArray() } else { "ping".toArray() }))
         var response = ""
-        while (response.size < 4) {
+        while (response.size < (if (httpProbe) { 12 } else { 4 })) {
             let count = socket.read(buffer)
             if (count == 0) { throw Exception("unexpected EOF before response") }
             for (data in client.receive(buffer[..count])) { response = "${response}${String.fromUtf8(data)}" }
         }
-        if (response != "pong") { throw Exception("application-data mismatch") }
-        socket.write(client.closeNotify())
-        println("TLS client: authenticated mqtt ALPN, server/client Finished, bidirectional application data OK")
+        if (httpProbe) {
+            if (!response.startsWith("HTTP/1.0 200")) { throw Exception("reference HTTP probe failed") }
+            println("TLS client: authenticated HTTP probe OK")
+        } else {
+            if (response != "pong") { throw Exception("application-data mismatch") }
+            println("TLS client: authenticated mqtt ALPN, server/client Finished, bidirectional application data OK")
+        }
+        if (!client.isClosed) { socket.write(client.closeNotify()) }
     } finally {
         client.close()
         socket.close()
