@@ -7,8 +7,9 @@ public class ContractKemProfileTestSuite {
     @TestCase
     public func testContractKemProfileShape(): Unit {
         let info = contractKemProfile()
-        @Assert(info.algoHint.trimAscii().size > 0, true)
-        @Assert(info.detail.trimAscii().size > 0, true)
+        @Assert(info.available, true)
+        @Assert(info.algoHint, "rsa-kem,p256-ecdh-kem")
+        @Assert(info.detail.contains("ML-KEM is unavailable"), true)
     }
 
     @TestCase
