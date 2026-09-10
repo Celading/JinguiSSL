@@ -1,5 +1,9 @@
 # TLS 会话缓存与安全恢复 API
 
+旧 `jinguissl.live` 的 early-data prepare/accept、request、HTTP 和 replay
+包装入口均固定返回 `UNSUPPORTED`，不会解析对端 ticket 或派生 early traffic
+keys。显式身份索引不能绕过关闭状态。历史 DTO 仅保留源兼容，不表示 0-RTT 可用。
+
 本页覆盖两个不同层次：轻量的会话缓存，以及 TLS 1.3 server-owned opaque ticket 恢复门面。两者都由 JinguiSSL Contract 提供，应用不需要导入 `jinguissl_core.*`。
 
 ## ContractTlsSessionCache

@@ -33,7 +33,8 @@ JinguiSSL 是面向仓颉（Cangjie）应用的密码学、证书、TLS 与 SSH 
 - AES、ECC/ECDSA/ECDH、Ed25519、RSA 已有 Contract-owned 操作面；capability probe 继续服务启动查询。
 - KEM 当前提供传统 RSA-KEM/P-256 ECDH-KEM；没有 ML-KEM/hybrid PQC 实现。
 - SM2/SM3/SM4、SM9、GM X.509、RFC 8998 与 TLCP/DTLCP 有独立 Contract facade 和本地测试。
-- TLS 1.3 live runtime 已有 caller-owned transport 测试，但不是浏览器级 HTTPS 或外部 H2 证明。
+- TLS 1.3 live runtime 已有 caller-owned transport 测试；服务端可显式允许未携带 ALPN
+  的 HTTP/1.1 回落，但默认仍严格拒绝，且这不是浏览器级 HTTPS 或外部 H2 证明。
 
 ## 2. 依赖集成
 
@@ -208,3 +209,11 @@ A: 不等于。`contractRequireHttpSshStartupReadiness(...)` 只检查当前 pro
 
 ### Q: Outcome 模式有什么好处？
 A: 避免 try/catch 控制流，将错误作为值显式传递，更适合组合式调用和异步编程模式。
+# 错误身份与密钥上下文说明
+
+应用优先使用 `jinguissl.contract`；Contract 与 legacy live 共享同一错误
+类型定义，原错误导入名保留，升级时重新编译。其他 legacy DTO 尚未全部统一，
+不要把错误身份修复理解为所有双包同名类型都已经可互换。
+
+legacy envelope 的 AES-GCM 上下文改为单次操作持有，不再跨会话缓存密钥
+和展开后的上下文。这消除了该全局可变缓存，不构成 GC 内存物理擦除保证。

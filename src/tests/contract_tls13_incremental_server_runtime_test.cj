@@ -3,6 +3,13 @@ package jinguissl.tests
 import std.collection.ArrayList
 import std.fs.File
 import jinguissl.live.*
+import jinguissl_core.crypto.tls.{
+    TLS_EXT_ALPN,
+    TlsClientHello,
+    TlsExtension,
+    tlsDecodeClientHelloHandshake,
+    tlsEncodeClientHelloHandshake
+}
 
 private let C187_LIVE_SOURCE_ROOT: String = ""
 private let C187_TEST_HOST: String = "www." + "example.com"
@@ -131,6 +138,26 @@ private func c187ClientHelloWire(fixture: C187Fixture): Array<Byte> {
     ])
 }
 
+private func c220ClientHelloWithoutAlpn(encodedClientHello: Array<Byte>): Array<Byte> {
+    let decoded = tlsDecodeClientHelloHandshake(encodedClientHello)
+    let extensions = ArrayList<TlsExtension>()
+    for (extension in decoded.extensions) {
+        if (extension.extType != TLS_EXT_ALPN) {
+            extensions.add(extension)
+        }
+    }
+    tlsEncodeClientHelloHandshake(
+        TlsClientHello(
+            decoded.random,
+            decoded.cipherSuites,
+            sessionId: decoded.sessionId,
+            compressionMethods: decoded.compressionMethods,
+            extensions: extensions.toArray(),
+            legacyVersion: decoded.legacyVersion
+        )
+    )
+}
+
 private func c187OpenServerState(
     fixture: C187Fixture
 ): ContractTls13IncrementalServerHandshakeState {
@@ -250,6 +277,52 @@ public class ContractTls13IncrementalServerRuntimeTestSuite {
     @TestCase
     public func testIncrementalServerCompletesHttp11HandshakeAndApplicationData(): Unit {
         c187CompleteHandshakeAndApplicationRoundTrip("http/1.1")
+    }
+
+    @TestCase
+    public func testConsumerStartExplicitlyAcceptsMissingAlpnForHttp11Only(): Unit {
+        let fixture = c187BuildFixture("http/1.1")
+        let noAlpnWire = contractTlsEncodePlaintextRecord(
+            ContractTlsVersion.Tls13,
+            ContractTlsRecordContentType.Handshake,
+            c220ClientHelloWithoutAlpn(fixture.clientHello.encodedClientHello)
+        )
+
+        let strict = contractTryTls13StartIncrementalHttpServerHandshake(
+            ContractTls13IncrementalServerStartRequest(
+                fixture.transport,
+                fixture.plan,
+                fixture.serverPrivateKey,
+                policy: fixture.policy,
+                incomingBytes: noAlpnWire
+            )
+        )
+        @Assert(strict.ok, false)
+        @Assert(strict.status.toString(), "POLICY_REJECTED")
+
+        let fallback = contractTryTls13StartIncrementalHttpServerHandshake(
+            ContractTls13IncrementalServerStartRequest(
+                fixture.transport,
+                fixture.plan,
+                fixture.serverPrivateKey,
+                policy: ContractTlsHttpNegotiationPolicy(
+                    requireServerName: true,
+                    allowedServerNames: [C187_TEST_HOST],
+                    alpnPreference: ["http/1.1"],
+                    allowMissingAlpnHttp11Fallback: true
+                ),
+                incomingBytes: noAlpnWire
+            )
+        )
+        @Assert(fallback.ok, true)
+        @Assert(fallback.status.toString(), "RECORDS_READY")
+        let started = match (fallback.result) {
+            case Some(value) => value
+            case None => throw ContractException(ContractErrorCode.InternalError, "C220 start result missing")
+        }
+        @Assert(started.continuation.selectedAlpn, "")
+        @Assert(started.continuation.requestedServerName, C187_TEST_HOST)
+        @Assert(started.records.size, Int64(5))
     }
 
     @TestCase

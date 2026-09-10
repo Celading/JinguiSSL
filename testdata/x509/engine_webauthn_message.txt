@@ -1,0 +1,1 @@
+JinguiSSL Contract ES256 standalone consumer fixture

@@ -354,7 +354,8 @@ private func acceptedTransportToTlsHttpNegotiationPolicy(
     TlsHttpNegotiationPolicy(
         requireServerName: policy.requireServerName,
         allowedServerNames: policy.allowedServerNames,
-        alpnPreference: policy.alpnPreference
+        alpnPreference: policy.alpnPreference,
+        allowMissingAlpnHttp11Fallback: policy.allowMissingAlpnHttp11Fallback
     )
 }
 

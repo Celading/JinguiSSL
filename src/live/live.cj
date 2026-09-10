@@ -1,5 +1,7 @@
 package jinguissl.live
 
+public import jinguissl.model.{ContractErrorCode, ContractException, ContractIgniteCryptoErrorCode}
+
 import std.collection.{ArrayList, HashMap}
 import jinguissl_core.crypto.aes.{
     AesEngine,
@@ -174,103 +176,6 @@ import jinguissl_core.crypto.x509.{
 
 /* Keep the legacy live-package capability record aligned with the Contract package. */
 private let LIBRARY_VERSION: String = "0.7.7"
-
-private let CONTRACT_AES_GCM_CONTEXT_CACHE_MAX: Int64 = 16
-private let _contractAesGcmContextCache = ArrayList<ContractAesGcmContextCacheEntry>()
-
-private class ContractAesGcmContextCacheEntry {
-    let key: Array<Byte>
-    let context: AesGcmContext
-
-    init(key: Array<Byte>, context: AesGcmContext) {
-        this.key = key
-        this.context = context
-    }
-}
-
-public enum ContractErrorCode <: Equatable<ContractErrorCode> & ToString {
-    | BadInput
-    | KeyNotFound
-    | VerifyFailed
-    | CryptoUnavailable
-    | ComplianceRejected
-    | Unsupported
-    | InternalError
-
-    public operator func ==(right: ContractErrorCode): Bool {
-        ordinalValue() == right.ordinalValue()
-    }
-
-    public operator func !=(right: ContractErrorCode): Bool {
-        !(this == right)
-    }
-
-    public func ordinalValue(): Int64 {
-        match (this) {
-            case BadInput => 0
-            case KeyNotFound => 1
-            case VerifyFailed => 2
-            case CryptoUnavailable => 3
-            case ComplianceRejected => 4
-            case Unsupported => 5
-            case InternalError => 6
-        }
-    }
-
-    public func toString(): String {
-        match (this) {
-            case BadInput => "BAD_INPUT"
-            case KeyNotFound => "KEY_NOT_FOUND"
-            case VerifyFailed => "VERIFY_FAILED"
-            case CryptoUnavailable => "CRYPTO_UNAVAILABLE"
-            case ComplianceRejected => "COMPLIANCE_REJECTED"
-            case Unsupported => "UNSUPPORTED"
-            case InternalError => "INTERNAL_ERROR"
-        }
-    }
-}
-
-public class ContractException <: Exception {
-    public let code: ContractErrorCode
-
-    public init(code: ContractErrorCode, message: String) {
-        super(message)
-        this.code = code
-    }
-}
-
-public enum ContractIgniteCryptoErrorCode <: Equatable<ContractIgniteCryptoErrorCode> & ToString {
-    | BadEnvelope
-    | KeyNotFound
-    | DecryptFailed
-    | CryptoUnavailable
-
-    public operator func ==(right: ContractIgniteCryptoErrorCode): Bool {
-        ordinalValue() == right.ordinalValue()
-    }
-
-    public operator func !=(right: ContractIgniteCryptoErrorCode): Bool {
-        !(this == right)
-    }
-
-    public func ordinalValue(): Int64 {
-        match (this) {
-            case BadEnvelope => 0
-            case KeyNotFound => 1
-            case DecryptFailed => 2
-            case CryptoUnavailable => 3
-        }
-    }
-
-    public func toString(): String {
-        match (this) {
-            case BadEnvelope => "BAD_ENVELOPE"
-            case KeyNotFound => "KEY_NOT_FOUND"
-            case DecryptFailed => "DECRYPT_FAILED"
-            case CryptoUnavailable => "CRYPTO_UNAVAILABLE"
-        }
-    }
-}
 
 public enum ContractAeadAlgorithm <: Equatable<ContractAeadAlgorithm> & ToString {
     | Aes256Gcm
@@ -5769,7 +5674,8 @@ public class ContractHttpServerAcceptedTransportTls13X25519Request {
         this.policy = ContractTlsHttpNegotiationPolicy(
             requireServerName: policy.requireServerName,
             allowedServerNames: policy.allowedServerNames,
-            alpnPreference: policy.alpnPreference
+            alpnPreference: policy.alpnPreference,
+            allowMissingAlpnHttp11Fallback: policy.allowMissingAlpnHttp11Fallback
         )
     }
 }
@@ -5912,7 +5818,8 @@ public class ContractHttpClientTlsTrustRequest {
         this.policy = ContractTlsHttpNegotiationPolicy(
             requireServerName: policy.requireServerName,
             allowedServerNames: policy.allowedServerNames,
-            alpnPreference: policy.alpnPreference
+            alpnPreference: policy.alpnPreference,
+            allowMissingAlpnHttp11Fallback: policy.allowMissingAlpnHttp11Fallback
         )
     }
 }
@@ -5997,11 +5904,13 @@ public class ContractTlsHttpNegotiationPolicyValidationResult {
     public let requireServerName: Bool
     public let normalizedAllowedServerNames: Array<String>
     public let normalizedAlpnPreference: Array<String>
+    public let allowMissingAlpnHttp11Fallback: Bool
 
     public init(
         requireServerName: Bool,
         normalizedAllowedServerNames: Array<String>,
-        normalizedAlpnPreference: Array<String>
+        normalizedAlpnPreference: Array<String>,
+        allowMissingAlpnHttp11Fallback!: Bool = false
     ) {
         if (normalizedAlpnPreference.size == 0) {
             throw ContractException(ContractErrorCode.BadInput, "TLS HTTP negotiation ALPN preference must not be empty")
@@ -6009,6 +5918,7 @@ public class ContractTlsHttpNegotiationPolicyValidationResult {
         this.requireServerName = requireServerName
         this.normalizedAllowedServerNames = normalizedAllowedServerNames.clone()
         this.normalizedAlpnPreference = normalizedAlpnPreference.clone()
+        this.allowMissingAlpnHttp11Fallback = allowMissingAlpnHttp11Fallback
     }
 }
 
@@ -8121,15 +8031,18 @@ public class ContractTlsHttpNegotiationPolicy {
     public let requireServerName: Bool
     public let allowedServerNames: Array<String>
     public let alpnPreference: Array<String>
+    public let allowMissingAlpnHttp11Fallback: Bool
 
     public init(
         requireServerName!: Bool = true,
         allowedServerNames!: Array<String> = [],
-        alpnPreference!: Array<String> = []
+        alpnPreference!: Array<String> = [],
+        allowMissingAlpnHttp11Fallback!: Bool = false
     ) {
         this.requireServerName = requireServerName
         this.allowedServerNames = allowedServerNames.clone()
         this.alpnPreference = alpnPreference.clone()
+        this.allowMissingAlpnHttp11Fallback = allowMissingAlpnHttp11Fallback
     }
 }
 
@@ -8141,7 +8054,8 @@ public func contractValidateTlsHttpNegotiationPolicy(
         ContractTlsHttpNegotiationPolicyValidationResult(
             normalized.requireServerName,
             normalized.allowedServerNames,
-            normalized.alpnPreference
+            normalized.alpnPreference,
+            allowMissingAlpnHttp11Fallback: normalized.allowMissingAlpnHttp11Fallback
         )
     } catch (e: ContractException) {
         throw e
@@ -8668,7 +8582,8 @@ public class ContractTls13HttpServerFlightX25519Request {
         this.policy = ContractTlsHttpNegotiationPolicy(
             requireServerName: policy.requireServerName,
             allowedServerNames: policy.allowedServerNames,
-            alpnPreference: policy.alpnPreference
+            alpnPreference: policy.alpnPreference,
+            allowMissingAlpnHttp11Fallback: policy.allowMissingAlpnHttp11Fallback
         )
     }
 }
@@ -11045,17 +10960,8 @@ public func contractTls13PreparePskEarlyDataFromSessionTicket(
     keyLen!: Int64 = 16,
     ivLen!: Int64 = 12
 ): ContractTls13PskEarlyDataPlan {
-    let encodedClientHello = contractTls13BuildHttpClientHelloPskFromSessionTicket(
-        ticket,
-        sessionId: sessionId
-    )
-    contractTls13BuildPskEarlyDataPlan(
-        ticket,
-        encodedClientHello,
-        0,
-        keyLen,
-        ivLen
-    )
+    throw ContractException(ContractErrorCode.Unsupported,
+        "TLS1.3 early data is unavailable without a reviewed opaque-ticket and replay owner")
 }
 
 public func contractTls13PreparePskEarlyDataFromSessionTicketRequest(
@@ -11077,19 +10983,8 @@ public func contractTls13PreparePskEarlyDataFromSessionCache(
     keyLen!: Int64 = 16,
     ivLen!: Int64 = 12
 ): ContractTls13PskEarlyDataPlan {
-    let fromCache = contractTls13BuildHttpClientHelloPskFromSessionCache(
-        cache,
-        identity,
-        nowUnixSeconds: nowUnixSeconds,
-        sessionId: sessionId
-    )
-    contractTls13BuildPskEarlyDataPlan(
-        fromCache.ticket,
-        fromCache.encodedClientHello,
-        0,
-        keyLen,
-        ivLen
-    )
+    throw ContractException(ContractErrorCode.Unsupported,
+        "TLS1.3 early data is unavailable without a reviewed opaque-ticket and replay owner")
 }
 
 public func contractTls13PreparePskEarlyDataFromSessionCacheRequest(
@@ -11112,51 +11007,8 @@ public func contractTls13AcceptPskEarlyDataFromClientHello(
     keyLen!: Int64 = 16,
     ivLen!: Int64 = 12
 ): ContractTls13PskEarlyDataPlan {
-    let resolvedIdentityIndex = if (selectedIdentityIndex >= 0) {
-        selectedIdentityIndex
-    } else {
-        contractTls13SelectPskIdentityFromSessionTickets(
-            encodedClientHello,
-            nowUnixSeconds: nowUnixSeconds
-        )
-    }
-    if (resolvedIdentityIndex < 0 || resolvedIdentityIndex > 65535) {
-        throw ContractException(ContractErrorCode.BadInput, "TLS1.3 selected identity index must be uint16")
-    }
-
-    let ticket = contractTls13ExtractClientPskSessionTicket(
-        encodedClientHello,
-        selectedIdentityIndex: resolvedIdentityIndex
-    )
-    if (nowUnixSeconds > 0 && contractTlsIsSessionTicketExpired(ticket, nowUnixSeconds: nowUnixSeconds)) {
-        throw ContractException(ContractErrorCode.VerifyFailed, "TLS1.3 PSK session ticket is expired")
-    }
-
-    try {
-        let binderOk = tls13VerifyClientPskBinder(
-            encodedClientHello,
-            ticket.secret,
-            selectedIdentityIndex: resolvedIdentityIndex
-        )
-        if (!binderOk) {
-            throw ContractException(ContractErrorCode.VerifyFailed, "TLS1.3 PSK binder verification failed")
-        }
-    } catch (e: ContractException) {
-        throw e
-    } catch (e: CryptoException) {
-        throw ContractException(
-            mapCryptoErrorForOperation(e, "tls"),
-            "TLS1.3 PSK binder verification failed: ${e.message}"
-        )
-    }
-
-    contractTls13BuildPskEarlyDataPlan(
-        ticket,
-        encodedClientHello,
-        resolvedIdentityIndex,
-        keyLen,
-        ivLen
-    )
+    throw ContractException(ContractErrorCode.Unsupported,
+        "TLS1.3 early data is unavailable without a reviewed opaque-ticket and replay owner")
 }
 
 public func contractTls13AcceptPskEarlyDataFromClientHelloRequest(
@@ -11174,10 +11026,8 @@ public func contractTls13AcceptPskEarlyDataFromClientHelloRequest(
 public func contractTls13BuildPskEarlyDataReplayKey(
     plan: ContractTls13PskEarlyDataPlan
 ): String {
-    contractTls13BuildPskEarlyDataReplayKeyFromFields(
-        plan.ticket.identity,
-        plan.clientHelloHash
-    )
+    throw ContractException(ContractErrorCode.Unsupported,
+        "TLS1.3 early data is unavailable without a reviewed opaque-ticket and replay owner")
 }
 
 public func contractTls13AcceptPskEarlyDataFromClientHelloWithReplayCache(
@@ -16685,7 +16535,8 @@ private func contractToTlsHttpNegotiationPolicy(
     TlsHttpNegotiationPolicy(
         requireServerName: policy.requireServerName,
         allowedServerNames: policy.allowedServerNames,
-        alpnPreference: policy.alpnPreference
+        alpnPreference: policy.alpnPreference,
+        allowMissingAlpnHttp11Fallback: policy.allowMissingAlpnHttp11Fallback
     )
 }
 
@@ -16758,29 +16609,8 @@ private func contractTls13BuildPskEarlyDataPlan(
     keyLen: Int64,
     ivLen: Int64
 ): ContractTls13PskEarlyDataPlan {
-    let clientHelloHash = sha256(encodedClientHello)
-    try {
-        let earlyDataSecrets = tls13DeriveEarlyDataSecrets(
-            ticket.secret,
-            clientHelloHash,
-            keyLen: keyLen,
-            ivLen: ivLen
-        )
-        ContractTls13PskEarlyDataPlan(
-            selectedIdentityIndex,
-            ticket,
-            encodedClientHello,
-            clientHelloHash,
-            earlyDataSecrets.clientEarlyTrafficSecret,
-            earlyDataSecrets.clientEarlyWriteKey,
-            earlyDataSecrets.clientEarlyWriteIv
-        )
-    } catch (e: CryptoException) {
-        throw ContractException(
-            mapCryptoErrorForOperation(e, "tls"),
-            "TLS1.3 PSK early data secret derivation failed: ${e.message}"
-        )
-    }
+    throw ContractException(ContractErrorCode.Unsupported,
+        "TLS1.3 early data is unavailable without a reviewed opaque-ticket and replay owner")
 }
 
 private func contractTls13BuildPskEarlyDataReplayKeyFromFields(
@@ -16988,23 +16818,9 @@ private func contractEncryptAead(
 }
 
 private func contractResolveAesGcmContext(key: Array<Byte>): AesGcmContext {
-    var index = 0
-    while (index < _contractAesGcmContextCache.size) {
-        let entry = _contractAesGcmContextCache[index]
-        if (constantTimeEquals(entry.key, key)) {
-            return entry.context
-        }
-        index += 1
-    }
-
-    let context = aesNewGcmContext(key)
-    let keyCopy = key.clone()
-
-    if (_contractAesGcmContextCache.size >= CONTRACT_AES_GCM_CONTEXT_CACHE_MAX) {
-        _contractAesGcmContextCache.remove(at: 0)
-    }
-    _contractAesGcmContextCache.add(ContractAesGcmContextCacheEntry(keyCopy, context))
-    context
+    // One operation owns this context. Do not retain caller keys or mutable
+    // schedules in a process-global cache shared by unrelated sessions.
+    aesNewGcmContext(key)
 }
 
 private func contractDecryptAead(

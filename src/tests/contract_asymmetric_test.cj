@@ -40,6 +40,30 @@ public class ContractAsymmetricTestSuite {
     }
 
     @TestCase
+    public func testEccP256PrehashedSignVerifyDoesNotHashAgain(): Unit {
+        let privateKey = scalarOne(32)
+        let publicKey = contractEcPublicFromPrivate(ContractEcCurve.P256, privateKey)
+        let digest = contractSha256("bridge-prehashed-ffi".toArray())
+        let signature = contractEcdsaSignDigest(
+            ContractEcCurve.P256,
+            privateKey,
+            digest
+        )
+        @Assert(contractEcdsaVerifyDigest(publicKey, digest, signature), true)
+
+        let tampered = digest.clone()
+        tampered[0] = tampered[0] ^ UInt8(1)
+        @Assert(contractEcdsaVerifyDigest(publicKey, tampered, signature), false)
+
+        try {
+            _ = contractEcdsaSignDigest(ContractEcCurve.P256, privateKey, digest[..31])
+            @Fail("short SHA-256 digest should be rejected")
+        } catch (e: ContractException) {
+            @Assert(e.code, ContractErrorCode.BadInput)
+        }
+    }
+
+    @TestCase
     public func testEd25519PublishedVectorShapeAndTamper(): Unit {
         let seed = hexToBytes("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60")
         let publicKey = contractEd25519PublicFromSeed(seed)
