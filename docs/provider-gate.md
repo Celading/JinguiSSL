@@ -59,3 +59,5 @@ TLS HTTP 的缺失 ALPN 回落属于每次握手的显式策略，不是 provide
 `allowMissingAlpnHttp11Fallback` 默认关闭，并且只有策略同时包含 `http/1.1` 时才有效；
 provider readiness 或 smoke 通过不会自动开启该行为。
 只有明确执行 live handshake 的证据，才能描述为网络互操作证明。
+Provider 的错误分类继续使用 ContractErrorCode；主桥与 legacy live 现在重导出
+同一错误类型，不再需要为两种异常身份分别捕获。升级需重新编译依赖方。

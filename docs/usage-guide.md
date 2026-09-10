@@ -209,3 +209,11 @@ A: 不等于。`contractRequireHttpSshStartupReadiness(...)` 只检查当前 pro
 
 ### Q: Outcome 模式有什么好处？
 A: 避免 try/catch 控制流，将错误作为值显式传递，更适合组合式调用和异步编程模式。
+# 错误身份与密钥上下文说明
+
+应用优先使用 `jinguissl.contract`；Contract 与 legacy live 共享同一错误
+类型定义，原错误导入名保留，升级时重新编译。其他 legacy DTO 尚未全部统一，
+不要把错误身份修复理解为所有双包同名类型都已经可互换。
+
+legacy envelope 的 AES-GCM 上下文改为单次操作持有，不再跨会话缓存密钥
+和展开后的上下文。这消除了该全局可变缓存，不构成 GC 内存物理擦除保证。

@@ -171,3 +171,9 @@ Contract 的安全边界继承 Core。Core 中尚未完成恒定时间证明的�
 ## 许可证
 
 本仓库源码采用 `Apache License 2.0`，详见 `LICENSE`。其 Apache 源码许可不取消 Core 依赖在组合分发、链接或打包场景中的 LGPL 义务。
+# 兼容修复提示
+
+ContractErrorCode / ContractException 在主桥与 legacy live 中共享类型身份，
+旧导入路径保留，升级需要重新编译。legacy envelope 不再全局缓存 AES-GCM 密钥。
+当前固定的 Core 包含 SSH 线格式/KDF 与 PKIX 边界修复；SSH 旧错误线格式不兼容。
+其他 legacy DTO 收敛和通用 TLS/QUIC 握手消费仍未全部完成。

@@ -19,7 +19,7 @@
 
 | Capability | Status | Public surface | Evidence | Manual | Current limit |
 | --- | --- | --- | --- | --- | --- |
-| `metadata-errors` Facade metadata and Contract errors | `production-candidate-with-limits` | Facade metadata、ContractErrorCode、ContractException 与兼容映射。 | metadata and outcome-construction tests | [`error-handling.md`](error-handling.md)<br>[`usage-guide.md`](usage-guide.md) | 兼容映射不应成为仓库身份；错误稳定性仍服从具体 API。 |
+| `metadata-errors` Facade metadata and Contract errors | `production-candidate-with-limits` | Facade metadata、ContractErrorCode、ContractException 与兼容映射。 | metadata/outcome tests and shared Contract/live exception identity regression | [`error-handling.md`](error-handling.md)<br>[`usage-guide.md`](usage-guide.md) | 兼容映射不应成为仓库身份；错误稳定性仍服从具体 API。 |
 | `digest-kdf-mac` Digest / HMAC / HKDF facade | `production-candidate-with-limits` | SHA-256/384/512、HMAC、HKDF，以及遗留兼容 MD5/SHA-1。 | digest vectors and boundary tests | [`digest.md`](digest.md)<br>[`getting-started.md`](getting-started.md) | MD5/SHA-1 仅兼容；无外部认证。 |
 | `chacha20-poly1305` ChaCha20 / Poly1305 facade | `production-candidate-with-limits` | ChaCha20、Poly1305 与 AEAD facade。 | RFC vectors, roundtrip and invalid-input tests | [`chacha20-poly1305.md`](chacha20-poly1305.md) | 无外部认证或跨平台加速承诺。 |
 | `x25519` X25519 facade | `production-candidate-with-limits` | Key pair、公钥派生、key agreement request/result/outcome。 | key agreement, cloning, invalid-input and all-zero tests | [`x25519.md`](x25519.md) | 继承 Core 的恒定时间非认证边界。 |
