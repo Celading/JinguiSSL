@@ -46,3 +46,6 @@ ALPN 的 HTTP/1.1 客户端时，必须显式启用
 
 通用 parser/container 当前由证书 summary、SAN/policy、RSA PKCS#1/PKCS#8、EC
 PKCS#8 和公钥匹配测试覆盖，并参与完整 319 项回归。
+主桥与 legacy live 的证书/HTTP 材料错误现共享 ContractException 类型身份，
+原导入路径保留。固定 Core 已拒绝未处理的关键证书扩展及非法 EC 密钥范围；
+这不表示完整 WebPKI 合规，详见当前 Core 证书验证边界。

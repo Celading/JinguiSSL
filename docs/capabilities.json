@@ -33,10 +33,10 @@
       "label": "Facade metadata and Contract errors",
       "status": "production-candidate-with-limits",
       "summary": "Facade metadata、ContractErrorCode、ContractException 与兼容映射。",
-      "proof": "metadata and outcome-construction tests",
+      "proof": "metadata/outcome tests and shared Contract/live exception identity regression",
       "limits": "兼容映射不应成为仓库身份；错误稳定性仍服从具体 API。",
-      "sourceGlobs": ["src/contract/metadata.cj", "src/runtime/package.cj"],
-      "testGlobs": ["src/tests/contract_metadata_test.cj"],
+      "sourceGlobs": ["src/contract/metadata.cj", "src/model/errors.cj", "src/runtime/package.cj"],
+      "testGlobs": ["src/tests/contract_metadata_test.cj", "src/tests/contract_shared_error_identity_test.cj"],
       "readmeTokens": ["ContractErrorCode"],
       "manualPages": ["docs/error-handling.md", "docs/usage-guide.md"]
     },

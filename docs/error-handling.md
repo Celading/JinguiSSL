@@ -2,6 +2,11 @@
 
 JinguiSSL 使用分层错误模型，兼顾精确性和应用友好度。
 
+`jinguissl.contract` 与 `jinguissl.live` 的 `ContractErrorCode`、
+`ContractException` 及兼容错误码现重导出同一主桥自有定义。
+应用可用 Contract 的异常类型捕获 legacy live 的错误；原导入路径保留。
+升级需要重新编译依赖方，不承诺旧二进制类型身份兼容。
+
 ## 错误模型
 
 ```
