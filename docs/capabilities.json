@@ -264,7 +264,7 @@
       "proof": "cache tests plus secure opaque-ticket roundtrip, replay, rotation, expiry and bad-input rejection",
       "limits": "单进程有界 owner；调用方负责串行访问，不声明持久化、跨进程 replay 协调、HelloRetryRequest 或 0-RTT。",
       "sourceGlobs": ["src/contract/tls_session_cache.cj", "src/contract/contract_tls13_secure_resumption.cj", "src/live/tls_session_cache.cj"],
-      "testGlobs": ["src/tests/contract_tls_session_cache_test.cj", "src/tests/contract_tls13_secure_resumption_test.cj"],
+      "testGlobs": ["src/tests/contract_tls_session_cache_test.cj", "src/tests/contract_tls13_secure_resumption_test.cj", "src/tests/contract_early_data_closed_test.cj"],
       "readmeTokens": ["TLS session cache / secure opaque resumption"],
       "manualPages": ["docs/tls-session-cache.md"]
     },

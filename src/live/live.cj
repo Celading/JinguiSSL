@@ -11055,17 +11055,8 @@ public func contractTls13PreparePskEarlyDataFromSessionTicket(
     keyLen!: Int64 = 16,
     ivLen!: Int64 = 12
 ): ContractTls13PskEarlyDataPlan {
-    let encodedClientHello = contractTls13BuildHttpClientHelloPskFromSessionTicket(
-        ticket,
-        sessionId: sessionId
-    )
-    contractTls13BuildPskEarlyDataPlan(
-        ticket,
-        encodedClientHello,
-        0,
-        keyLen,
-        ivLen
-    )
+    throw ContractException(ContractErrorCode.Unsupported,
+        "TLS1.3 early data is unavailable without a reviewed opaque-ticket and replay owner")
 }
 
 public func contractTls13PreparePskEarlyDataFromSessionTicketRequest(
@@ -11087,19 +11078,8 @@ public func contractTls13PreparePskEarlyDataFromSessionCache(
     keyLen!: Int64 = 16,
     ivLen!: Int64 = 12
 ): ContractTls13PskEarlyDataPlan {
-    let fromCache = contractTls13BuildHttpClientHelloPskFromSessionCache(
-        cache,
-        identity,
-        nowUnixSeconds: nowUnixSeconds,
-        sessionId: sessionId
-    )
-    contractTls13BuildPskEarlyDataPlan(
-        fromCache.ticket,
-        fromCache.encodedClientHello,
-        0,
-        keyLen,
-        ivLen
-    )
+    throw ContractException(ContractErrorCode.Unsupported,
+        "TLS1.3 early data is unavailable without a reviewed opaque-ticket and replay owner")
 }
 
 public func contractTls13PreparePskEarlyDataFromSessionCacheRequest(
@@ -11122,51 +11102,8 @@ public func contractTls13AcceptPskEarlyDataFromClientHello(
     keyLen!: Int64 = 16,
     ivLen!: Int64 = 12
 ): ContractTls13PskEarlyDataPlan {
-    let resolvedIdentityIndex = if (selectedIdentityIndex >= 0) {
-        selectedIdentityIndex
-    } else {
-        contractTls13SelectPskIdentityFromSessionTickets(
-            encodedClientHello,
-            nowUnixSeconds: nowUnixSeconds
-        )
-    }
-    if (resolvedIdentityIndex < 0 || resolvedIdentityIndex > 65535) {
-        throw ContractException(ContractErrorCode.BadInput, "TLS1.3 selected identity index must be uint16")
-    }
-
-    let ticket = contractTls13ExtractClientPskSessionTicket(
-        encodedClientHello,
-        selectedIdentityIndex: resolvedIdentityIndex
-    )
-    if (nowUnixSeconds > 0 && contractTlsIsSessionTicketExpired(ticket, nowUnixSeconds: nowUnixSeconds)) {
-        throw ContractException(ContractErrorCode.VerifyFailed, "TLS1.3 PSK session ticket is expired")
-    }
-
-    try {
-        let binderOk = tls13VerifyClientPskBinder(
-            encodedClientHello,
-            ticket.secret,
-            selectedIdentityIndex: resolvedIdentityIndex
-        )
-        if (!binderOk) {
-            throw ContractException(ContractErrorCode.VerifyFailed, "TLS1.3 PSK binder verification failed")
-        }
-    } catch (e: ContractException) {
-        throw e
-    } catch (e: CryptoException) {
-        throw ContractException(
-            mapCryptoErrorForOperation(e, "tls"),
-            "TLS1.3 PSK binder verification failed: ${e.message}"
-        )
-    }
-
-    contractTls13BuildPskEarlyDataPlan(
-        ticket,
-        encodedClientHello,
-        resolvedIdentityIndex,
-        keyLen,
-        ivLen
-    )
+    throw ContractException(ContractErrorCode.Unsupported,
+        "TLS1.3 early data is unavailable without a reviewed opaque-ticket and replay owner")
 }
 
 public func contractTls13AcceptPskEarlyDataFromClientHelloRequest(
@@ -11184,10 +11121,8 @@ public func contractTls13AcceptPskEarlyDataFromClientHelloRequest(
 public func contractTls13BuildPskEarlyDataReplayKey(
     plan: ContractTls13PskEarlyDataPlan
 ): String {
-    contractTls13BuildPskEarlyDataReplayKeyFromFields(
-        plan.ticket.identity,
-        plan.clientHelloHash
-    )
+    throw ContractException(ContractErrorCode.Unsupported,
+        "TLS1.3 early data is unavailable without a reviewed opaque-ticket and replay owner")
 }
 
 public func contractTls13AcceptPskEarlyDataFromClientHelloWithReplayCache(
@@ -16769,29 +16704,8 @@ private func contractTls13BuildPskEarlyDataPlan(
     keyLen: Int64,
     ivLen: Int64
 ): ContractTls13PskEarlyDataPlan {
-    let clientHelloHash = sha256(encodedClientHello)
-    try {
-        let earlyDataSecrets = tls13DeriveEarlyDataSecrets(
-            ticket.secret,
-            clientHelloHash,
-            keyLen: keyLen,
-            ivLen: ivLen
-        )
-        ContractTls13PskEarlyDataPlan(
-            selectedIdentityIndex,
-            ticket,
-            encodedClientHello,
-            clientHelloHash,
-            earlyDataSecrets.clientEarlyTrafficSecret,
-            earlyDataSecrets.clientEarlyWriteKey,
-            earlyDataSecrets.clientEarlyWriteIv
-        )
-    } catch (e: CryptoException) {
-        throw ContractException(
-            mapCryptoErrorForOperation(e, "tls"),
-            "TLS1.3 PSK early data secret derivation failed: ${e.message}"
-        )
-    }
+    throw ContractException(ContractErrorCode.Unsupported,
+        "TLS1.3 early data is unavailable without a reviewed opaque-ticket and replay owner")
 }
 
 private func contractTls13BuildPskEarlyDataReplayKeyFromFields(
