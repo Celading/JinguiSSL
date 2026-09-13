@@ -14,6 +14,7 @@ on:
       - "mr/**"
       - "ci/**"
       - "fix/**"
+      - "feature/**"
   pull_request:
     branches:
       - main
@@ -124,6 +125,12 @@ jobs:
         run: |
           . "$CANGJIE_HOME/envsetup.sh"
           cjpm test
+
+      - name: Contract-only DTLS reference interoperability
+        run: |
+          . "$CANGJIE_HOME/envsetup.sh"
+          (cd examples/dtls-consumer && cjpm build)
+          python3 scripts/dtls_openssl_interop.py
 
   application-consumer-smoke:
     name: Standalone application consumer

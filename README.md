@@ -36,6 +36,10 @@
 
 ## 能力概览
 
+新增 [DTLS 1.2 消费入口](docs/dtls.md)：`ContractDtlsIdentity`、
+`ContractDtlsSession` 与可销毁的 `ContractDtlsSrtpSecrets`。仅依赖主桥的
+独立消费者已通过 OpenSSL 双角色/双 profile 本机互操作；媒体协议仍由消费方维护。
+
 | 类别 | 当前公开面 | 状态速记 |
 |:--|:--|:--|
 | 基础 facade | `ContractErrorCode`、`ContractException`、metadata 与 outcome | production candidate with limits |
