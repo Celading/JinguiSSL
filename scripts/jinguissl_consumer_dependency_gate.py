@@ -5,7 +5,11 @@ import re
 root = Path(__file__).resolve().parents[1]
 pin_pattern = r'jinguissl_core\s*=\s*\{\s*git\s*=\s*"([^"]+)"\s*,\s*commitId\s*=\s*"([0-9a-f]{40})"\s*\}'
 def core_pin(path):
-    matches = re.findall(pin_pattern, path.read_text())
+    text = path.read_text()
+    matches = [("git", *match) for match in re.findall(pin_pattern, text)]
+    versions = re.findall(r'jinguissl_core\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"', text)
+    versions += re.findall(r'jinguissl_core\s*=\s*\{\s*version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"\s*\}', text)
+    matches += [("registry", version) for version in versions]
     assert len(matches) == 1, f"missing or ambiguous Core pin: {path}"
     return matches[0]
 

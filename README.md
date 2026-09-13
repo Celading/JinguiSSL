@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Cangjie-JinguiSSL-c96b2c?style=for-the-badge&labelColor=1f2430" alt="JinguiSSL" />
-  <img src="https://img.shields.io/badge/version-0.7.7-c96b2c?style=for-the-badge&labelColor=1f2430" alt="Version 0.7.7" />
+  <img src="https://img.shields.io/badge/version-0.8.0-c96b2c?style=for-the-badge&labelColor=1f2430" alt="Version 0.8.0" />
   <img src="https://img.shields.io/badge/package-static-2f855a?style=for-the-badge&labelColor=1f2430" alt="Static Package" />
   <img src="https://img.shields.io/badge/surface-contract%20first-3182ce?style=for-the-badge&labelColor=1f2430" alt="Contract First" />
   <img src="https://img.shields.io/badge/license-Apache%202.0-1f9d55?style=for-the-badge&labelColor=1f2430" alt="Apache 2.0" />
@@ -36,7 +36,7 @@
 
 ## 能力概览
 
-新增 [DTLS 1.2 消费入口](docs/dtls.md)：`ContractDtlsIdentity`、
+新增 [DTLS 1.2 消费入口](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.8.0-center-20260914/docs/dtls.md)：`ContractDtlsIdentity`、
 `ContractDtlsSession` 与可销毁的 `ContractDtlsSrtpSecrets`。仅依赖主桥的
 独立消费者已通过 OpenSSL 双角色/双 profile 本机互操作；媒体协议仍由消费方维护。
 
@@ -67,13 +67,13 @@
 | Incremental TLS 1.3 live runtime | caller-owned transport 的 client/server handshake 与 verified channel | 非浏览器级 HTTPS 证明 |
 | Runtime compatibility profiles | runtime marker 与 startup profile catalog | 不等于多平台实机证明 |
 
-完整证据、manual 映射与限制见 [Capability Matrix](docs/capability-matrix.md)。
+完整证据、manual 映射与限制见 [Capability Matrix](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.8.0-center-20260914/docs/capability-matrix.md)。
 
 ## 快速开始
 
 ```toml
 [dependencies]
-jinguissl = { git = "https://gitcode.com/cinyu/jinguiSSL.git" }
+jinguissl = "0.8.0"
 ```
 
 ```cangjie
@@ -127,7 +127,7 @@ Contract 源码采用 `Apache-2.0`，依赖的 Core 当前源码线采用 `LGPL-
 新应用可从 `jinguissl.contract.ContractTls13StreamClient`（TCP 字节流）或
 `ContractTls13ClientEngine`（QUIC/自有传输的握手字节）开始。两者不套用 HTTP ALPN，
 要求明确的信任根、DNS 主机名与证书校验时间；应用秘密只在服务器认证全部通过后开放。
-用法、销毁责任、版本取得方式和限制见 [通用 TLS / QUIC 客户端](docs/tls13-client-engine.md)。
+用法、销毁责任、版本取得方式和限制见 [通用 TLS / QUIC 客户端](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.8.0-center-20260914/docs/tls13-client-engine.md)。
 
 `jinguissl.live.*` 提供增量 client/server record 输入输出、protected flight、client Finished 验证和 verified application channel。调用方仍负责 socket、读写调度、超时和上层协议。
 
@@ -158,16 +158,16 @@ bash scripts/jinguissl_pre_review.sh <base-ref>
 
 ## 文档与示例
 
-- [使用手册](docs/usage-guide.md)
-- [能力矩阵](docs/capability-matrix.md)
-- [快速开始](docs/getting-started.md)
-- [错误处理](docs/error-handling.md)
-- [QUIC](docs/quic.md)
-- [X.509 与 HTTP/TLS](docs/x509-and-http-tls.md)
-- [国密与国密协议](docs/china-crypto.md)
-- [GM Contract 测试清单](docs/gm-test-manifest.md)
-- [非国密 Contract 测试清单](docs/non-gm-test-manifest.md)
-- [Core → Contract 缺口矩阵](docs/core-contract-gap-matrix.md)
+- [使用手册](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.8.0-center-20260914/docs/usage-guide.md)
+- [能力矩阵](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.8.0-center-20260914/docs/capability-matrix.md)
+- [快速开始](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.8.0-center-20260914/docs/getting-started.md)
+- [错误处理](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.8.0-center-20260914/docs/error-handling.md)
+- [QUIC](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.8.0-center-20260914/docs/quic.md)
+- [X.509 与 HTTP/TLS](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.8.0-center-20260914/docs/x509-and-http-tls.md)
+- [国密与国密协议](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.8.0-center-20260914/docs/china-crypto.md)
+- [GM Contract 测试清单](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.8.0-center-20260914/docs/gm-test-manifest.md)
+- [非国密 Contract 测试清单](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.8.0-center-20260914/docs/non-gm-test-manifest.md)
+- [Core → Contract 缺口矩阵](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.8.0-center-20260914/docs/core-contract-gap-matrix.md)
 - [开发示例](examples/README.md)
 
 测试数量以当前提交的完整测试日志为准。基准目录只提供非正式量级采样，不构成性能承诺。

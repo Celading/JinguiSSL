@@ -15,6 +15,7 @@ on:
       - "ci/**"
       - "fix/**"
       - "feature/**"
+      - "release/**"
   pull_request:
     branches:
       - main
