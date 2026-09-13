@@ -165,7 +165,13 @@ public class ContractSshServerRuntime {
     }
 
     public func resetTransportCounters(): Unit {
-        _runtime.resetTransportCounters()
+        try {
+            _runtime.resetTransportCounters()
+        } catch (e: livecontract.ContractException) {
+            throw contractSshFacadeException(e)
+        } catch (e: CryptoException) {
+            throw contractSshFacadeCryptoException(e, "SSH server counter reset")
+        }
     }
 
     public func seal(payload: Array<Byte>, randomPadding!: Array<Byte> = []): Array<Byte> {
@@ -225,7 +231,13 @@ public class ContractSshClientRuntime {
     }
 
     public func resetTransportCounters(): Unit {
-        _runtime.resetTransportCounters()
+        try {
+            _runtime.resetTransportCounters()
+        } catch (e: livecontract.ContractException) {
+            throw contractSshFacadeException(e)
+        } catch (e: CryptoException) {
+            throw contractSshFacadeCryptoException(e, "SSH client counter reset")
+        }
     }
 
     public func seal(payload: Array<Byte>, randomPadding!: Array<Byte> = []): Array<Byte> {

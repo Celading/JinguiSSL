@@ -123,8 +123,22 @@ public class ContractSshStartupBundleTestSuite {
         @Assert(clientBundle.readiness.sshReady, true)
         @Assert(clientBundle.handshake.requireHostVerification().hostSignatureVerified, true)
         @Assert(clientBundle.runtime.sessionId(), clientBundle.handshake.sessionId)
+        serverBundle.runtime.resetTransportCounters()
+        clientBundle.runtime.resetTransportCounters()
         let sealed = serverBundle.runtime.seal("contract-owned-ssh-channel".toArray())
         @Assert(clientBundle.runtime.open(sealed).payload, "contract-owned-ssh-channel".toArray())
+        var serverResetRejected = false
+        try { serverBundle.runtime.resetTransportCounters() }
+        catch (_: ContractException) { serverResetRejected = true }
+        @Assert(serverResetRejected)
+        var clientResetRejected = false
+        try { clientBundle.runtime.resetTransportCounters() }
+        catch (_: ContractException) { clientResetRejected = true }
+        @Assert(clientResetRejected)
+        @Assert(serverBundle.runtime.writeSequence, 1)
+        @Assert(clientBundle.runtime.readSequence, 1)
+        let next = serverBundle.runtime.seal("after-rejected-reset".toArray())
+        @Assert(clientBundle.runtime.open(next).payload, "after-rejected-reset".toArray())
 
         let productionServer = contractTryPrepareSshServerLibraryStartupX25519RsaPkcs8Request(
             ContractSshServerLibraryStartupX25519RsaPkcs8Request(
