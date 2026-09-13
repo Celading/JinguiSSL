@@ -57,6 +57,11 @@ jobs:
       - name: Capability gate regression tests
         run: python3 scripts/jinguissl_capability_gate_test.py
 
+      - name: Consumer dependency and lock regression gate
+        run: |
+          python3 scripts/jinguissl_consumer_dependency_gate.py
+          python3 scripts/jinguissl_consumer_dependency_gate_test.py
+
   package-build-test:
     name: Package build and test
     runs-on: ubuntu-latest
@@ -188,7 +193,7 @@ jobs:
           . "$CANGJIE_HOME/envsetup.sh"
           cjpm run
 
-      - name: Four direct-Contract consumer smokes
+      - name: Direct-Contract consumer smokes and lock parity
         run: bash scripts/jinguissl_consumer_smokes.sh
 
       - name: Independent TLS and raw QUIC handshake references
