@@ -3,6 +3,20 @@ from pathlib import Path
 import re
 
 root = Path(__file__).resolve().parents[1]
+pin_pattern = r'jinguissl_core\s*=\s*\{\s*git\s*=\s*"([^"]+)"\s*,\s*commitId\s*=\s*"([0-9a-f]{40})"\s*\}'
+def core_pin(path):
+    matches = re.findall(pin_pattern, path.read_text())
+    assert len(matches) == 1, f"missing or ambiguous Core pin: {path}"
+    return matches[0]
+
+expected_pin = core_pin(root / "cjpm.toml")
+assert core_pin(root / "cjpm.lock") == expected_pin, "root Core lock drift"
+examples = sorted((root / "examples").glob("*/cjpm.toml"))
+assert examples, "no independent consumer manifests"
+for manifest in examples:
+    assert core_pin(manifest.with_name("cjpm.lock")) == expected_pin, f"consumer Core lock drift: {manifest.parent.name}"
+print(f"{len(examples)} consumer locks match the hosted root Core pin")
+
 for name in ("webauthn-crypto-smoke", "webdav-digest-smoke", "quic-crypto-smoke", "tls-client-smoke", "dtls-consumer"):
     sample = root / "examples" / name
     text = (sample / "cjpm.toml").read_text()
