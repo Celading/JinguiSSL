@@ -175,7 +175,7 @@ import jinguissl_core.crypto.x509.{
 }
 
 /* Keep the legacy live-package capability record aligned with the Contract package. */
-private let LIBRARY_VERSION: String = "0.7.7"
+private let LIBRARY_VERSION: String = "0.8.0"
 
 public enum ContractAeadAlgorithm <: Equatable<ContractAeadAlgorithm> & ToString {
     | Aes256Gcm

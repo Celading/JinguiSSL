@@ -32,6 +32,31 @@ class ConsumerDependencyGateTest(unittest.TestCase):
         result = self.run_gate()
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def use_registry(self):
+        (self.root / "cjpm.toml").write_text('[dependencies]\njinguissl_core = "0.8.0"\n')
+        for path in [self.root / "cjpm.lock", *self.root.glob("examples/*/cjpm.lock")]:
+            path.write_text('[requires]\njinguissl_core = {version = "0.8.0"}\n')
+
+    def test_matching_registry_graph_passes(self):
+        self.use_registry()
+        result = self.run_gate()
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_stale_registry_consumer_rejected(self):
+        self.use_registry()
+        path = self.root / "examples/dtls-consumer/cjpm.lock"
+        path.write_text(path.read_text().replace("0.8.0", "0.7.7"))
+        result = self.run_gate()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("consumer Core lock drift", result.stderr)
+
+    def test_registry_git_mixture_rejected(self):
+        self.use_registry()
+        (self.root / "examples/dtls-consumer/cjpm.lock").write_text("[requires]\n" + self.pin)
+        result = self.run_gate()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("consumer Core lock drift", result.stderr)
+
     def test_stale_consumer_lock_rejected(self):
         path = self.root / "examples/dtls-consumer/cjpm.lock"
         path.write_text(path.read_text().replace("a" * 40, "b" * 40))
