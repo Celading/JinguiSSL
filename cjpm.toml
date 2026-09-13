@@ -10,4 +10,4 @@
   include = ["src"]
 
 [dependencies]
-  jinguissl_core = { git = "https://gitcode.com/CjKu/JinguiCore.git", commitId = "154386392819bfde55ed25fe9ecb130e19fc37eb" }
+  jinguissl_core = { git = "https://gitcode.com/CjKu/JinguiCore.git", commitId = "6a77a506f322dae4673fb7632a9bdc72c76bbbea" }

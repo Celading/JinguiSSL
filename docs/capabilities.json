@@ -29,6 +29,18 @@
   ],
   "capabilities": [
     {
+      "id": "dtls12-consumer",
+      "label": "DTLS 1.2 consumer session and SRTP secrets",
+      "status": "implemented-local-test",
+      "summary": "主桥自有身份/角色/会话/可销毁秘密载体，统一异常；媒体消费者无需直接导入Core。",
+      "proof": "独立主桥消费者与OpenSSL3.6.4双角色×SRTP7/1四组互操作；导出快照隔离、关闭与异常映射测试。",
+      "limits": "可信fingerprint策略，不是PKIX；无RTP/SCTP/ICE处理；本地隔离依赖图证明与远端固定版本接用分别验收。",
+      "sourceGlobs": ["src/contract/contract_dtls.cj"],
+      "testGlobs": ["src/tests/contract_dtls_test.cj"],
+      "readmeTokens": ["DTLS 1.2"],
+      "manualPages": ["docs/dtls.md"]
+    },
+    {
       "id": "metadata-errors",
       "label": "Facade metadata and Contract errors",
       "status": "production-candidate-with-limits",
