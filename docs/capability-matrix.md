@@ -19,6 +19,7 @@
 
 | Capability | Status | Public surface | Evidence | Manual | Current limit |
 | --- | --- | --- | --- | --- | --- |
+| `protocol-consumer-supply` Extended crypto and owned protocol-consumer interfaces | `implemented-local-test` | BLAKE2s/XChaCha、AES-GCM context/Into、验证后SSH流式分帧、通用TLS1.3服务端；公开面无Core类型。 | 标准向量/生命周期与负向；五种SSH模式分帧；TLS三suite本地测试及独立OpenSSL客户端证书/ALPN/数据验证。 | [`protocol-consumption.md`](protocol-consumption.md) | 调用方拥有协议/transport/deadline；服务端不认证客户端身份，无HRR/PSK/KeyUpdate；不是消费方迁移或中心仓发布证明。 |
 | `dtls12-consumer` DTLS 1.2 consumer session and SRTP secrets | `implemented-local-test` | 主桥自有身份/角色/会话/可销毁秘密载体，统一异常；媒体消费者无需直接导入Core。 | 独立主桥消费者与OpenSSL3.6.4双角色×SRTP7/1四组互操作；导出快照隔离、关闭与异常映射测试。 | [`dtls.md`](dtls.md) | 可信fingerprint策略，不是PKIX；无RTP/SCTP/ICE处理；本地隔离依赖图证明与远端固定版本接用分别验收。 |
 | `metadata-errors` Facade metadata and Contract errors | `production-candidate-with-limits` | Facade metadata、ContractErrorCode、ContractException 与兼容映射。 | metadata/outcome tests and shared Contract/live exception identity regression | [`error-handling.md`](error-handling.md)<br>[`usage-guide.md`](usage-guide.md) | 兼容映射不应成为仓库身份；错误稳定性仍服从具体 API。 |
 | `digest-kdf-mac` Digest / HMAC / HKDF facade | `production-candidate-with-limits` | SHA-256/384/512、HMAC、HKDF，以及遗留兼容 MD5/SHA-1。 | digest vectors and boundary tests | [`digest.md`](digest.md)<br>[`getting-started.md`](getting-started.md) | MD5/SHA-1 仅兼容；无外部认证。 |
