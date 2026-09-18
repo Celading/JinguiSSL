@@ -1,6 +1,6 @@
 # 通用 TLS / QUIC 客户端
 
-直接依赖中心仓包 `jinguissl = "0.8.0"`，导入 `jinguissl.contract.*`。
+直接依赖中心仓包 `jinguissl = "0.9.0"`，导入 `jinguissl.contract.*`。
 本页接口从0.8.0提供；保留锁文件中的Core传递依赖，不添加Core直接依赖、
 本机缓存绝对路径或自动回退到源码副本。旧0.7.7包不包含全部新增入口。
 

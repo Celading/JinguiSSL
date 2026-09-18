@@ -8,7 +8,7 @@ public class ContractProviderGateTestSuite {
     public func testContractProviderCapabilityRecordShape(): Unit {
         let capability = contractProviderCapabilityRecord()
         @Assert(capability.providerId, "jinguissl")
-        @Assert(capability.providerVersion, "0.8.0")
+        @Assert(capability.providerVersion, "0.9.0")
         @Assert(capability.supportsClientTls, true)
         @Assert(capability.supportsServerTlsAttach, true)
         @Assert(capability.defaultEligible, true)
