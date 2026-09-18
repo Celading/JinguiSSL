@@ -105,8 +105,11 @@ public class ContractTls13StreamClient {
                                         }
                                         if (offset != pending.size) { throw streamError("TLS records after close_notify") }
                                         let reply = layer.seal(TlsContentType.Alert, [UInt8(1), UInt8(0)])
+                                        // Retire secrets without discarding the already queued client flight.
+                                        // The peer must receive Certificate/Finished before this application-key alert.
+                                        let finalOutput = streamJoin([outbound, reply])
                                         closeOwned()
-                                        outbound = reply
+                                        outbound = finalOutput
                                         return data.toArray()
                                     } else if (plain.contentType == TlsContentType.ApplicationData) {
                                         data.add(plain.fragment.clone())

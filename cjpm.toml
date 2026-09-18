@@ -1,13 +1,15 @@
 [package]
   cjc-version = "1.0.0"
-  version = "0.7.7"
+  version = "0.8.0"
   name = "jinguissl"
   output-type = "static"
   src-dir = "src"
   compile-option = "-Woff unused"
-  license = "Apache-2.0"
+  license = ["Apache-2.0"]
   description = "Cangjie application facade for cryptography, X.509, TLS, SSH, and QUIC contracts"
-  include = ["src"]
+  include = ["src", "docs", "LICENSE"]
+  exclude = ["src/tests", "examples", "sample", "scripts", "testdata", ".github", "**/*_test.cj", "cangjie-repo.toml", ".env", ".env.*", "*.cjp"]
 
 [dependencies]
-  jinguissl_core = { git = "https://gitcode.com/CjKu/JinguiCore.git", commitId = "fc812e8fd5b469a59d996722e4f454ed1dbe2af4" }
+  # Fixed review source; not a claim of registry availability.
+  jinguissl_core = { git = "https://github.com/Celading/jinguisslCore.git", commitId = "15e81d8df33e88be32bab276ff93e72889b5d25d" }

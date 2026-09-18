@@ -12,6 +12,7 @@ FILES = [
     "src/contract/contract_gm_x509.cj",
     "src/contract/contract_rfc8998.cj",
     "src/contract/contract_tlcp.cj",
+    "src/contract/contract_tlcp_provider.cj",
 ]
 
 FORBIDDEN = re.compile(

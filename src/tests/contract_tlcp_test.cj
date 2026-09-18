@@ -5,6 +5,108 @@ import jinguissl.contract.*
 @Test
 public class ContractTlcpTestSuite {
     @TestCase
+    public func testContractOnlyOwnedSessionsFourSuitesAndRevocation(): Unit {
+        let c = contractTlcpCredentials(sharedPeerName: true)
+        for (suite in contractTlcpDefaultCipherSuites()) {
+            let identity = ContractTlcpIdentity(c.signingPrivateKey, c.encryptionPrivateKey,
+                c.signingCertificate.der, c.encryptionCertificate.der)
+            let policy = ContractTlcpProviderPolicy(cipherSuites: [suite], requireClientCertificate: true)
+            let client = ContractTlcpSession(ContractTlcpRole.Client, c.rootCertificate.pem, "270101000000Z",
+                expectedPeerDnsName: "tlcp-sign.example", identity: Some(identity), policy: policy)
+            let server = ContractTlcpSession(ContractTlcpRole.Server, c.rootCertificate.pem, "270101000000Z",
+                identity: Some(identity), policy: policy)
+            identity.destroy()
+            tlcpAssertContractRejected({ => _ = ContractTlcpSession(ContractTlcpRole.Server,
+                c.rootCertificate.pem, "270101000000Z", identity: Some(identity), policy: policy) })
+            client.start(0); server.start(0)
+            tlcpAssertProviderRefused("not-authenticated", { => _ = client.sealApplicationData([]) })
+            for (_ in 0..4) {
+                for (wire in client.takeOutput()) { _ = server.receive(wire, 0) }
+                for (wire in server.takeOutput()) { _ = client.receive(wire, 0) }
+            }
+            @Assert(client.handshakeComplete, true); @Assert(server.handshakeComplete, true)
+            @Assert(client.peerAuthenticated, true); @Assert(server.peerAuthenticated, true)
+            @Assert(client.selectedCipherSuiteWireValue(), suite.wireValue())
+            @Assert(server.receive(client.sealApplicationData("request".toArray()), 1)[0], "request".toArray())
+            @Assert(client.receive(server.sealApplicationData("response".toArray()), 2)[0], "response".toArray())
+            let publicCert = client.peerCertificateHandshake(); publicCert[0] = 0
+            @Assert(client.peerCertificateHandshake()[0], UInt8(11))
+            client.closeNotify()
+            for (wire in client.takeOutput()) { _ = server.receive(wire, 3) }
+            @Assert(server.isClosed, true); server.endOfInput()
+            tlcpAssertProviderRefused("closed", { => _ = client.sealApplicationData([]) })
+        }
+    }
+
+    @TestCase
+    public func testContractSessionPolicyAndTimeoutRefusals(): Unit {
+        let c = contractTlcpCredentials()
+        let policy = ContractTlcpProviderPolicy(cipherSuites: [ContractTlcpCipherSuite.EccSm4GcmSm3],
+            handshakeTimeoutMs: 2)
+        tlcpAssertProviderRefused("invalid-policy", { => _ = ContractTlcpSession(ContractTlcpRole.Client,
+            c.rootCertificate.pem, "270101000000Z", policy: policy) })
+        let client = ContractTlcpSession(ContractTlcpRole.Client, c.rootCertificate.pem, "270101000000Z",
+            expectedPeerDnsName: "tlcp-sign.example", policy: policy)
+        client.start(0)
+        tlcpAssertProviderRefused("timeout", { => client.onTimeout(2) })
+        @Assert(client.isClosed, true)
+    }
+
+    @TestCase
+    public func testDestroyedKeyScheduleAndRecordLayerStayBehindContract(): Unit {
+        let secrets = contractTlcpDeriveSecretsFromPreMaster(tlcpBytes(48, 1),
+            tlcpBytes(32, 2), tlcpBytes(32, 3), ContractTlcpCipherSuite.EccSm4GcmSm3)
+        let layer = contractTlcpCreateClientRecordLayer(secrets)
+        secrets.destroy(); secrets.destroy()
+        @Assert(secrets.isDestroyed, true)
+        tlcpAssertContractRejected({ => _ = secrets.buildFinished([]) })
+        tlcpAssertContractRejected({ => secrets.verifyFinished([], []) })
+        tlcpAssertContractRejected({ => _ = contractTlcpCreateClientRecordLayer(secrets) })
+        tlcpAssertContractRejected({ => _ = contractTlcpCreateServerRecordLayer(secrets) })
+        tlcpAssertContractRejected({ => _ = contractDtlcpCreateClientRecordLayer(secrets) })
+        layer.destroy(); layer.destroy()
+        @Assert(layer.isDestroyed, true)
+        tlcpAssertContractRejected({ => _ = layer.seal(ContractGmTlsContentType.ApplicationData, []) })
+        tlcpAssertContractRejected({ => _ = layer.open([]) })
+    }
+
+    @TestCase
+    public func testOwnedIdentityAndProviderReadinessStaySeparate(): Unit {
+        let c = contractTlcpCredentials()
+        let identity = ContractTlcpIdentity(c.signingPrivateKey, c.encryptionPrivateKey,
+            c.signingCertificate.der, c.encryptionCertificate.der)
+        let expected = identity.certificateHandshake()
+        let snapshot = identity.certificateHandshake(); snapshot[0] = 0
+        @Assert(identity.certificateHandshake(), expected)
+        @Assert(identity.isDestroyed, false)
+        identity.destroy(); identity.destroy()
+        @Assert(identity.isDestroyed, true)
+        tlcpAssertContractRejected({ => _ = ContractTlcpIdentity(c.encryptionPrivateKey,
+            c.signingPrivateKey, c.signingCertificate.der, c.encryptionCertificate.der) })
+        let capabilities = contractTlcpProviderCapabilities()
+        @Assert(capabilities.connectionAvailable, true)
+        @Assert(capabilities.independentInteropVerified, true)
+        @Assert(capabilities.refusalReason, "")
+        capabilities.requireConnectionReady()
+        @Assert(contractTlcpProviderDescriptorSha256().size, 64)
+    }
+
+    @TestCase
+    public func testProviderRequestRefusalsAndConfigurationSnapshots(): Unit {
+        let policy = ContractTlcpProviderPolicy(cipherSuites: [ContractTlcpCipherSuite.EccSm4GcmSm3],
+            handshakeTimeoutMs: 120000, requireClientCertificate: true)
+        let snapshot = policy.cipherSuites(); snapshot[0] = ContractTlcpCipherSuite.EcdheSm4CbcSm3
+        @Assert(policy.cipherSuites()[0], ContractTlcpCipherSuite.EccSm4GcmSm3)
+        @Assert(policy.handshakeTimeoutMs, 120000)
+        @Assert(policy.requireClientCertificate, true)
+        tlcpAssertProviderRefused("unsupported-alpn", { => _ = ContractTlcpProviderPolicy(alpnProtocols: ["h2"]) })
+        tlcpAssertProviderRefused("unsupported-http2", { => _ = ContractTlcpProviderPolicy(requireHttp2: true) })
+        tlcpAssertProviderRefused("unsupported-resumption", { => _ = ContractTlcpProviderPolicy(requestResumption: true) })
+        tlcpAssertProviderRefused("unsupported-certification", { => _ = ContractTlcpProviderPolicy(requireCertifiedImplementation: true) })
+        tlcpAssertProviderRefused("invalid-policy", { => _ = ContractTlcpProviderPolicy(cipherSuites: []) })
+    }
+
+    @TestCase
     public func testTlcpHelloAndDualCertificateRoles(): Unit {
         let credentials = contractTlcpCredentials()
         let clientHello = contractTlcpBuildClientHello(
@@ -198,6 +300,12 @@ public class ContractTlcpTestSuite {
     }
 }
 
+private func tlcpAssertProviderRefused(reason: String, action: () -> Unit): Unit {
+    var actual = ""
+    try { action() } catch (e: ContractTlcpProviderRefusal) { actual = e.reason }
+    @Assert(actual, reason)
+}
+
 private class ContractTlcpTestCredentials {
     let rootCertificate: ContractGmCertificate
     let signingCertificate: ContractGmCertificate
@@ -220,7 +328,7 @@ private class ContractTlcpTestCredentials {
     }
 }
 
-private func contractTlcpCredentials(): ContractTlcpTestCredentials {
+private func contractTlcpCredentials(sharedPeerName!: Bool = false): ContractTlcpTestCredentials {
     let rootPrivate = tlcpHex(
         "3945208f7b2144b13f36e38ac6d39f95889393692860b51a42fb81ef4df7c5b8"
     )
@@ -253,7 +361,7 @@ private func contractTlcpCredentials(): ContractTlcpTestCredentials {
     )
     let encryption = contractGmIssueCertificate(
         ContractGmCertificateConfig(
-            "tlcp-enc.example",
+            if (sharedPeerName) { "tlcp-sign.example" } else { "tlcp-enc.example" },
             serialNumber: [UInt8(0x43)],
             notAfter: "300101000000Z",
             keyUsageMask: CONTRACT_GM_KEY_USAGE_KEY_ENCIPHERMENT |
