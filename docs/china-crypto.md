@@ -98,7 +98,9 @@ let clientRecord = contractRfc8998CreateClientRecordLayer(clientSecrets)
 
 ## TLCP 与 DTLCP
 
-TLCP facade 支持四个 suite：静态 ECC/ECDHE × SM4-CBC/GCM。典型流程为：
+TLCP facade 支持四个 suite：静态 ECC/ECDHE × SM4-CBC/GCM。应用优先使用
+[ContractTlcpSession](tlcp-provider.md)，由连接引擎验证双证书、Finished 并管理密钥生命周期。
+下面是仍保留的低层构件流程，不等于已认证连接：
 
 1. 构建并协商 TLCP hello；
 2. 发送 signing leaf、encryption leaf 与 intermediates；

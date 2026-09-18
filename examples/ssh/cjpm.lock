@@ -1,4 +1,5 @@
 version = 0
 
 [requires]
-  jinguissl_core = {version = "0.8.0"}
+
+  jinguissl_core = { git = "https://github.com/Celading/jinguisslCore.git", commitId = "bcea69d8e23631a1d65938b1f6ec46d7c0ce156b" }

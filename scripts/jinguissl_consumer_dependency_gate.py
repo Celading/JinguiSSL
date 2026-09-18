@@ -21,7 +21,7 @@ for manifest in examples:
     assert core_pin(manifest.with_name("cjpm.lock")) == expected_pin, f"consumer Core lock drift: {manifest.parent.name}"
 print(f"{len(examples)} consumer locks match the hosted root Core pin")
 
-for name in ("webauthn-crypto-smoke", "webdav-digest-smoke", "quic-crypto-smoke", "tls-client-smoke", "dtls-consumer"):
+for name in ("webauthn-crypto-smoke", "webdav-digest-smoke", "quic-crypto-smoke", "tls-client-smoke", "dtls-consumer", "tlcp-consumer"):
     sample = root / "examples" / name
     text = (sample / "cjpm.toml").read_text()
     sections = re.findall(r"(?ms)^\[dependencies\]\s*\n(.*?)(?=^\[|\Z)", text)
@@ -31,4 +31,4 @@ for name in ("webauthn-crypto-smoke", "webdav-digest-smoke", "quic-crypto-smoke"
     assert "jinguissl_core" not in text, name
     for source in (sample / "src").rglob("*.cj"):
         assert not re.search(r"\bimport\s+jinguissl_core\b", source.read_text()), source
-print("five standalone consumers: direct jinguissl only; transitive Core lock allowed")
+print("six standalone consumers: direct jinguissl only; transitive Core lock allowed")

@@ -58,7 +58,7 @@
 | SM9 identity-based crypto facade | KGC、用户私钥、签名、身份加密、配对与认证协商 | implemented local test |
 | GM X.509 / key-container facade | SEC1/PKCS#8/SPKI、CSR、证书链与 CRL | implemented local test |
 | RFC 8998 TLS 1.3 GM facade | curveSM2、SM4-GCM/CCM+SM3、Finished/record/CertificateVerify | implemented local test |
-| TLCP / DTLCP protocol facade | 双证书、静态 ECC/ECDHE、record、replay、fragment 与 flight | implemented local test |
+| TLCP / DTLCP protocol facade | TLCP owned session、双证书、四套 suite；DTLCP 构件 | 实验性；TLCP 主桥消费者对固定 openHiTLS 八组互通，DTLCP 仅本地回归 |
 | Traditional RSA / ECDH KEM facade | RSA-KEM 与 P-256 ECDH-KEM | 不是 ML-KEM/PQC 实现 |
 | QUIC v1/v2 protection facade | Initial、显式 AEAD、Header Protection、Retry integrity | 不含 transport/HTTP3 |
 | TLS session cache / secure opaque resumption | bounded cache、server-owned opaque ticket、binder validation、rotation 与 single-use consumption | implemented local test |
