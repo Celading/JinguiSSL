@@ -236,13 +236,13 @@
       "id": "tlcp-dtlcp",
       "label": "TLCP / DTLCP protocol facade",
       "status": "implemented-local-test",
-      "summary": "TLCP hello、双证书、静态 ECC/ECDHE、CBC/GCM、Finished/record 与 DTLCP epoch/replay/fragment/flight。",
-      "proof": "dual-role certificate, four-suite family, tamper, replay, reassembly and retransmission tests",
-      "limits": "caller 仍拥有 transport、timer 与会话调度；无外部 openHiTLS live interoperability claim。",
-      "sourceGlobs": ["src/contract/contract_tlcp.cj"],
+      "summary": "TLCP owned session、身份与版本化 provider policy/capabilities，双证书、静态 ECC/ECDHE、CBC/GCM；保留 DTLCP 构件。",
+      "proof": "Contract-only consumer 对 openHiTLS 586d8aa 双角色×四套共八组双向证书认证/应用数据；本地篡改、超时、销毁与 DTLCP replay/fragment 回归。",
+      "limits": "实验性连接引擎；caller 拥有 transport/clock。无 ALPN、HTTP/2、恢复、重协商或商密认证；DTLCP 无外部互通声明。",
+      "sourceGlobs": ["src/contract/contract_tlcp*.cj"],
       "testGlobs": ["src/tests/contract_tlcp_test.cj"],
       "readmeTokens": ["TLCP / DTLCP protocol facade"],
-      "manualPages": ["docs/china-crypto.md", "docs/gm-test-manifest.md"]
+      "manualPages": ["docs/tlcp-provider.md", "docs/china-crypto.md", "docs/gm-test-manifest.md"]
     },
     {
       "id": "traditional-kem",

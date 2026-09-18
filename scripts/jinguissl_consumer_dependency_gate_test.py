@@ -18,7 +18,7 @@ class ConsumerDependencyGateTest(unittest.TestCase):
         self.pin = 'jinguissl_core = {git = "https://gitcode.com/CjKu/JinguiCore.git", commitId = "' + "a" * 40 + '"}\n'
         (self.root / "cjpm.toml").write_text("[dependencies]\n" + self.pin)
         (self.root / "cjpm.lock").write_text("version = 0\n[requires]\n" + self.pin)
-        for name in ("webauthn-crypto-smoke", "webdav-digest-smoke", "quic-crypto-smoke", "tls-client-smoke", "dtls-consumer"):
+        for name in ("webauthn-crypto-smoke", "webdav-digest-smoke", "quic-crypto-smoke", "tls-client-smoke", "dtls-consumer", "tlcp-consumer"):
             sample = self.root / "examples" / name
             (sample / "src").mkdir(parents=True)
             (sample / "cjpm.toml").write_text('[dependencies]\njinguissl = { path = "../.." }\n')
@@ -82,6 +82,12 @@ class ConsumerDependencyGateTest(unittest.TestCase):
         result = self.run_gate()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("dtls-consumer/src/main.cj", result.stderr)
+
+    def test_tlcp_direct_core_import_rejected(self):
+        (self.root / "examples/tlcp-consumer/src/main.cj").write_text("import jinguissl_core.crypto.tls.*\n")
+        result = self.run_gate()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("tlcp-consumer/src/main.cj", result.stderr)
 
 
 if __name__ == "__main__":

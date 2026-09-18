@@ -124,6 +124,13 @@ public class ContractTlcpSecrets {
     public let writeKeyLen: Int64
     public let writeIvLen: Int64
 
+    public prop isDestroyed: Bool { get() { coreSecrets.isDestroyed } }
+    /** Retires this schedule, not independently created record endpoints. Serialize operations. */
+    public func destroy(): Unit { coreSecrets.destroy() }
+    private func requireAlive(): Unit {
+        if (isDestroyed) { throw ContractException(ContractErrorCode.BadInput, "TLCP secrets destroyed") }
+    }
+
     internal init(coreSecrets: TlcpHandshakeSecrets) {
         this.coreSecrets = coreSecrets
         this.cipherSuite = contractTlcpSuite(coreSecrets.cipherSuite)
@@ -135,6 +142,7 @@ public class ContractTlcpSecrets {
     public func buildFinished(
         handshakeTranscript: Array<Byte>, client!: Bool = true
     ): Array<Byte> {
+        requireAlive()
         try {
             tlcpBuildFinishedHandshake(
                 coreSecrets.masterSecret, handshakeTranscript, client
@@ -149,6 +157,7 @@ public class ContractTlcpSecrets {
         handshakeTranscript: Array<Byte>,
         client!: Bool = true
     ): Unit {
+        requireAlive()
         try {
             tlcpVerifyFinishedHandshake(
                 encodedFinished, coreSecrets.masterSecret, handshakeTranscript, client
@@ -182,6 +191,9 @@ public class ContractTlcpRecordLayer {
 
     public prop writeSequence: Int64 { get() { coreLayer.writeSequence } }
     public prop readSequence: Int64 { get() { coreLayer.readSequence } }
+    public prop isDestroyed: Bool { get() { coreLayer.isDestroyed } }
+    /** Irreversible, caller-serialized key retirement. */
+    public func destroy(): Unit { coreLayer.destroy() }
 
     public func seal(
         contentType: ContractGmTlsContentType, plaintext: Array<Byte>
@@ -510,13 +522,15 @@ public func contractTlcpDeriveEcdheServerSecrets(
 public func contractTlcpCreateClientRecordLayer(
     secrets: ContractTlcpSecrets
 ): ContractTlcpRecordLayer {
-    ContractTlcpRecordLayer(tlcpCreateClientRecordLayer(secrets.coreSecrets), true)
+    try { ContractTlcpRecordLayer(tlcpCreateClientRecordLayer(secrets.coreSecrets), true) }
+    catch (e: CryptoException) { throw contractTlcpException(e, "TLCP client record creation") }
 }
 
 public func contractTlcpCreateServerRecordLayer(
     secrets: ContractTlcpSecrets
 ): ContractTlcpRecordLayer {
-    ContractTlcpRecordLayer(tlcpCreateServerRecordLayer(secrets.coreSecrets), false)
+    try { ContractTlcpRecordLayer(tlcpCreateServerRecordLayer(secrets.coreSecrets), false) }
+    catch (e: CryptoException) { throw contractTlcpException(e, "TLCP server record creation") }
 }
 
 public class ContractDtlcpPlainRecord {

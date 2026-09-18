@@ -11,9 +11,9 @@
 | `ContractSm9TestSuite` | 3 | 签名/配对、身份加密、认证密钥交换 |
 | `ContractGmX509TestSuite` | 3 | SPKI/SEC1/PKCS#8、CSR、签发/链/CRL |
 | `ContractRfc8998TestSuite` | 3 | hello、两套 SM4 suite record、SM2 CertificateVerify |
-| `ContractTlcpTestSuite` | 5 | 双证书、静态 ECC、ECDHE、DTLCP replay/fragment/flight |
+| `ContractTlcpTestSuite` | 10 | 双证书、四套 owned session、policy/销毁/超时、DTLCP replay/fragment/flight |
 
-合计 20 个 C203 新增用例。负向门禁覆盖 AEAD/证书/CRL/record 篡改、身份错配、
+本表目前合计 25 个用例（原国密构件 20 个，TLCP provider 新增 5 个）。负向门禁覆盖 AEAD/证书/CRL/record 篡改、身份错配、
 DTLCP replay、逆向 epoch、未完成重组和 retransmission exhaustion。
 
 ## Replay
