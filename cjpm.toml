@@ -8,7 +8,7 @@
   license = ["Apache-2.0"]
   description = "Cangjie application facade for cryptography, X.509, TLS, SSH, and QUIC contracts"
   include = ["src", "docs", "LICENSE"]
-  exclude = ["src/tests", "examples", "sample", "scripts", "testdata", ".github", "**/*_test.cj", "cangjie-repo.toml", ".env", ".env.*", "*.cjp"]
+  exclude = ["src/tests", "benchmark", "examples", "sample", "scripts", "testdata", ".github", "**/*_test.cj", "cangjie-repo.toml", ".env", ".env.*", "*.cjp"]
 
 [dependencies]
   jinguissl_core = "0.9.0"
