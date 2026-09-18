@@ -122,6 +122,65 @@ private func serverEngineLayer(secrets: Tls13HandshakeSecrets, suite: Int64, han
 @Test
 public class ContractTls13ClientEngineTest {
     @TestCase
+    public func testPendingClientFlightSurvivesPeerClose(): Unit {
+        for (suite in [0x1301, 0x1302, 0x1303]) {
+            for (withRequest in [false, true]) {
+                for (coalesced in [false, true]) {
+                    let client = ContractTls13StreamClient(engineText("engine_root.pem"),
+                        "www.example.com", "270101000000Z", alpnProtocols: ["mqtt"],
+                        requireAlpn: true, cipherSuites: [suite])
+                    let hello = tlsDecodeRecord(client.takeHandshakeOutput()).fragment
+                    let request = if (withRequest) {
+                        tls13BuildCertificateRequestHandshake(signatureSchemes: [0x0403])
+                    } else { Array<Byte>() }
+                    let fixture = engineFixtureForHello(hello, request: request)
+                    let hs = serverEngineLayer(fixture.secrets, suite, true)
+                    let app = serverEngineLayer(fixture.secrets, suite, false)
+                    let flight = engineJoin([
+                        tlsEncodeRecord(TlsContentType.Handshake, TlsVersion.TLS1_2, fixture.messages[0]),
+                        hs.seal(TlsContentType.Handshake, engineJoin([
+                            fixture.messages[1], request, engineJoin(fixture.messages[2..])]))
+                    ])
+                    let alert = app.seal(TlsContentType.Alert, [UInt8(1), UInt8(0)])
+                    if (coalesced) {
+                        _ = client.receive(engineJoin([flight, alert]))
+                    } else {
+                        _ = client.receive(flight)
+                        _ = client.receive(alert)
+                    }
+                    @Assert(client.isClosed)
+                    @Assert(!client.authenticated)
+                    let wire = client.takeHandshakeOutput()
+                    var offset: Int64 = 0
+                    var certificate: Array<Byte> = []
+                    if (withRequest) {
+                        let size = 5 + (Int64(wire[3]) << 8) + Int64(wire[4])
+                        certificate = hs.open(wire[..size]).fragment
+                        @Assert(certificate, tlsEncodeCertificateHandshakeTls13(Tls13CertificateMessage()))
+                        offset = size
+                    }
+                    let size = 5 + (Int64(wire[offset + 3]) << 8) + Int64(wire[offset + 4])
+                    let finished = hs.open(wire[offset..(offset + size)])
+                    @Assert(finished.contentType, TlsContentType.Handshake)
+                    let expected = tls13ComputeFinishedVerifyDataForCipherSuite(
+                        fixture.secrets.clientHsTrafficSecret,
+                        engineHash(suite, engineJoin([hello, fixture.messages[0], fixture.messages[1], request,
+                            fixture.messages[2], fixture.messages[3], fixture.messages[4], certificate])), suite)
+                    @Assert(tlsDecodeFinishedHandshake(finished.fragment), expected)
+                    offset += size
+                    let closeReply = app.open(wire[offset..])
+                    @Assert(closeReply.contentType, TlsContentType.Alert)
+                    @Assert(closeReply.fragment, [UInt8(1), UInt8(0)])
+                    var rejected = false
+                    try { _ = client.takeHandshakeOutput() } catch (_: ContractException) { rejected = true }
+                    @Assert(rejected)
+                    fixture.secrets.destroy()
+                }
+            }
+        }
+    }
+
+    @TestCase
     public func testServerSupportedGroupsPreferencesDoNotRenegotiate(): Unit {
         for (quic in [false, true]) {
             let client = newEngine(quic: quic)
