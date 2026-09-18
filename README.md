@@ -36,6 +36,10 @@
 
 ## 能力概览
 
+新增 [协议库消费接口](docs/protocol-consumption.md)：BLAKE2s、HChaCha20 / XChaCha20-Poly1305、
+自有 AES-GCM 可复用上下文与 Into、验证后的 SSH 流式分帧，以及无 HTTP 默认策略的 TLS 1.3 服务端。
+新接口不向消费者导出 Core 类型；源码可用性、中心仓版本与实际应用迁移分别验收。
+
 新增 [DTLS 1.2 消费入口](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.8.0-center-20260914/docs/dtls.md)：`ContractDtlsIdentity`、
 `ContractDtlsSession` 与可销毁的 `ContractDtlsSrtpSecrets`。仅依赖主桥的
 独立消费者已通过 OpenSSL 双角色/双 profile 本机互操作；媒体协议仍由消费方维护。

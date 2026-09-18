@@ -29,6 +29,18 @@
   ],
   "capabilities": [
     {
+      "id": "protocol-consumer-supply",
+      "label": "Extended crypto and owned protocol-consumer interfaces",
+      "status": "implemented-local-test",
+      "summary": "BLAKE2s/XChaCha、AES-GCM context/Into、验证后SSH流式分帧、通用TLS1.3服务端；公开面无Core类型。",
+      "proof": "标准向量/生命周期与负向；五种SSH模式分帧；TLS三suite本地测试及独立OpenSSL客户端证书/ALPN/数据验证。",
+      "limits": "调用方拥有协议/transport/deadline；服务端不认证客户端身份，无HRR/PSK/KeyUpdate；不是消费方迁移或中心仓发布证明。",
+      "sourceGlobs": ["src/contract/contract_extended_crypto.cj", "src/contract/contract_aes_gcm_context.cj", "src/contract/contract_ssh_stream.cj", "src/contract/contract_tls13_stream_server.cj"],
+      "testGlobs": ["src/tests/contract_downstream_supply_test.cj", "src/tests/contract_ssh_stream_test.cj"],
+      "readmeTokens": ["BLAKE2s", "Into"],
+      "manualPages": ["docs/protocol-consumption.md"]
+    },
+    {
       "id": "dtls12-consumer",
       "label": "DTLS 1.2 consumer session and SRTP secrets",
       "status": "implemented-local-test",

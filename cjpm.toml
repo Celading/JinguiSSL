@@ -11,5 +11,5 @@
   exclude = ["src/tests", "examples", "sample", "scripts", "testdata", ".github", "**/*_test.cj", "cangjie-repo.toml", ".env", ".env.*", "*.cjp"]
 
 [dependencies]
-  # Review source pin; not a registry release of the new TLCP provider.
-  jinguissl_core = { git = "https://github.com/Celading/jinguisslCore.git", commitId = "bcea69d8e23631a1d65938b1f6ec46d7c0ce156b" }
+  # Fixed review source; not a claim of registry availability.
+  jinguissl_core = { git = "https://github.com/Celading/jinguisslCore.git", commitId = "d1a19dbb89c680927dbb6be835483af2065dcf5f" }
