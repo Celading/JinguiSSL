@@ -1,5 +1,7 @@
 package jinguissl.live
 
+import jinguissl_core.crypto.error.CryptoException
+
 public class ContractTls13IncrementalClientRuntimeRequest {
     public let clientHello: ContractTls13HttpClientHelloX25519
     public let serverFlight: ContractTls13HttpServerFlight
@@ -148,11 +150,21 @@ public func contractTryTls13OpenHttpClientVerifiedSessionRuntimeFromIncrementalS
     trust: ContractHttpClientTlsTrustRequest,
     recordResult: ContractTls13IncrementalHandshakeResult
 ): ContractTls13IncrementalClientRuntimeOutcome {
-    let gate = contractTls13ValidateCollectedServerFlightRecords(recordResult, serverFlight)
+    let gate = contractTls13ValidateCollectedServerFlightRecords(clientHello, recordResult, serverFlight)
     if (let Some(failure) <- gate) {
         return failure
     }
 
+    tls13TryOpenVerifiedClientFlightRuntime(clientHello, serverFlight, trust, recordResult)
+}
+
+// Called only after the owning entrypoint authenticated and reconstructed the wire messages.
+func tls13TryOpenVerifiedClientFlightRuntime(
+    clientHello: ContractTls13HttpClientHelloX25519,
+    serverFlight: ContractTls13HttpServerFlight,
+    trust: ContractHttpClientTlsTrustRequest,
+    recordResult: ContractTls13IncrementalHandshakeResult
+): ContractTls13IncrementalClientRuntimeOutcome {
     try {
         let session = contractTls13VerifyHttpServerFlightX25519WithSession(
             clientHello,
@@ -197,6 +209,7 @@ public func contractTryTls13OpenHttpClientVerifiedSessionRuntimeFromIncrementalS
 }
 
 private func contractTls13ValidateCollectedServerFlightRecords(
+    clientHello: ContractTls13HttpClientHelloX25519,
     recordResult: ContractTls13IncrementalHandshakeResult,
     serverFlight: ContractTls13HttpServerFlight
 ): ?ContractTls13IncrementalClientRuntimeOutcome {
@@ -255,16 +268,22 @@ private func contractTls13ValidateCollectedServerFlightRecords(
             needBytes: recordResult.needBytes
         ))
     }
-    if (recordResult.records.size < 5) {
+    let helloIndex = tls13ClientServerHelloRecordIndex(recordResult.records)
+    if (helloIndex < 0) {
+        return Some(ContractTls13IncrementalClientRuntimeOutcome(false,
+            ContractTls13IncrementalHandshakeStatus.Malformed, "TLS1.3 compatibility CCS or flight limit is invalid",
+            code: Some(ContractErrorCode.BadInput), recordsObserved: recordResult.records.size))
+    }
+    if (helloIndex == recordResult.records.size) {
         return Some(ContractTls13IncrementalClientRuntimeOutcome(
             false,
             ContractTls13IncrementalHandshakeStatus.NeedMoreBytes,
-            "TLS incremental server flight needs the full five-record TLS1.3 server flight",
+            "TLS incremental server flight needs ServerHello",
             recordsObserved: recordResult.records.size,
             needBytes: 1
         ))
     }
-    let first = recordResult.records[0]
+    let first = recordResult.records[helloIndex]
     if (first.version != ContractTlsVersion.Tls12 ||
         first.contentType != ContractTlsRecordContentType.Handshake ||
         !contractTls13IncrementalBytesEqual(first.payload, serverFlight.serverHello)) {
@@ -277,28 +296,31 @@ private func contractTls13ValidateCollectedServerFlightRecords(
             recordsObserved: recordResult.records.size
         ))
     }
-    var i: Int64 = 1
-    while (i < 5) {
-        if (!contractTls13IncrementalIsProtectedEnvelope(recordResult.records[i])) {
-            return Some(ContractTls13IncrementalClientRuntimeOutcome(
-                false,
-                ContractTls13IncrementalHandshakeStatus.VerificationFailed,
-                "TLS incremental server flight encrypted handshake record envelope is invalid",
-                code: Some(ContractErrorCode.VerifyFailed),
-                igniteCode: Some(contractMapToIgniteCryptoErrorCode(ContractErrorCode.VerifyFailed)),
-                recordsObserved: recordResult.records.size
-            ))
+    try {
+        let read = tls13ReadClientHandshakeMessages(clientHello, first.payload, recordResult.records)
+        if (let Some(alert) <- read.peerAlert) {
+            return Some(ContractTls13IncrementalClientRuntimeOutcome(false,
+                ContractTls13IncrementalHandshakeStatus.PeerAlert, "TLS1.3 protected peer alert",
+                code: Some(ContractErrorCode.VerifyFailed), peerAlert: Some(alert), recordsObserved: recordResult.records.size))
         }
-        i += 1
+        if (!read.complete) {
+            return Some(ContractTls13IncrementalClientRuntimeOutcome(false,
+                ContractTls13IncrementalHandshakeStatus.NeedMoreBytes,
+                "TLS incremental server flight needs more handshake message bytes",
+                recordsObserved: recordResult.records.size, needBytes: read.needBytes))
+        }
+        tls13RequireExpectedClientHandshakeMessages(read, serverFlight)
+        None
+    } catch (e: ContractException) {
+        Some(ContractTls13IncrementalClientRuntimeOutcome(false,
+            contractTls13IncrementalStatusFromContractError(e.code), e.message,
+            code: Some(e.code), igniteCode: Some(contractMapToIgniteCryptoErrorCode(e.code)),
+            recordsObserved: recordResult.records.size))
+    } catch (e: CryptoException) {
+        Some(ContractTls13IncrementalClientRuntimeOutcome(false,
+            ContractTls13IncrementalHandshakeStatus.VerificationFailed, e.message,
+            code: Some(ContractErrorCode.VerifyFailed), recordsObserved: recordResult.records.size))
     }
-    None
-}
-
-private func contractTls13IncrementalIsProtectedEnvelope(record: ContractTls13IncrementalRecordFrame): Bool {
-    (
-        record.version == ContractTlsVersion.Tls13 ||
-        record.version == ContractTlsVersion.Tls12
-    ) && record.contentType == ContractTlsRecordContentType.ApplicationData
 }
 
 private func contractTls13IncrementalClientRuntimeFailureFromCollector(

@@ -44,7 +44,7 @@ public class ContractGmX509TestSuite {
             ContractGmCertificateConfig(
                 "gm-leaf.example",
                 serialNumber: [UInt8(0x20)],
-                notAfter: "300101000000Z",
+                notAfter: "300101000000Z", // cjlint-ignore !G.OTH.02 Published deterministic test vector, not a runtime credential.
                 keyUsageMask: CONTRACT_GM_KEY_USAGE_DIGITAL_SIGNATURE
             ),
             contractSm2PublicFromPrivate(leafPrivate),
@@ -83,7 +83,7 @@ public class ContractGmX509TestSuite {
             ContractGmCertificateConfig(
                 "revoked.example",
                 serialNumber: [UInt8(0x33)],
-                notAfter: "300101000000Z"
+                notAfter: "300101000000Z" // cjlint-ignore !G.OTH.02 Published deterministic test vector, not a runtime credential.
             ),
             contractSm2PublicFromPrivate(leafPrivate),
             root.pem,

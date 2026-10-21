@@ -10,7 +10,7 @@ public class ContractSm9TestSuite {
         @Assert(master.privateKey.size, CONTRACT_SM9_SCALAR_LEN)
         @Assert(master.publicKey.size, CONTRACT_SM9_G2_LEN)
         @Assert(contractSm9SignMasterPublicFromPrivate(master.privateKey), master.publicKey)
-        let identity = "Alice@example.cn".toArray()
+        let identity = "Alice@example.cn".toArray() // cjlint-ignore !G.OTH.03 Public protocol identifier, reserved test hostname or published test identity.
         let user = contractSm9ExtractSignUserPrivateKey(master.privateKey, identity)
         let message = "SM9 contract signature".toArray()
         let signature = contractSm9Sign(user, message)
@@ -34,7 +34,7 @@ public class ContractSm9TestSuite {
     public func testSm9IdentityEncryptionAndTamperRejection(): Unit {
         let master = contractSm9GenerateEncryptionMasterKeyPair()
         @Assert(contractSm9EncryptionMasterPublicFromPrivate(master.privateKey), master.publicKey)
-        let identity = "Bob@example.cn".toArray()
+        let identity = "Bob@example.cn".toArray() // cjlint-ignore !G.OTH.03 Public protocol identifier, reserved test hostname or published test identity.
         let user = contractSm9ExtractEncryptionUserPrivateKey(master.privateKey, identity)
         let plaintext = "SM9 identity-based encryption".toArray()
         let ciphertext = contractSm9Encrypt(master.publicKey, identity, plaintext)

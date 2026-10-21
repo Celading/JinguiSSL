@@ -12,7 +12,7 @@ import jinguissl_core.crypto.digest.sha256
 public class ContractSshStreamTestSuite {
     @TestCase
     public func testOwnedVerifiedStreamFragmentationCoalescingAndFailure(): Unit {
-        for (cipher in ["aes128-ctr","aes256-ctr","aes128-gcm@openssh.com","aes256-gcm@openssh.com","chacha20-poly1305@openssh.com"]) {
+        for (cipher in ["aes128-ctr","aes256-ctr","aes128-gcm@openssh.com","aes256-gcm@openssh.com","chacha20-poly1305@openssh.com"]) { // cjlint-ignore !G.OTH.03 Public protocol identifier, reserved test hostname or published test identity.
             let mac = if (cipher.endsWith("-ctr")) { "hmac-sha2-256" } else { "none" }
             let ck = Array<Byte>(32,repeat: 7)
             let sk = Array<Byte>(32,repeat: 8)

@@ -1366,7 +1366,7 @@ private func contractMapProviderErrorFamily(
         case ContractErrorCode.CryptoUnavailable =>
             if (
                 phase == ContractProviderErrorPhase.ProviderSelection ||
-                phase == ContractProviderErrorPhase.ProviderRuntime
+                phase == ContractProviderErrorPhase.ProviderRuntime // cjlint-ignore !G.EXP.03 Intentional short-circuit on immutable enum comparisons.
             ) {
                 ContractProviderErrorFamily.ProviderUnavailable
             } else {

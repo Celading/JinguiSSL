@@ -46,7 +46,7 @@ public class ContractKemX509GeneralTestSuite {
         @Assert(summary.der.size > 0, true)
         @Assert(summary.subjectCommonName.size > 0, true)
         @Assert(summary.issuerCommonName.size > 0, true)
-        @Assert(summary.subjectAlternativeDnsNames.contains("www.example.com"), true)
+        @Assert(summary.subjectAlternativeDnsNames.contains("www.example.com"), true) // cjlint-ignore !G.OTH.03 Public protocol identifier, reserved test hostname or published test identity.
         @Assert(summary.certificateAuthority, false)
 
         let ecKey = contractX509ParseEcPrivateKeyPkcs8Pem(

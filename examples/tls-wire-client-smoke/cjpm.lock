@@ -1,0 +1,4 @@
+version = 0
+
+[requires]
+  jinguissl_core = {version = "0.9.1"}

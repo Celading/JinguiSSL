@@ -60,7 +60,7 @@
 
      @TestCase
      public func testAesHpMaskLength(): Unit {
-         let sample = hexToBytes("00112233445566778899aabbccddeeff")
+         let sample = hexToBytes("00112233445566778899aabbccddeeff") // cjlint-ignore !G.OTH.02 Published deterministic test vector, not a runtime credential.
          let key    = hexToBytes("0123456789abcdef0123456789abcdef")
          let (_, pnMask) = contractQuicHpAesEncrypt(sample, key)
          @Assert(pnMask.size, 15)
@@ -81,7 +81,7 @@
      @TestCase
      public func testAesHpWithInvalidShortSample(): Unit {
          let hpKey = hexToBytes("9f50449e04a0e810283a1e9933adedd2")
-         let shortSample = hexToBytes("00112233445566778899aabbccdd")
+         let shortSample = hexToBytes("00112233445566778899aabbccdd") // cjlint-ignore !G.OTH.02 Published deterministic test vector, not a runtime credential.
          try {
              _ = contractQuicHpAesEncrypt(shortSample, hpKey)
              @Fail("AES HP should reject short sample")
@@ -92,7 +92,7 @@
 
      @TestCase
      public func testChaChaHpWithInvalidKeyLength(): Unit {
-         let shortKey = hexToBytes("00112233445566778899aabbccddeeff")
+         let shortKey = hexToBytes("00112233445566778899aabbccddeeff") // cjlint-ignore !G.OTH.02 Published deterministic test vector, not a runtime credential.
          let sample = hexToBytes("00000000aabbccddeeff001122334455")
          try {
              _ = contractQuicHpChaChaEncrypt(sample, shortKey)
@@ -104,7 +104,7 @@
 
      @TestCase
      public func testAesHpRejectsAes192KeyAndAcceptsAes256Key(): Unit {
-         let sample = hexToBytes("00112233445566778899aabbccddeeff")
+         let sample = hexToBytes("00112233445566778899aabbccddeeff") // cjlint-ignore !G.OTH.02 Published deterministic test vector, not a runtime credential.
          try {
              _ = contractQuicHpAesEncrypt(sample, Array<Byte>(24, repeat: 0))
              @Fail("QUIC AES HP must reject 24-byte AES keys")

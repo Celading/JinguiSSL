@@ -21,7 +21,7 @@ private func engineJoin(parts: Array<Array<Byte>>): Array<Byte> {
 private func engineHash(suite: Int64, bytes: Array<Byte>): Array<Byte> {
     if (suite == 0x1302) { sha384(bytes) } else { sha256(bytes) }
 }
-private func newEngine(suite!: Int64 = 0x1301, quic!: Bool = false, hostname!: String = "www.example.com"): ContractTls13ClientEngine {
+private func newEngine(suite!: Int64 = 0x1301, quic!: Bool = false, hostname!: String = "www.example.com"): ContractTls13ClientEngine { // cjlint-ignore !G.OTH.03 Public protocol identifier, reserved test hostname or published test identity.
     ContractTls13ClientEngine(
         engineText("engine_root.pem"), hostname, "270101000000Z",
         alpnProtocols: ["mqtt"], requireAlpn: true, cipherSuites: [suite],
@@ -127,7 +127,7 @@ public class ContractTls13ClientEngineTest {
             for (withRequest in [false, true]) {
                 for (coalesced in [false, true]) {
                     let client = ContractTls13StreamClient(engineText("engine_root.pem"),
-                        "www.example.com", "270101000000Z", alpnProtocols: ["mqtt"],
+                        "www.example.com", "270101000000Z", alpnProtocols: ["mqtt"], // cjlint-ignore !G.OTH.03 Public protocol identifier, reserved test hostname or published test identity.
                         requireAlpn: true, cipherSuites: [suite])
                     let hello = tlsDecodeRecord(client.takeHandshakeOutput()).fragment
                     let request = if (withRequest) {
@@ -280,7 +280,7 @@ public class ContractTls13ClientEngineTest {
     @TestCase
     public func testWrongContextSignerHostnameAndTamperFailBeforeAppKeys(): Unit {
         for (kind in 0..5) {
-            let client = newEngine(hostname: if (kind == 2) { "wrong.example.com" } else { "www.example.com" })
+            let client = newEngine(hostname: if (kind == 2) { "wrong.example.com" } else { "www.example.com" }) // cjlint-ignore !G.OTH.03 Public protocol identifier, reserved test hostname or published test identity.
             let fixture = engineFixture(client, wrongContext: kind == 0, wrongSigner: kind == 1)
             client.receiveInitial(fixture.messages[0])
             if (kind == 3) { fixture.messages[3][fixture.messages[3].size - 1] ^= UInt8(1) }
@@ -339,7 +339,7 @@ public class ContractTls13ClientEngineTest {
         for (kind in 0..3) {
             let client = ContractTls13ClientEngine(
                 engineText(if (kind == 0 || kind == 2) { "policy_root.pem" } else { "engine_root.pem" }),
-                "www.example.com", if (kind == 1) { "20990101000000Z" } else { "270101000000Z" },
+                "www.example.com", if (kind == 1) { "20990101000000Z" } else { "270101000000Z" }, // cjlint-ignore !G.OTH.03 Public protocol identifier, reserved test hostname or published test identity.
                 alpnProtocols: ["mqtt"], requireAlpn: true
             )
             let fixture = engineFixture(client)
@@ -475,7 +475,7 @@ public class ContractTls13ClientEngineTest {
     @TestCase
     public func testStreamCertificateRequestResponseRecordsAndApplicationCounters(): Unit {
         for (suite in [0x1301, 0x1302, 0x1303]) {
-            let client = ContractTls13StreamClient(engineText("engine_root.pem"), "www.example.com", "270101000000Z",
+            let client = ContractTls13StreamClient(engineText("engine_root.pem"), "www.example.com", "270101000000Z", // cjlint-ignore !G.OTH.03 Public protocol identifier, reserved test hostname or published test identity.
                 alpnProtocols: ["mqtt"], requireAlpn: true, cipherSuites: [suite])
             let hello = tlsDecodeRecord(client.takeHandshakeOutput()).fragment
             let request = tls13BuildCertificateRequestHandshake(signatureSchemes: [0x0403])
@@ -506,7 +506,7 @@ public class ContractTls13ClientEngineTest {
     @TestCase
     public func testStreamPhasesTicketsAndPeerCloseNotify(): Unit {
         for (suite in [0x1301, 0x1302, 0x1303]) {
-            let client = ContractTls13StreamClient(engineText("engine_root.pem"), "www.example.com", "270101000000Z",
+            let client = ContractTls13StreamClient(engineText("engine_root.pem"), "www.example.com", "270101000000Z", // cjlint-ignore !G.OTH.03 Public protocol identifier, reserved test hostname or published test identity.
                 alpnProtocols: ["mqtt"], requireAlpn: true, cipherSuites: [suite])
             let fixture = engineFixtureForHello(tlsDecodeRecord(client.takeHandshakeOutput()).fragment)
             let hs = serverEngineLayer(fixture.secrets, suite, true)
@@ -541,7 +541,7 @@ public class ContractTls13ClientEngineTest {
     @TestCase
     public func testStreamTamperEarlyAppAndWrongRecordPhaseAreTerminal(): Unit {
         for (kind in 0..3) {
-            let client = ContractTls13StreamClient(engineText("engine_root.pem"), "www.example.com", "270101000000Z",
+            let client = ContractTls13StreamClient(engineText("engine_root.pem"), "www.example.com", "270101000000Z", // cjlint-ignore !G.OTH.03 Public protocol identifier, reserved test hostname or published test identity.
                 alpnProtocols: ["mqtt"], cipherSuites: [0x1301])
             let fixture = engineFixtureForHello(tlsDecodeRecord(client.takeHandshakeOutput()).fragment)
             _ = client.receive(tlsEncodeRecord(TlsContentType.Handshake, TlsVersion.TLS1_2, fixture.messages[0]))

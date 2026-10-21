@@ -125,7 +125,7 @@ public class ContractTls13ClientEngine {
                 requiredLeafDnsName: hostname,
                 validationTime: validationTime,
                 requiredLeafKeyUsageMask: 1,
-                requiredLeafExtendedKeyUsages: ["1.3.6.1.5.5.7.3.1"]
+                requiredLeafExtendedKeyUsages: ["1.3.6.1.5.5.7.3.1"] // cjlint-ignore !G.OTH.03 Public protocol identifier, reserved test hostname or published test identity.
             )
             let (ownedKey, encodedHello) = buildEngineHello(cipherSuites, hostname, alpnProtocols, quicTransportParameters)
             this.privateKey = ownedKey

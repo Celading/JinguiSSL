@@ -9,7 +9,7 @@ private func supplyServer(alpn!: Bool = true): ContractTls13StreamServer {
         alpnProtocols: if (alpn) { ["mqtt"] } else { [] }, requireAlpn: alpn)
 }
 private func supplyClient(suite: Int64, alpn!: Bool = true): ContractTls13StreamClient {
-    ContractTls13StreamClient(supplyText("engine_root.pem"), "www.example.com", "270101000000Z",
+    ContractTls13StreamClient(supplyText("engine_root.pem"), "www.example.com", "270101000000Z", // cjlint-ignore !G.OTH.03 Public protocol identifier, reserved test hostname or published test identity.
         alpnProtocols: if (alpn) { ["mqtt"] } else { [] }, requireAlpn: alpn, cipherSuites: [suite])
 }
 

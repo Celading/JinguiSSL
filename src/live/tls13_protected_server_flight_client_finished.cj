@@ -6,8 +6,6 @@ import jinguissl_core.crypto.error.CryptoException
 import jinguissl_core.crypto.tls.{
     TLS13_CIPHER_SUITE_AES_256_GCM_SHA384,
     tls13ComputeFinishedVerifyData,
-    tls13DeriveSecretsFromX25519ForCipherSuite,
-    tls13ExtractServerX25519KeyShare,
     tlsEncodeFinishedHandshake
 }
 
@@ -288,7 +286,7 @@ public func contractTryTls13OpenHttpClientRuntimeFromProtectedServerFlight(
         )
     }
 
-    let runtimeOutcome = contractTryTls13OpenHttpClientVerifiedSessionRuntimeFromIncrementalServerFlight(
+    let runtimeOutcome = tls13TryOpenVerifiedClientFlightRuntime(
         clientHello,
         serverFlight,
         trust,
@@ -395,188 +393,65 @@ private func c186TryMapProtectedServerFlight(
             needBytes: recordResult.needBytes
         )))
     }
-    if (recordResult.records.size < 5) {
+    let helloIndex = tls13ClientServerHelloRecordIndex(recordResult.records)
+    if (helloIndex < 0) {
+        return C186ProtectedServerFlightMapAttempt(failure: Some(ContractTls13ProtectedServerFlightOutcome(false,
+            ContractTls13IncrementalHandshakeStatus.Malformed, "TLS1.3 compatibility CCS or flight limit is invalid",
+            code: Some(ContractErrorCode.BadInput), recordsObserved: recordResult.records.size)))
+    }
+    if (helloIndex == recordResult.records.size) {
         return C186ProtectedServerFlightMapAttempt(failure: Some(ContractTls13ProtectedServerFlightOutcome(
-            false,
-            ContractTls13IncrementalHandshakeStatus.NeedMoreBytes,
-            "TLS1.3 protected server flight needs five TLS records",
-            recordsObserved: recordResult.records.size,
-            needBytes: 1
-        )))
+            false, ContractTls13IncrementalHandshakeStatus.NeedMoreBytes,
+            "TLS1.3 protected server flight needs ServerHello", needBytes: 1)))
     }
-    if (recordResult.records.size > 5) {
-        return C186ProtectedServerFlightMapAttempt(failure: Some(c186ProtectedFailure(
-            ContractTls13IncrementalHandshakeStatus.Malformed,
-            "TLS1.3 protected server flight first slice accepts exactly five records",
-            ContractErrorCode.BadInput,
-            recordResult.records.size
-        )))
-    }
-
-    let first = recordResult.records[0]
-    if (first.version != ContractTlsVersion.Tls12 ||
-        first.contentType != ContractTlsRecordContentType.Handshake ||
+    let first = recordResult.records[helloIndex]
+    if (first.version != ContractTlsVersion.Tls12 || first.contentType != ContractTlsRecordContentType.Handshake ||
         !c186BytesEqual(first.payload, serverFlight.serverHello)) {
         return C186ProtectedServerFlightMapAttempt(failure: Some(c186ProtectedFailure(
             ContractTls13IncrementalHandshakeStatus.VerificationFailed,
             "TLS1.3 protected server flight ServerHello record does not match expected flight",
-            ContractErrorCode.VerifyFailed,
-            recordResult.records.size
-        )))
+            ContractErrorCode.VerifyFailed, recordResult.records.size)))
     }
-    var i: Int64 = 1
-    while (i < 5) {
-        let record = recordResult.records[i]
-        if (!c186IsTls13ProtectedRecordEnvelope(record)) {
-            return C186ProtectedServerFlightMapAttempt(failure: Some(c186ProtectedFailure(
-                ContractTls13IncrementalHandshakeStatus.Malformed,
-                "TLS1.3 protected server flight encrypted handshake record envelope is invalid",
-                ContractErrorCode.BadInput,
-                recordResult.records.size
-            )))
-        }
-        i += 1
-    }
-
     try {
-        let binding = contractTls13ResolveCipherBindingFromServerFlight(serverFlight)
-        let serverPublicKey = tls13ExtractServerX25519KeyShare(serverFlight.serverHello)
-        let helloTranscriptHash = c186Tls13HashForCipherSuite(
-            binding.cipherSuite,
-            c186ConcatBytes([clientHello.encodedClientHello, serverFlight.serverHello])
-        )
-        let secrets = tls13DeriveSecretsFromX25519ForCipherSuite(
-            clientHello.clientPrivateKey,
-            serverPublicKey,
-            helloTranscriptHash,
-            binding.cipherSuite
-        )
-        let (clientHandshakeKey, clientHandshakeIv) = contractTls13DeriveApplicationTrafficKeyIv(
-            secrets.clientHsTrafficSecret,
-            keyLen: binding.keyLen,
-            ivLen: binding.ivLen
-        )
-        let (serverHandshakeKey, serverHandshakeIv) = contractTls13DeriveApplicationTrafficKeyIv(
-            secrets.serverHsTrafficSecret,
-            keyLen: binding.keyLen,
-            ivLen: binding.ivLen
-        )
-        let handshakeKeyMaterial = ContractTls13ApplicationKeyMaterial(
-            clientHandshakeKey,
-            clientHandshakeIv,
-            serverHandshakeKey,
-            serverHandshakeIv
-        )
-        let clientHandshakeChannel = contractTls13CreateClientRecordChannel(
-            handshakeKeyMaterial,
-            algorithm: binding.algorithm
-        )
-
-        let encryptedExtensions = c186OpenExpectedProtectedHandshake(
-            clientHandshakeChannel,
-            recordResult.records[1],
-            serverFlight.encryptedExtensions,
-            "EncryptedExtensions"
-        )
-        let certificateHandshake = c186OpenExpectedProtectedHandshake(
-            clientHandshakeChannel,
-            recordResult.records[2],
-            serverFlight.certificateHandshake,
-            "Certificate"
-        )
-        let certificateVerifyHandshake = c186OpenExpectedProtectedHandshake(
-            clientHandshakeChannel,
-            recordResult.records[3],
-            serverFlight.certificateVerifyHandshake,
-            "CertificateVerify"
-        )
-        let finishedHandshake = c186OpenExpectedProtectedHandshake(
-            clientHandshakeChannel,
-            recordResult.records[4],
-            serverFlight.finishedHandshake,
-            "Finished"
-        )
-        let fullTranscriptHash = c186Tls13FullServerFlightTranscriptHash(
-            binding.cipherSuite,
-            clientHello.encodedClientHello,
-            serverFlight.serverHello,
-            encryptedExtensions,
-            certificateHandshake,
-            certificateVerifyHandshake,
-            finishedHandshake
-        )
+        let read = tls13ReadClientHandshakeMessages(clientHello, first.payload, recordResult.records)
+        if (let Some(alert) <- read.peerAlert) {
+            return C186ProtectedServerFlightMapAttempt(failure: Some(ContractTls13ProtectedServerFlightOutcome(
+                false, ContractTls13IncrementalHandshakeStatus.PeerAlert, "TLS1.3 protected peer alert",
+                code: Some(ContractErrorCode.VerifyFailed), peerAlert: Some(alert), recordsObserved: recordResult.records.size)))
+        }
+        if (!read.complete) {
+            return C186ProtectedServerFlightMapAttempt(failure: Some(ContractTls13ProtectedServerFlightOutcome(
+                false, ContractTls13IncrementalHandshakeStatus.NeedMoreBytes,
+                "TLS1.3 protected server flight needs more handshake message bytes",
+                recordsObserved: recordResult.records.size, needBytes: read.needBytes)))
+        }
+        tls13RequireExpectedClientHandshakeMessages(read, serverFlight)
+        let encryptedExtensions = read.messages[0]
+        let certificateHandshake = read.messages[1]
+        let certificateVerifyHandshake = read.messages[2]
+        let finishedHandshake = read.messages[3]
+        let fullTranscriptHash = c186Tls13FullServerFlightTranscriptHash(read.binding.cipherSuite,
+            clientHello.encodedClientHello, first.payload, encryptedExtensions, certificateHandshake,
+            certificateVerifyHandshake, finishedHandshake)
         let encodedClientFinished = tlsEncodeFinishedHandshake(
-            tls13ComputeFinishedVerifyData(secrets.clientHsTrafficSecret, fullTranscriptHash)
-        )
-        let encodedClientFinishedRecord = clientHandshakeChannel.seal(
-            ContractTlsRecordContentType.Handshake,
-            encodedClientFinished
-        )
-        let mapped = ContractTls13ProtectedServerFlightMapping(
-            serverFlight,
-            serverFlight.serverHello,
-            encryptedExtensions,
-            certificateHandshake,
-            certificateVerifyHandshake,
-            finishedHandshake,
-            Int64(4)
-        )
-        let clientFinished = ContractTls13ClientFinishedOutput(
-            encodedClientFinished,
-            encodedClientFinishedRecord
-        )
-        C186ProtectedServerFlightMapAttempt(
-            artifacts: Some(C186ProtectedServerFlightArtifacts(mapped, clientFinished))
-        )
+            tls13ComputeFinishedVerifyData(read.secrets.clientHsTrafficSecret, fullTranscriptHash))
+        let encodedClientFinishedRecord = read.channel.seal(ContractTlsRecordContentType.Handshake, encodedClientFinished)
+        let mapped = ContractTls13ProtectedServerFlightMapping(serverFlight, first.payload, encryptedExtensions,
+            certificateHandshake, certificateVerifyHandshake, finishedHandshake, read.decodedRecords)
+        return C186ProtectedServerFlightMapAttempt(artifacts: Some(C186ProtectedServerFlightArtifacts(mapped,
+            ContractTls13ClientFinishedOutput(encodedClientFinished, encodedClientFinishedRecord))))
     } catch (e: ContractException) {
         let status = if (e.code == ContractErrorCode.BadInput) {
             ContractTls13IncrementalHandshakeStatus.Malformed
-        } else {
-            ContractTls13IncrementalHandshakeStatus.VerificationFailed
-        }
-        C186ProtectedServerFlightMapAttempt(failure: Some(c186ProtectedFailure(
-            status,
-            e.message,
-            e.code,
-            recordResult.records.size
-        )))
+        } else { ContractTls13IncrementalHandshakeStatus.VerificationFailed }
+        return C186ProtectedServerFlightMapAttempt(failure: Some(c186ProtectedFailure(
+            status, e.message, e.code, recordResult.records.size)))
     } catch (e: CryptoException) {
-        C186ProtectedServerFlightMapAttempt(failure: Some(c186ProtectedFailure(
+        return C186ProtectedServerFlightMapAttempt(failure: Some(c186ProtectedFailure(
             ContractTls13IncrementalHandshakeStatus.VerificationFailed,
             "TLS1.3 protected server flight crypto mapping failed: ${e.message}",
-            ContractErrorCode.VerifyFailed,
-            recordResult.records.size
-        )))
+            ContractErrorCode.VerifyFailed, recordResult.records.size)))
     }
-}
-
-private func c186IsTls13ProtectedRecordEnvelope(record: ContractTls13IncrementalRecordFrame): Bool {
-    (
-        record.version == ContractTlsVersion.Tls13 ||
-        record.version == ContractTlsVersion.Tls12
-    ) && record.contentType == ContractTlsRecordContentType.ApplicationData
-}
-
-private func c186OpenExpectedProtectedHandshake(
-    channel: ContractTlsRecordChannel,
-    record: ContractTls13IncrementalRecordFrame,
-    expected: Array<Byte>,
-    label: String
-): Array<Byte> {
-    let plain = channel.open(record.encodedRecord)
-    if (plain.contentType != ContractTlsRecordContentType.Handshake) {
-        throw ContractException(
-            ContractErrorCode.BadInput,
-            "TLS1.3 protected server flight ${label} record did not open as HANDSHAKE"
-        )
-    }
-    if (!c186BytesEqual(plain.fragment, expected)) {
-        throw ContractException(
-            ContractErrorCode.VerifyFailed,
-            "TLS1.3 protected server flight ${label} payload does not match expected flight"
-        )
-    }
-    plain.fragment
 }
 
 private func c186Tls13FullServerFlightTranscriptHash(

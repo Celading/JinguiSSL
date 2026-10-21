@@ -180,7 +180,7 @@
      }
  }
 
- private func mapCryptoErrorForOperation(e: CryptoException, operation: String): ContractErrorCode {
+ private func mapCryptoErrorForOperation(e: CryptoException, operation: String): ContractErrorCode { // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
      match (e.code) {
          case CryptoErrorCode.InvalidArgument => ContractErrorCode.BadInput
          case CryptoErrorCode.OutOfBounds => ContractErrorCode.BadInput

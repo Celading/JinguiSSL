@@ -351,7 +351,7 @@ private func contractTlcpCredentials(sharedPeerName!: Bool = false): ContractTlc
         ContractGmCertificateConfig(
             "tlcp-sign.example",
             serialNumber: [UInt8(0x42)],
-            notAfter: "300101000000Z",
+            notAfter: "300101000000Z", // cjlint-ignore !G.OTH.02 Published deterministic test vector, not a runtime credential.
             keyUsageMask: CONTRACT_GM_KEY_USAGE_DIGITAL_SIGNATURE |
                 CONTRACT_GM_KEY_USAGE_CONTENT_COMMITMENT
         ),
@@ -363,7 +363,7 @@ private func contractTlcpCredentials(sharedPeerName!: Bool = false): ContractTlc
         ContractGmCertificateConfig(
             if (sharedPeerName) { "tlcp-sign.example" } else { "tlcp-enc.example" },
             serialNumber: [UInt8(0x43)],
-            notAfter: "300101000000Z",
+            notAfter: "300101000000Z", // cjlint-ignore !G.OTH.02 Published deterministic test vector, not a runtime credential.
             keyUsageMask: CONTRACT_GM_KEY_USAGE_KEY_ENCIPHERMENT |
                 CONTRACT_GM_KEY_USAGE_DATA_ENCIPHERMENT |
                 CONTRACT_GM_KEY_USAGE_KEY_AGREEMENT

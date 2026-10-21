@@ -10955,10 +10955,10 @@ public func contractTls13BuildHttpClientHelloPskFromSessionCacheRequest(
 }
 
 public func contractTls13PreparePskEarlyDataFromSessionTicket(
-    ticket: ContractTlsSessionTicket,
-    sessionId!: Array<Byte> = [],
-    keyLen!: Int64 = 16,
-    ivLen!: Int64 = 12
+    ticket: ContractTlsSessionTicket, // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
+    sessionId!: Array<Byte> = [], // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
+    keyLen!: Int64 = 16, // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
+    ivLen!: Int64 = 12 // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
 ): ContractTls13PskEarlyDataPlan {
     throw ContractException(ContractErrorCode.Unsupported,
         "TLS1.3 early data is unavailable without a reviewed opaque-ticket and replay owner")
@@ -10976,12 +10976,12 @@ public func contractTls13PreparePskEarlyDataFromSessionTicketRequest(
 }
 
 public func contractTls13PreparePskEarlyDataFromSessionCache(
-    cache: ContractTlsSessionCache,
-    identity: ContractTlsSessionIdentity,
-    nowUnixSeconds!: Int64 = 0,
-    sessionId!: Array<Byte> = [],
-    keyLen!: Int64 = 16,
-    ivLen!: Int64 = 12
+    cache: ContractTlsSessionCache, // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
+    identity: ContractTlsSessionIdentity, // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
+    nowUnixSeconds!: Int64 = 0, // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
+    sessionId!: Array<Byte> = [], // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
+    keyLen!: Int64 = 16, // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
+    ivLen!: Int64 = 12 // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
 ): ContractTls13PskEarlyDataPlan {
     throw ContractException(ContractErrorCode.Unsupported,
         "TLS1.3 early data is unavailable without a reviewed opaque-ticket and replay owner")
@@ -11001,11 +11001,11 @@ public func contractTls13PreparePskEarlyDataFromSessionCacheRequest(
 }
 
 public func contractTls13AcceptPskEarlyDataFromClientHello(
-    encodedClientHello: Array<Byte>,
-    nowUnixSeconds!: Int64 = 0,
-    selectedIdentityIndex!: Int64 = -1,
-    keyLen!: Int64 = 16,
-    ivLen!: Int64 = 12
+    encodedClientHello: Array<Byte>, // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
+    nowUnixSeconds!: Int64 = 0, // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
+    selectedIdentityIndex!: Int64 = -1, // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
+    keyLen!: Int64 = 16, // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
+    ivLen!: Int64 = 12 // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
 ): ContractTls13PskEarlyDataPlan {
     throw ContractException(ContractErrorCode.Unsupported,
         "TLS1.3 early data is unavailable without a reviewed opaque-ticket and replay owner")
@@ -11024,7 +11024,7 @@ public func contractTls13AcceptPskEarlyDataFromClientHelloRequest(
 }
 
 public func contractTls13BuildPskEarlyDataReplayKey(
-    plan: ContractTls13PskEarlyDataPlan
+    plan: ContractTls13PskEarlyDataPlan // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
 ): String {
     throw ContractException(ContractErrorCode.Unsupported,
         "TLS1.3 early data is unavailable without a reviewed opaque-ticket and replay owner")
@@ -16603,11 +16603,11 @@ private func contractTls13BuildKeyUpdatePlan(
 }
 
 private func contractTls13BuildPskEarlyDataPlan(
-    ticket: ContractTlsSessionTicket,
-    encodedClientHello: Array<Byte>,
-    selectedIdentityIndex: Int64,
-    keyLen: Int64,
-    ivLen: Int64
+    ticket: ContractTlsSessionTicket, // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
+    encodedClientHello: Array<Byte>, // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
+    selectedIdentityIndex: Int64, // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
+    keyLen: Int64, // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
+    ivLen: Int64 // cjlint-ignore !G.FUN.02 Retained argument preserves the existing callable contract, including fail-closed unsupported operations.
 ): ContractTls13PskEarlyDataPlan {
     throw ContractException(ContractErrorCode.Unsupported,
         "TLS1.3 early data is unavailable without a reviewed opaque-ticket and replay owner")

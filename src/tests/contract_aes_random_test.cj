@@ -7,7 +7,7 @@ public class ContractAesRandomTestSuite {
     @TestCase
     public func testAesPublishedBlockAndGcmRoundTrips(): Unit {
         let key = hexToBytes("000102030405060708090a0b0c0d0e0f")
-        let block = hexToBytes("00112233445566778899aabbccddeeff")
+        let block = hexToBytes("00112233445566778899aabbccddeeff") // cjlint-ignore !G.OTH.02 Published deterministic test vector, not a runtime credential.
         let encrypted = contractAesEncrypt(ContractAesMode.AesEcb, key, block)
         @Assert(contractBytesToHexLower(encrypted), "69c4e0d86a7b0430d8cdb78070b4c55a")
         @Assert(contractAesDecrypt(ContractAesMode.AesEcb, key, encrypted), block)

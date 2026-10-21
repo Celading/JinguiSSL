@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Cangjie-JinguiSSL-c96b2c?style=for-the-badge&labelColor=1f2430" alt="JinguiSSL" />
-  <img src="https://img.shields.io/badge/version-0.9.0-c96b2c?style=for-the-badge&labelColor=1f2430" alt="Version 0.9.0" />
+  <img src="https://img.shields.io/badge/version-0.9.1-c96b2c?style=for-the-badge&labelColor=1f2430" alt="Version 0.9.1" />
   <img src="https://img.shields.io/badge/package-static-2f855a?style=for-the-badge&labelColor=1f2430" alt="Static Package" />
   <img src="https://img.shields.io/badge/surface-contract%20first-3182ce?style=for-the-badge&labelColor=1f2430" alt="Contract First" />
   <img src="https://img.shields.io/badge/license-Apache%202.0-1f9d55?style=for-the-badge&labelColor=1f2430" alt="Apache 2.0" />
@@ -40,7 +40,7 @@
 自有 AES-GCM 可复用上下文与 Into、验证后的 SSH 流式分帧，以及无 HTTP 默认策略的 TLS 1.3 服务端。
 新接口不向消费者导出 Core 类型；源码可用性、中心仓版本与实际应用迁移分别验收。
 
-新增 [DTLS 1.2 消费入口](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.9.0-center-20260919/docs/dtls.md)：`ContractDtlsIdentity`、
+新增 [DTLS 1.2 消费入口](https://github.com/Celading/JinguiSSL/blob/fix/tls13-handshake-framing-0.9.1/docs/dtls.md)：`ContractDtlsIdentity`、
 `ContractDtlsSession` 与可销毁的 `ContractDtlsSrtpSecrets`。仅依赖主桥的
 独立消费者已通过 OpenSSL 双角色/双 profile 本机互操作；媒体协议仍由消费方维护。
 
@@ -71,13 +71,13 @@
 | Incremental TLS 1.3 live runtime | caller-owned transport 的 client/server handshake 与 verified channel | 非浏览器级 HTTPS 证明 |
 | Runtime compatibility profiles | runtime marker 与 startup profile catalog | 不等于多平台实机证明 |
 
-完整证据、manual 映射与限制见 [Capability Matrix](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.9.0-center-20260919/docs/capability-matrix.md)。
+完整证据、manual 映射与限制见 [Capability Matrix](https://github.com/Celading/JinguiSSL/blob/fix/tls13-handshake-framing-0.9.1/docs/capability-matrix.md)。
 
 ## 快速开始
 
 ```toml
 [dependencies]
-jinguissl = "0.9.0"
+jinguissl = "0.9.1"
 ```
 
 ```cangjie
@@ -131,7 +131,7 @@ Contract 源码采用 `Apache-2.0`，依赖的 Core 当前源码线采用 `LGPL-
 新应用可从 `jinguissl.contract.ContractTls13StreamClient`（TCP 字节流）或
 `ContractTls13ClientEngine`（QUIC/自有传输的握手字节）开始。两者不套用 HTTP ALPN，
 要求明确的信任根、DNS 主机名与证书校验时间；应用秘密只在服务器认证全部通过后开放。
-用法、销毁责任、版本取得方式和限制见 [通用 TLS / QUIC 客户端](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.9.0-center-20260919/docs/tls13-client-engine.md)。
+用法、销毁责任、版本取得方式和限制见 [通用 TLS / QUIC 客户端](https://github.com/Celading/JinguiSSL/blob/fix/tls13-handshake-framing-0.9.1/docs/tls13-client-engine.md)。
 
 `jinguissl.live.*` 提供增量 client/server record 输入输出、protected flight、client Finished 验证和 verified application channel。调用方仍负责 socket、读写调度、超时和上层协议。
 
@@ -162,16 +162,16 @@ bash scripts/jinguissl_pre_review.sh <base-ref>
 
 ## 文档与示例
 
-- [使用手册](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.9.0-center-20260919/docs/usage-guide.md)
-- [能力矩阵](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.9.0-center-20260919/docs/capability-matrix.md)
-- [快速开始](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.9.0-center-20260919/docs/getting-started.md)
-- [错误处理](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.9.0-center-20260919/docs/error-handling.md)
-- [QUIC](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.9.0-center-20260919/docs/quic.md)
-- [X.509 与 HTTP/TLS](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.9.0-center-20260919/docs/x509-and-http-tls.md)
-- [国密与国密协议](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.9.0-center-20260919/docs/china-crypto.md)
-- [GM Contract 测试清单](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.9.0-center-20260919/docs/gm-test-manifest.md)
-- [非国密 Contract 测试清单](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.9.0-center-20260919/docs/non-gm-test-manifest.md)
-- [Core → Contract 缺口矩阵](https://github.com/Celading/JinguiSSL/blob/release/jinguissl-0.9.0-center-20260919/docs/core-contract-gap-matrix.md)
+- [使用手册](https://github.com/Celading/JinguiSSL/blob/fix/tls13-handshake-framing-0.9.1/docs/usage-guide.md)
+- [能力矩阵](https://github.com/Celading/JinguiSSL/blob/fix/tls13-handshake-framing-0.9.1/docs/capability-matrix.md)
+- [快速开始](https://github.com/Celading/JinguiSSL/blob/fix/tls13-handshake-framing-0.9.1/docs/getting-started.md)
+- [错误处理](https://github.com/Celading/JinguiSSL/blob/fix/tls13-handshake-framing-0.9.1/docs/error-handling.md)
+- [QUIC](https://github.com/Celading/JinguiSSL/blob/fix/tls13-handshake-framing-0.9.1/docs/quic.md)
+- [X.509 与 HTTP/TLS](https://github.com/Celading/JinguiSSL/blob/fix/tls13-handshake-framing-0.9.1/docs/x509-and-http-tls.md)
+- [国密与国密协议](https://github.com/Celading/JinguiSSL/blob/fix/tls13-handshake-framing-0.9.1/docs/china-crypto.md)
+- [GM Contract 测试清单](https://github.com/Celading/JinguiSSL/blob/fix/tls13-handshake-framing-0.9.1/docs/gm-test-manifest.md)
+- [非国密 Contract 测试清单](https://github.com/Celading/JinguiSSL/blob/fix/tls13-handshake-framing-0.9.1/docs/non-gm-test-manifest.md)
+- [Core → Contract 缺口矩阵](https://github.com/Celading/JinguiSSL/blob/fix/tls13-handshake-framing-0.9.1/docs/core-contract-gap-matrix.md)
 - [开发示例](examples/README.md)
 
 测试数量以当前提交的完整测试日志为准。基准目录只提供非正式量级采样，不构成性能承诺。
@@ -191,3 +191,12 @@ ContractErrorCode / ContractException 在主桥与 legacy live 中共享类型�
 旧导入路径保留，升级需要重新编译。legacy envelope 不再全局缓存 AES-GCM 密钥。
 当前固定的 Core 包含 SSH 线格式/KDF 与 PKIX 边界修复；SSH 旧错误线格式不兼容。
 其他 legacy DTO 收敛、旧对象全量清理及消费者仓库迁移仍未全部完成。新客户端不会自动替换旧 live runtime。
+
+## TLS 1.3 客户端握手分帧
+
+0.9.1 修复 wire-derived、protected-flight 和 incremental 客户端入口对固定五条 record 的依赖。
+握手消息可以合并到一条加密 record，或跨多条 record 分片；兼容 CCS 不进入握手转录。
+三个入口均认证实际接收密文，并保留证书链、主机名、ALPN、pinning、CertificateVerify 和 Finished 校验。
+调用方应按完成状态继续读取，不能按固定 record 数量结束握手。
+
+详见 [分帧与读取合同](docs/tls13-wire-client.md)。仅提供库层修复；应用接入、设备网络和实际文件下载需要各自验证。

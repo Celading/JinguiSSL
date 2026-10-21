@@ -3,6 +3,9 @@ package jinguissl.tests
 import std.collection.ArrayList
 import std.fs.File
 import jinguissl.live.*
+import jinguissl_core.crypto.digest.{sha256, sha384}
+import jinguissl_core.crypto.tls.{TLS13_CIPHER_SUITE_AES_256_GCM_SHA384,
+    tls13DeriveSecretsFromX25519ForCipherSuite, tls13ExtractServerX25519KeyShare}
 
 private let LIVE_SOURCE_ROOT: String = ""
 private let TEST_HOST_WWW: String = "www." + "example.com"
@@ -88,25 +91,31 @@ private func buildRuntimeFixture(): IncrementalClientRuntimeFixture {
     IncrementalClientRuntimeFixture(clientHello, serverFlight, trust)
 }
 
-private func buildServerFlightRecords(serverFlight: ContractTls13HttpServerFlight): Array<Array<Byte>> {
-    [
-        contractTlsEncodePlaintextRecord(
-            ContractTlsVersion.Tls12,
-            ContractTlsRecordContentType.Handshake,
-            serverFlight.serverHello
-        ),
-        appDataRecord("encrypted-extensions-envelope"),
-        appDataRecord("certificate-envelope"),
-        appDataRecord("certificate-verify-envelope"),
-        appDataRecord("finished-envelope")
-    ]
+private func buildServerFlightRecords(fixture: IncrementalClientRuntimeFixture): Array<Array<Byte>> {
+    let serverFlight = fixture.serverFlight
+    let binding = contractTls13ResolveCipherBindingFromServerFlight(serverFlight)
+    let transcript = concatRecords([fixture.clientHello.encodedClientHello, serverFlight.serverHello])
+    let helloHash = if (binding.cipherSuite == TLS13_CIPHER_SUITE_AES_256_GCM_SHA384) {
+        sha384(transcript)
+    } else { sha256(transcript) }
+    let secrets = tls13DeriveSecretsFromX25519ForCipherSuite(fixture.clientHello.clientPrivateKey,
+        tls13ExtractServerX25519KeyShare(serverFlight.serverHello), helloHash, binding.cipherSuite)
+    let (clientKey, clientIv) = contractTls13DeriveApplicationTrafficKeyIv(
+        secrets.clientHsTrafficSecret, keyLen: binding.keyLen, ivLen: binding.ivLen)
+    let (serverKey, serverIv) = contractTls13DeriveApplicationTrafficKeyIv(
+        secrets.serverHsTrafficSecret, keyLen: binding.keyLen, ivLen: binding.ivLen)
+    let channel = contractTls13CreateServerRecordChannel(
+        ContractTls13ApplicationKeyMaterial(clientKey, clientIv, serverKey, serverIv), algorithm: binding.algorithm)
+    [contractTlsEncodePlaintextRecord(ContractTlsVersion.Tls12, ContractTlsRecordContentType.Handshake,
+        serverFlight.serverHello),
+        channel.seal(ContractTlsRecordContentType.Handshake, serverFlight.encryptedExtensions),
+        channel.seal(ContractTlsRecordContentType.Handshake, serverFlight.certificateHandshake),
+        channel.seal(ContractTlsRecordContentType.Handshake, serverFlight.certificateVerifyHandshake),
+        channel.seal(ContractTlsRecordContentType.Handshake, serverFlight.finishedHandshake)]
 }
 
-private func collectServerFlightRecords(serverFlight: ContractTls13HttpServerFlight): ContractTls13IncrementalHandshakeResult {
-    contractTls13CollectIncrementalHandshakeRecords(
-        [],
-        concatRecords(buildServerFlightRecords(serverFlight))
-    )
+private func collectServerFlightRecords(fixture: IncrementalClientRuntimeFixture): ContractTls13IncrementalHandshakeResult {
+    contractTls13CollectIncrementalHandshakeRecords([], concatRecords(buildServerFlightRecords(fixture)))
 }
 
 @Test
@@ -114,7 +123,7 @@ public class ContractTls13IncrementalClientRuntimeTestSuite {
     @TestCase
     public func testIncrementalServerFlightOpensVerifiedRuntime(): Unit {
         let fixture = buildRuntimeFixture()
-        let collected = collectServerFlightRecords(fixture.serverFlight)
+        let collected = collectServerFlightRecords(fixture)
         let outcome = contractTryTls13OpenHttpClientVerifiedSessionRuntimeFromIncrementalServerFlight(
             fixture.clientHello,
             fixture.serverFlight,
@@ -139,7 +148,7 @@ public class ContractTls13IncrementalClientRuntimeTestSuite {
     @TestCase
     public func testIncrementalServerFlightRequestWrapper(): Unit {
         let fixture = buildRuntimeFixture()
-        let collected = collectServerFlightRecords(fixture.serverFlight)
+        let collected = collectServerFlightRecords(fixture)
         let request = ContractTls13IncrementalClientRuntimeRequest(
             fixture.clientHello,
             fixture.serverFlight,

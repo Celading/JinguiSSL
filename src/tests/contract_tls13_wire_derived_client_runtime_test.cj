@@ -123,7 +123,9 @@ private func collectRecords(records: Array<Array<Byte>>): ContractTls13Increment
 private func rebuildProtectedRecords(
     fixture: WireDerivedFixture,
     certificateVerifyOverride!: ?Array<Byte> = None,
-    finishedOverride!: ?Array<Byte> = None
+    finishedOverride!: ?Array<Byte> = None,
+    fragments!: ?Array<Array<Byte>> = None,
+    compatibilityCcs!: Bool = false
 ): Array<Array<Byte>> {
     let binding = contractTls13ResolveCipherBindingFromServerFlight(fixture.serverFlight)
     let serverPublicKey = tls13ExtractServerX25519KeyShare(fixture.serverFlight.serverHello)
@@ -171,17 +173,21 @@ private func rebuildProtectedRecords(
         case Some(value) => value
         case None => fixture.serverFlight.finishedHandshake
     }
-    [
-        contractTlsEncodePlaintextRecord(
-            ContractTlsVersion.Tls12,
-            ContractTlsRecordContentType.Handshake,
-            fixture.serverFlight.serverHello
-        ),
-        channel.seal(ContractTlsRecordContentType.Handshake, fixture.serverFlight.encryptedExtensions),
-        channel.seal(ContractTlsRecordContentType.Handshake, fixture.serverFlight.certificateHandshake),
-        channel.seal(ContractTlsRecordContentType.Handshake, certificateVerify),
-        channel.seal(ContractTlsRecordContentType.Handshake, finished)
-    ]
+    let output = ArrayList<Array<Byte>>()
+    output.add(contractTlsEncodePlaintextRecord(
+        ContractTlsVersion.Tls12, ContractTlsRecordContentType.Handshake, fixture.serverFlight.serverHello
+    ))
+    if (compatibilityCcs) {
+        output.add(contractTlsEncodePlaintextRecord(
+            ContractTlsVersion.Tls12, ContractTlsRecordContentType.ChangeCipherSpec, [UInt8(1)]
+        ))
+    }
+    let pieces = fragments ?? [fixture.serverFlight.encryptedExtensions,
+        fixture.serverFlight.certificateHandshake, certificateVerify, finished]
+    for (piece in pieces) {
+        output.add(channel.seal(ContractTlsRecordContentType.Handshake, piece))
+    }
+    output.toArray()
 }
 
 private func openWireDerived(
@@ -374,4 +380,165 @@ public class ContractTls13WireDerivedClientRuntimeTestSuite {
         @Assert(badFinished.status.toString(), "VERIFICATION_FAILED")
         @Assert(badFinished.message.contains("Finished"), true)
     }
+
+    @TestCase
+    public func testHandshakeMessagesCoalescedIntoOneProtectedRecord(): Unit {
+        let fixture = buildWireFixture()
+        assertFramedRuntime(fixture, rebuildProtectedRecords(fixture, fragments: Some([flightMessages(fixture)])))
+    }
+
+    @TestCase
+    public func testCoalescedHandshakeWithCompatibilityCcs(): Unit {
+        let fixture = buildWireFixture()
+        assertFramedRuntime(fixture, rebuildProtectedRecords(fixture,
+            fragments: Some([flightMessages(fixture)]), compatibilityCcs: true))
+    }
+
+    @TestCase
+    public func testHandshakeHeaderAndBodySplitAcrossProtectedRecords(): Unit {
+        let fixture = buildWireFixture()
+        let messages = flightMessages(fixture)
+        assertFramedRuntime(fixture, rebuildProtectedRecords(fixture,
+            fragments: Some([messages[0..1], messages[1..3], messages[3..19], messages[19..]])))
+    }
+
+    @TestCase
+    public func testEveryHandshakeMessageSplitAndCoalescedWithNext(): Unit {
+        let fixture = buildWireFixture()
+        let messages = flightMessages(fixture)
+        let chunks = ArrayList<Array<Byte>>()
+        var offset: Int64 = 0
+        while (offset < messages.size) {
+            let end = if (offset + 37 < messages.size) { offset + 37 } else { messages.size }
+            chunks.add(messages[offset..end])
+            offset = end
+        }
+        assertFramedRuntime(fixture, rebuildProtectedRecords(fixture, fragments: Some(chunks.toArray())))
+    }
+
+    @TestCase
+    public func testCompatibilityCcsBeforeServerHelloAndRepeatedCcs(): Unit {
+        let fixture = buildWireFixture()
+        let records = rebuildProtectedRecords(fixture, fragments: Some([flightMessages(fixture)]), compatibilityCcs: true)
+        assertFramedRuntime(fixture, [records[1], records[0], records[1], records[1], records[2]])
+        @Assert(openWireDerived(fixture, [records[1]]).status.toString(), "NEED_MORE_BYTES")
+    }
+
+    @TestCase
+    public func testCoalescedFlightPreservesPinningAndHostnamePolicy(): Unit {
+        let fixture = buildWireFixture()
+        let records = collectRecords(rebuildProtectedRecords(fixture, fragments: Some([flightMessages(fixture)])))
+        for (wrongHost in [true, false]) {
+            let trust = ContractHttpClientTlsTrustRequest(fixture.trust.trustAnchorsPemBundle,
+                intermediatesPemBundle: fixture.trust.intermediatesPemBundle,
+                hostname: if (wrongHost) { "wrong.example.com" } else { TEST_HOST_WWW },
+                pinPolicy: if (wrongHost) { ContractX509PinPolicy() } else {
+                    ContractX509PinPolicy(allowedLeafDerSha256: [Array<Byte>(32, repeat: 0)])
+                }, policy: fixture.trust.policy)
+            let outcome = contractTryTls13OpenHttpClientRuntimeFromWireDerivedServerFlight(fixture.clientHello, trust, records)
+            @Assert(outcome.ok, false)
+            @Assert(outcome.status.toString(), "VERIFICATION_FAILED")
+        }
+    }
+
+    @TestCase
+    public func testMalformedOrDuplicateEncryptedExtensionsRejected(): Unit {
+        let fixture = buildWireFixture()
+        let invalid: Array<Array<Byte>> = [
+            [8,0,0,10,0,8,0,0,0,0,0,0,0,0],
+            [8,0,0,6,0,4,0x12,0x34,0,0],
+            [8,0,0,6,0,4,0,16,0,0]
+        ]
+        for (extensions in invalid) {
+            let messages = concatRecords([extensions, fixture.serverFlight.certificateHandshake,
+                fixture.serverFlight.certificateVerifyHandshake, fixture.serverFlight.finishedHandshake])
+            @Assert(openWireDerived(fixture, rebuildProtectedRecords(fixture,
+                fragments: Some([messages]))).status.toString(), "MALFORMED")
+        }
+    }
+
+    @TestCase
+    public func testIncompleteHandshakeMessageNeedsMoreBytes(): Unit {
+        let fixture = buildWireFixture()
+        let messages = flightMessages(fixture)
+        let outcome = openWireDerived(fixture, rebuildProtectedRecords(fixture,
+            fragments: Some([messages[0..messages.size - 1]])))
+        @Assert(outcome.ok, false)
+        @Assert(outcome.status.toString(), "NEED_MORE_BYTES")
+    }
+
+    @TestCase
+    public func testInvalidCompatibilityCcsRejected(): Unit {
+        let fixture = buildWireFixture()
+        let records = rebuildProtectedRecords(fixture, compatibilityCcs: true)
+        records[1] = contractTlsEncodePlaintextRecord(
+            ContractTlsVersion.Tls12, ContractTlsRecordContentType.ChangeCipherSpec, [UInt8(2)]
+        )
+        @Assert(openWireDerived(fixture, records).status.toString(), "MALFORMED")
+    }
+
+    @TestCase
+    public func testCcsCannotInterruptFragmentedHandshakeMessage(): Unit {
+        let fixture = buildWireFixture()
+        let messages = flightMessages(fixture)
+        let records = rebuildProtectedRecords(fixture, fragments: Some([messages[0..2], messages[2..]]))
+        let ccs = contractTlsEncodePlaintextRecord(
+            ContractTlsVersion.Tls12, ContractTlsRecordContentType.ChangeCipherSpec, [UInt8(1)]
+        )
+        @Assert(openWireDerived(fixture, [records[0], records[1], ccs, records[2]]).status.toString(), "MALFORMED")
+    }
+
+    @TestCase
+    public func testOversizeHandshakeLengthRejectedBeforeWaitingForBody(): Unit {
+        let fixture = buildWireFixture()
+        let header = [UInt8(8), UInt8(255), UInt8(255), UInt8(255)]
+        @Assert(openWireDerived(fixture, rebuildProtectedRecords(fixture,
+            fragments: Some([header]))).status.toString(), "MALFORMED")
+    }
+
+    @TestCase
+    public func testCoalescedWrongOrderAndBytesAfterFinishedRejected(): Unit {
+        let fixture = buildWireFixture()
+        let wrong = concatRecords([fixture.serverFlight.certificateHandshake,
+            fixture.serverFlight.encryptedExtensions, fixture.serverFlight.certificateVerifyHandshake,
+            fixture.serverFlight.finishedHandshake])
+        @Assert(openWireDerived(fixture, rebuildProtectedRecords(fixture,
+            fragments: Some([wrong]))).status.toString(), "MALFORMED")
+        let extra = concatRecords([flightMessages(fixture), [UInt8(0)]])
+        @Assert(openWireDerived(fixture, rebuildProtectedRecords(fixture,
+            fragments: Some([extra]))).status.toString(), "MALFORMED")
+    }
+
+    @TestCase
+    public func testIncrementalEntryAuthenticatesReceivedCiphertext(): Unit {
+        let fixture = buildWireFixture()
+        let records = fixture.records.clone()
+        records[2] = tamperByte(records[2])
+        let outcome = contractTryTls13OpenHttpClientVerifiedSessionRuntimeFromIncrementalServerFlight(
+            fixture.clientHello, fixture.serverFlight, fixture.trust, collectRecords(records))
+        @Assert(outcome.ok, false)
+        @Assert(outcome.status.toString(), "VERIFICATION_FAILED")
+    }
+}
+
+private func flightMessages(fixture: WireDerivedFixture): Array<Byte> {
+    concatRecords([fixture.serverFlight.encryptedExtensions, fixture.serverFlight.certificateHandshake,
+        fixture.serverFlight.certificateVerifyHandshake, fixture.serverFlight.finishedHandshake])
+}
+
+private func assertFramedRuntime(fixture: WireDerivedFixture, records: Array<Array<Byte>>): Unit {
+    let collected = collectRecords(records)
+    let wire = openWireDerived(fixture, records)
+    @Assert(wire.ok, true)
+    @Assert(wire.status.toString(), "COMPLETED")
+    let protected = contractTryTls13OpenHttpClientRuntimeFromProtectedServerFlight(
+        fixture.clientHello, fixture.serverFlight, fixture.trust, collected)
+    @Assert(protected.ok, true)
+    let incremental = contractTryTls13OpenHttpClientVerifiedSessionRuntimeFromIncrementalServerFlight(
+        fixture.clientHello, fixture.serverFlight, fixture.trust, collected)
+    @Assert(incremental.ok, true)
+    if (let Some(result) <- wire.result) {
+        @Assert(result.runtime.secureSessionReady, true)
+        @Assert(result.mappedFlight.certificateHandshake, fixture.serverFlight.certificateHandshake)
+    } else { @Fail("completed wire flight must carry a verified runtime") }
 }

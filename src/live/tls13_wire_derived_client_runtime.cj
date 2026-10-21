@@ -5,14 +5,9 @@ import jinguissl_core.crypto.digest.{sha256, sha384}
 import jinguissl_core.crypto.error.CryptoException
 import jinguissl_core.crypto.tls.{
     TLS13_CIPHER_SUITE_AES_256_GCM_SHA384,
-    Tls13HandshakeSecrets,
-    tls13BuildEncryptedExtensions,
     tls13ComputeFinishedVerifyData,
     tls13DecodeEncryptedExtensionsSummary,
-    tls13DeriveSecretsFromX25519ForCipherSuite,
     tls13ExtractClientServerName,
-    tls13ExtractServerX25519KeyShare,
-    tls13SummarizeClientHello,
     tlsEncodeFinishedHandshake
 }
 
@@ -175,47 +170,6 @@ private class C188WireDerivedAttempt {
     }
 }
 
-private class C188EncryptedExtensionsCandidate {
-    let encoded: Array<Byte>
-    let transcriptHash: Array<Byte>
-    let selectedAlpn: String
-    let requestedServerName: String
-    let acknowledgedServerName: Bool
-
-    init(
-        encoded: Array<Byte>,
-        transcriptHash: Array<Byte>,
-        selectedAlpn: String,
-        requestedServerName: String,
-        acknowledgedServerName: Bool
-    ) {
-        this.encoded = encoded.clone()
-        this.transcriptHash = transcriptHash.clone()
-        this.selectedAlpn = selectedAlpn.trimAscii()
-        this.requestedServerName = requestedServerName.trimAscii().toAsciiLower()
-        this.acknowledgedServerName = acknowledgedServerName
-    }
-}
-
-private class C188MatchedEncryptedExtensions {
-    let candidate: C188EncryptedExtensionsCandidate
-    let binding: ContractTls13CipherBinding
-    let secrets: Tls13HandshakeSecrets
-    let channel: ContractTlsRecordChannel
-
-    init(
-        candidate: C188EncryptedExtensionsCandidate,
-        binding: ContractTls13CipherBinding,
-        secrets: Tls13HandshakeSecrets,
-        channel: ContractTlsRecordChannel
-    ) {
-        this.candidate = candidate
-        this.binding = binding
-        this.secrets = secrets
-        this.channel = channel
-    }
-}
-
 public func contractTls13OpenHttpClientRuntimeFromWireDerivedServerFlight(
     clientHello: ContractTls13HttpClientHelloX25519,
     trust: ContractHttpClientTlsTrustRequest,
@@ -251,7 +205,7 @@ public func contractTryTls13OpenHttpClientRuntimeFromWireDerivedServerFlight(
     trust: ContractHttpClientTlsTrustRequest,
     recordResult: ContractTls13IncrementalHandshakeResult
 ): ContractTls13WireDerivedClientHandshakeOutcome {
-    let mapAttempt = c188TryMapWireDerivedServerFlight(clientHello, trust, recordResult)
+    let mapAttempt = c188TryMapWireDerivedServerFlight(clientHello, recordResult)
     if (let Some(failure) <- mapAttempt.failure) {
         return failure
     }
@@ -265,7 +219,7 @@ public func contractTryTls13OpenHttpClientRuntimeFromWireDerivedServerFlight(
         )
     }
 
-    let runtimeOutcome = contractTryTls13OpenHttpClientVerifiedSessionRuntimeFromIncrementalServerFlight(
+    let runtimeOutcome = tls13TryOpenVerifiedClientFlightRuntime(
         clientHello,
         artifacts.serverFlight,
         trust,
@@ -319,7 +273,6 @@ public func contractTryTls13OpenHttpClientRuntimeFromWireDerivedServerFlightRequ
 
 private func c188TryMapWireDerivedServerFlight(
     clientHello: ContractTls13HttpClientHelloX25519,
-    trust: ContractHttpClientTlsTrustRequest,
     recordResult: ContractTls13IncrementalHandshakeResult
 ): C188WireDerivedAttempt {
     if (recordResult.status == ContractTls13IncrementalHandshakeStatus.NeedMoreBytes) {
@@ -371,295 +324,70 @@ private func c188TryMapWireDerivedServerFlight(
             needBytes: recordResult.needBytes
         )))
     }
-    if (recordResult.records.size < 5) {
-        return C188WireDerivedAttempt(failure: Some(ContractTls13WireDerivedClientHandshakeOutcome(
-            false,
-            ContractTls13IncrementalHandshakeStatus.NeedMoreBytes,
-            "TLS1.3 wire-derived server flight needs five TLS records",
-            recordsObserved: recordResult.records.size,
-            needBytes: 1
-        )))
+    let helloIndex = tls13ClientServerHelloRecordIndex(recordResult.records)
+    if (helloIndex < 0) {
+        return C188WireDerivedAttempt(failure: Some(ContractTls13WireDerivedClientHandshakeOutcome(false,
+            ContractTls13IncrementalHandshakeStatus.Malformed, "TLS1.3 compatibility CCS or flight limit is invalid",
+            code: Some(ContractErrorCode.BadInput), recordsObserved: recordResult.records.size)))
     }
-
-    let serverHelloRecord = recordResult.records[0]
+    if (helloIndex == recordResult.records.size) {
+        return C188WireDerivedAttempt(failure: Some(ContractTls13WireDerivedClientHandshakeOutcome(
+            false, ContractTls13IncrementalHandshakeStatus.NeedMoreBytes,
+            "TLS1.3 server flight needs ServerHello", needBytes: 1)))
+    }
+    let serverHelloRecord = recordResult.records[helloIndex]
     if (serverHelloRecord.version != ContractTlsVersion.Tls12 ||
         serverHelloRecord.contentType != ContractTlsRecordContentType.Handshake) {
         return C188WireDerivedAttempt(failure: Some(c188WireFailure(
             ContractTls13IncrementalHandshakeStatus.Malformed,
             "TLS1.3 wire-derived server flight first record is not ServerHello handshake",
-            ContractErrorCode.BadInput,
-            recordResult.records.size
-        )))
+            ContractErrorCode.BadInput, recordResult.records.size)))
     }
-    var i: Int64 = 1
-    while (i < 5) {
-        if (!c188IsTls13ProtectedRecordEnvelope(recordResult.records[i])) {
-            return C188WireDerivedAttempt(failure: Some(c188WireFailure(
-                ContractTls13IncrementalHandshakeStatus.Malformed,
-                "TLS1.3 wire-derived encrypted handshake record envelope is invalid",
-                ContractErrorCode.BadInput,
-                recordResult.records.size
-            )))
-        }
-        i += 1
-    }
-
     try {
-        let binding = contractTls13ResolveCipherBindingFromServerHello(serverHelloRecord.payload)
-        let serverPublicKey = tls13ExtractServerX25519KeyShare(serverHelloRecord.payload)
-        let helloTranscriptHash = c188Tls13HashForCipherSuite(
-            binding.cipherSuite,
-            c188ConcatBytes([clientHello.encodedClientHello, serverHelloRecord.payload])
-        )
-        let candidates = c188BuildEncryptedExtensionsCandidates(clientHello, trust, serverHelloRecord.payload, binding)
-        let matched = c188MatchEncryptedExtensionsCandidate(
-            clientHello,
-            binding,
-            serverPublicKey,
-            helloTranscriptHash,
-            recordResult.records[1],
-            candidates
-        )
-        if (let Some(context) <- matched) {
-            let certificateHandshake = c188OpenProtectedHandshake(
-                context.channel,
-                recordResult.records[2],
-                UInt8(11),
-                "Certificate"
-            )
-            let certificateVerifyHandshake = c188OpenProtectedHandshake(
-                context.channel,
-                recordResult.records[3],
-                UInt8(15),
-                "CertificateVerify"
-            )
-            let finishedHandshake = c188OpenProtectedHandshake(
-                context.channel,
-                recordResult.records[4],
-                UInt8(20),
-                "Finished"
-            )
-            let fullTranscriptHash = c188Tls13FullServerFlightTranscriptHash(
-                context.binding.cipherSuite,
-                clientHello.encodedClientHello,
-                serverHelloRecord.payload,
-                context.candidate.encoded,
-                certificateHandshake,
-                certificateVerifyHandshake,
-                finishedHandshake
-            )
-            let encodedClientFinished = tlsEncodeFinishedHandshake(
-                tls13ComputeFinishedVerifyData(context.secrets.clientHsTrafficSecret, fullTranscriptHash)
-            )
-            let encodedClientFinishedRecord = context.channel.seal(
-                ContractTlsRecordContentType.Handshake,
-                encodedClientFinished
-            )
-            let serverFlight = ContractTls13HttpServerFlight(
-                serverHelloRecord.payload,
-                context.candidate.encoded,
-                certificateHandshake,
-                certificateVerifyHandshake,
-                finishedHandshake,
-                context.candidate.transcriptHash,
-                selectedAlpn: context.candidate.selectedAlpn,
-                requestedServerName: context.candidate.requestedServerName,
-                acknowledgedServerName: context.candidate.acknowledgedServerName
-            )
-            let mapped = ContractTls13ProtectedServerFlightMapping(
-                serverFlight,
-                serverHelloRecord.payload,
-                context.candidate.encoded,
-                certificateHandshake,
-                certificateVerifyHandshake,
-                finishedHandshake,
-                Int64(4)
-            )
-            let clientFinished = ContractTls13ClientFinishedOutput(
-                encodedClientFinished,
-                encodedClientFinishedRecord
-            )
-            return C188WireDerivedAttempt(
-                artifacts: Some(C188WireDerivedArtifacts(serverFlight, mapped, clientFinished))
-            )
+        let read = tls13ReadClientHandshakeMessages(clientHello, serverHelloRecord.payload, recordResult.records)
+        if (let Some(alert) <- read.peerAlert) {
+            return C188WireDerivedAttempt(failure: Some(ContractTls13WireDerivedClientHandshakeOutcome(
+                false, ContractTls13IncrementalHandshakeStatus.PeerAlert, "TLS1.3 protected peer alert",
+                code: Some(ContractErrorCode.VerifyFailed), peerAlert: Some(alert), recordsObserved: recordResult.records.size)))
         }
-        C188WireDerivedAttempt(failure: Some(c188WireFailure(
-            ContractTls13IncrementalHandshakeStatus.VerificationFailed,
-            "TLS1.3 wire-derived EncryptedExtensions could not be opened from client-owned wire",
-            ContractErrorCode.VerifyFailed,
-            recordResult.records.size
-        )))
+        if (!read.complete) {
+            return C188WireDerivedAttempt(failure: Some(ContractTls13WireDerivedClientHandshakeOutcome(
+                false, ContractTls13IncrementalHandshakeStatus.NeedMoreBytes,
+                "TLS1.3 server flight needs more handshake message bytes",
+                recordsObserved: recordResult.records.size, needBytes: read.needBytes)))
+        }
+        let encryptedExtensions = read.messages[0]
+        let certificateHandshake = read.messages[1]
+        let certificateVerifyHandshake = read.messages[2]
+        let finishedHandshake = read.messages[3]
+        let (selectedAlpn, acknowledgedServerName) = tls13DecodeEncryptedExtensionsSummary(encryptedExtensions)
+        let requestedServerName = tls13ExtractClientServerName(clientHello.encodedClientHello)
+        let transcriptHash = c188Tls13ServerFlightTranscriptHash(read.binding.cipherSuite,
+            clientHello.encodedClientHello, serverHelloRecord.payload, encryptedExtensions)
+        let fullTranscriptHash = c188Tls13FullServerFlightTranscriptHash(read.binding.cipherSuite,
+            clientHello.encodedClientHello, serverHelloRecord.payload, encryptedExtensions,
+            certificateHandshake, certificateVerifyHandshake, finishedHandshake)
+        let encodedClientFinished = tlsEncodeFinishedHandshake(
+            tls13ComputeFinishedVerifyData(read.secrets.clientHsTrafficSecret, fullTranscriptHash))
+        let encodedClientFinishedRecord = read.channel.seal(ContractTlsRecordContentType.Handshake, encodedClientFinished)
+        let serverFlight = ContractTls13HttpServerFlight(serverHelloRecord.payload, encryptedExtensions,
+            certificateHandshake, certificateVerifyHandshake, finishedHandshake, transcriptHash,
+            selectedAlpn: selectedAlpn, requestedServerName: requestedServerName,
+            acknowledgedServerName: acknowledgedServerName)
+        let mapped = ContractTls13ProtectedServerFlightMapping(serverFlight, serverHelloRecord.payload,
+            encryptedExtensions, certificateHandshake, certificateVerifyHandshake, finishedHandshake, read.decodedRecords)
+        return C188WireDerivedAttempt(artifacts: Some(C188WireDerivedArtifacts(serverFlight, mapped,
+            ContractTls13ClientFinishedOutput(encodedClientFinished, encodedClientFinishedRecord))))
     } catch (e: ContractException) {
         let status = if (e.code == ContractErrorCode.BadInput) {
             ContractTls13IncrementalHandshakeStatus.Malformed
-        } else {
-            ContractTls13IncrementalHandshakeStatus.VerificationFailed
-        }
-        C188WireDerivedAttempt(failure: Some(c188WireFailure(
-            status,
-            e.message,
-            e.code,
-            recordResult.records.size
-        )))
+        } else { ContractTls13IncrementalHandshakeStatus.VerificationFailed }
+        return C188WireDerivedAttempt(failure: Some(c188WireFailure(status, e.message, e.code, recordResult.records.size)))
     } catch (e: CryptoException) {
-        C188WireDerivedAttempt(failure: Some(c188WireFailure(
+        return C188WireDerivedAttempt(failure: Some(c188WireFailure(
             ContractTls13IncrementalHandshakeStatus.VerificationFailed,
-            "TLS1.3 wire-derived crypto mapping failed: ${e.message}",
-            ContractErrorCode.VerifyFailed,
-            recordResult.records.size
-        )))
+            "TLS1.3 wire-derived crypto mapping failed: ${e.message}", ContractErrorCode.VerifyFailed, recordResult.records.size)))
     }
-}
-
-private func c188BuildEncryptedExtensionsCandidates(
-    clientHello: ContractTls13HttpClientHelloX25519,
-    trust: ContractHttpClientTlsTrustRequest,
-    serverHello: Array<Byte>,
-    binding: ContractTls13CipherBinding
-): Array<C188EncryptedExtensionsCandidate> {
-    let out = ArrayList<C188EncryptedExtensionsCandidate>()
-    let requestedServerName = tls13ExtractClientServerName(clientHello.encodedClientHello)
-    let alpnCandidates = c188AlpnCandidates(clientHello)
-    let ackCandidates = c188ServerNameAckCandidates(requestedServerName)
-    for (alpn in alpnCandidates) {
-        for (ack in ackCandidates) {
-            let encoded = tls13BuildEncryptedExtensions(
-                selectedAlpn: alpn,
-                acknowledgeServerName: ack
-            )
-            let (decodedAlpn, decodedAck) = tls13DecodeEncryptedExtensionsSummary(encoded)
-            let transcriptHash = c188Tls13ServerFlightTranscriptHash(
-                binding.cipherSuite,
-                clientHello.encodedClientHello,
-                serverHello,
-                encoded
-            )
-            out.add(C188EncryptedExtensionsCandidate(
-                encoded,
-                transcriptHash,
-                decodedAlpn,
-                requestedServerName,
-                decodedAck
-            ))
-        }
-    }
-    out.toArray()
-}
-
-private func c188AlpnCandidates(clientHello: ContractTls13HttpClientHelloX25519): Array<String> {
-    let summary = tls13SummarizeClientHello(clientHello.encodedClientHello)
-    let out = ArrayList<String>()
-    for (protocol in summary.alpnProtocols) {
-        let normalized = protocol.trimAscii().toAsciiLower()
-        if (normalized.size > 0 && !c188StringListContains(out, normalized)) {
-            out.add(normalized)
-        }
-    }
-    if (out.size == 0) {
-        out.add("")
-    }
-    out.toArray()
-}
-
-private func c188ServerNameAckCandidates(requestedServerName: String): Array<Bool> {
-    if (requestedServerName.trimAscii().size == 0) {
-        return [false]
-    }
-    [true, false]
-}
-
-private func c188MatchEncryptedExtensionsCandidate(
-    clientHello: ContractTls13HttpClientHelloX25519,
-    binding: ContractTls13CipherBinding,
-    serverPublicKey: Array<Byte>,
-    helloTranscriptHash: Array<Byte>,
-    encryptedExtensionsRecord: ContractTls13IncrementalRecordFrame,
-    candidates: Array<C188EncryptedExtensionsCandidate>
-): ?C188MatchedEncryptedExtensions {
-    for (candidate in candidates) {
-        let secrets = try {
-            tls13DeriveSecretsFromX25519ForCipherSuite(
-                clientHello.clientPrivateKey,
-                serverPublicKey,
-                helloTranscriptHash,
-                binding.cipherSuite
-            )
-        } catch (_: CryptoException) {
-            continue
-        }
-        let channel = try {
-            c188CreateHandshakeClientChannel(secrets, binding)
-        } catch (_: ContractException) {
-            continue
-        }
-        let plain = try {
-            channel.open(encryptedExtensionsRecord.encodedRecord)
-        } catch (_: ContractException) {
-            continue
-        }
-        if (plain.contentType != ContractTlsRecordContentType.Handshake) {
-            continue
-        }
-        if (c188BytesEqual(plain.fragment, candidate.encoded)) {
-            return Some(C188MatchedEncryptedExtensions(candidate, binding, secrets, channel))
-        }
-    }
-    None
-}
-
-private func c188CreateHandshakeClientChannel(
-    secrets: Tls13HandshakeSecrets,
-    binding: ContractTls13CipherBinding
-): ContractTlsRecordChannel {
-    let (clientHandshakeKey, clientHandshakeIv) = contractTls13DeriveApplicationTrafficKeyIv(
-        secrets.clientHsTrafficSecret,
-        keyLen: binding.keyLen,
-        ivLen: binding.ivLen
-    )
-    let (serverHandshakeKey, serverHandshakeIv) = contractTls13DeriveApplicationTrafficKeyIv(
-        secrets.serverHsTrafficSecret,
-        keyLen: binding.keyLen,
-        ivLen: binding.ivLen
-    )
-    let handshakeKeyMaterial = ContractTls13ApplicationKeyMaterial(
-        clientHandshakeKey,
-        clientHandshakeIv,
-        serverHandshakeKey,
-        serverHandshakeIv
-    )
-    contractTls13CreateClientRecordChannel(
-        handshakeKeyMaterial,
-        algorithm: binding.algorithm
-    )
-}
-
-private func c188OpenProtectedHandshake(
-    channel: ContractTlsRecordChannel,
-    record: ContractTls13IncrementalRecordFrame,
-    handshakeType: Byte,
-    label: String
-): Array<Byte> {
-    let plain = channel.open(record.encodedRecord)
-    if (plain.contentType != ContractTlsRecordContentType.Handshake) {
-        throw ContractException(
-            ContractErrorCode.BadInput,
-            "TLS1.3 wire-derived ${label} record did not open as HANDSHAKE"
-        )
-    }
-    if (plain.fragment.size == 0 || plain.fragment[0] != handshakeType) {
-        throw ContractException(
-            ContractErrorCode.BadInput,
-            "TLS1.3 wire-derived ${label} handshake type is invalid"
-        )
-    }
-    plain.fragment
-}
-
-private func c188IsTls13ProtectedRecordEnvelope(record: ContractTls13IncrementalRecordFrame): Bool {
-    (
-        record.version == ContractTlsVersion.Tls13 ||
-        record.version == ContractTlsVersion.Tls12
-    ) && record.contentType == ContractTlsRecordContentType.ApplicationData
 }
 
 private func c188Tls13ServerFlightTranscriptHash(
@@ -711,15 +439,6 @@ private func c188ConcatBytes(parts: Array<Array<Byte>>): Array<Byte> {
         }
     }
     out.toArray()
-}
-
-private func c188StringListContains(values: ArrayList<String>, target: String): Bool {
-    for (value in values) {
-        if (value == target) {
-            return true
-        }
-    }
-    false
 }
 
 private func c188FailureFromCollector(

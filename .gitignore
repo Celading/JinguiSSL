@@ -13,3 +13,6 @@ __pycache__/
 .DS_Store
 
 CANGJIE_GUIDE.md
+
+# Local registry configuration
+cangjie-repo.toml
